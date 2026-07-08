@@ -86,7 +86,7 @@ export const relations = defineRelations(
   (r) => ({
     user: {
       sessions: r.many.session(),
-      accounts: r.many.account(),
+      accounts: r.one.account(),
     },
     session: {
       user: r.one.user({

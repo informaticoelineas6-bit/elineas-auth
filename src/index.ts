@@ -1,24 +1,56 @@
-import { Hono } from "hono";
-import { auth } from "./lib/auth.js";
+import { OpenAPIHono } from "@hono/zod-openapi";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
+import { swaggerUI } from "@hono/swagger-ui";
+import { env } from "./config/env.js";
+import { authRoutes } from "./routes/auth.routes.js";
+import { usersRoutes } from "./routes/users.routes.js";
+import { sessionsRoutes } from "./routes/sessions.routes.js";
+import { logger } from "hono/logger";
+import type { AppEnv } from "./types/hono-env.js";
 
-const app = new Hono();
+const app = new OpenAPIHono<AppEnv>();
 
 app.use(
-	"/api/auth/*", 
-	cors({
-		origin: process.env.ALLOWED_ORIGIN!, 
-		allowHeaders: ["Content-Type", "Authorization"],
-		allowMethods: ["POST", "GET", "OPTIONS"],
-		exposeHeaders: ["Content-Length"],
-		maxAge: 600,
-		credentials: true,
-	}),
+  "/api/*",
+  cors({
+    origin: env.ALLOWED_ORIGIN,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    exposeHeaders: ["Content-Length", "Set-Auth-Token", "Set-Auth-Jwt"],
+    maxAge: 600,
+    credentials: true,
+  }),
 );
+app.use(logger());
 
-app.on(["POST", "GET"], "/api/auth/*", (c) => {
-	return auth.handler(c.req.raw);
+app.route("/api/auth", authRoutes);
+app.route("/api/users", usersRoutes);
+app.route("/api/sessions", sessionsRoutes);
+
+app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
+  type: "http",
+  scheme: "bearer",
+  bearerFormat: "JWT",
+  description:
+    "Token JWT emitido por /api/auth/token o devuelto al iniciar sesión.",
 });
 
-serve(app);
+app.doc("/api/openapi.json", {
+  openapi: "3.0.0",
+  info: {
+    title: "Elineas Auth API",
+    version: "1.0.0",
+    description: "API de autenticación.",
+  },
+  servers: [{ url: env.BETTER_AUTH_URL }],
+});
+
+app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
+
+serve({
+  fetch: app.fetch,
+  port: 8080,
+});
+
+console.log("Serving on http://localhost:8080");

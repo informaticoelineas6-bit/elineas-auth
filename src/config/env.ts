@@ -15,4 +15,5 @@ export const env = {
   DATABASE_URL: required("DATABASE_URL"),
   BETTER_AUTH_SECRET: required("BETTER_AUTH_SECRET"),
   BETTER_AUTH_URL: required("BETTER_AUTH_URL"),
+  ALLOWED_ORIGIN: required("ALLOWED_ORIGIN"),
 };

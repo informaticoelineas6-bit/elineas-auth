@@ -2,8 +2,8 @@
   "name": "elineas-auth",
   "type": "module",
   "scripts": {
-    "dev": "APP_ENV=local tsx watch src/app.ts",
-    "dev:staging": "APP_ENV=staging tsx watch src/app.ts",
+    "dev": "APP_ENV=local tsx watch src/index.ts",
+    "dev:staging": "APP_ENV=staging tsx watch src/index.ts",
     "db:generate:auth:schemas": "npx @better-auth/cli@latest generate --output ./src/db/schema.ts",
     "db:generate:migrations": "npx drizzle-kit generate",
     "db:migrate:local": "APP_ENV=local drizzle-kit migrate",
@@ -12,12 +12,15 @@
   },
   "dependencies": {
     "@hono/node-server": "^2.0.8",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.4.0",
     "@neondatabase/serverless": "^1.1.0",
     "better-auth": "^1.6.23",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4",
     "hono": "^4.12.27",
-    "pg": "^8.22.0"
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@types/node": "^20.19.43",
