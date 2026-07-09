@@ -4,14 +4,16 @@
   "scripts": {
     "dev": "APP_ENV=local bun --env-file=/dev/null --watch src/index.ts",
     "dev:staging": "APP_ENV=staging bun --env-file=/dev/null --watch src/index.ts",
-    "db:generate:auth:schemas": "bunx --env-file=/dev/null @better-auth/cli@latest generate --output ./src/db/schema.ts",
+    "db:generate:auth:schemas": "bunx --env-file=/dev/null @better-auth/cli@latest generate --output ./src/db/auth-schema.ts",
     "db:generate:migrations": "bunx --env-file=/dev/null drizzle-kit generate",
     "db:migrate:local": "APP_ENV=local bunx --env-file=/dev/null drizzle-kit migrate",
     "db:migrate:staging": "APP_ENV=staging bunx --env-file=/dev/null drizzle-kit migrate",
     "build": "tsc --noEmit",
     "start": "bun --env-file=/dev/null src/index.ts"
   },
-  "trustedDependencies": ["esbuild"],
+  "trustedDependencies": [
+    "esbuild"
+  ],
   "dependencies": {
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.4.0",
