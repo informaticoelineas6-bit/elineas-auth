@@ -1,5 +1,25 @@
 import { z } from "@hono/zod-openapi";
 
+export const SignUpBodySchema = z
+  .object({
+    name: z.string().openapi({ example: "Ada Lovelace" }),
+    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
+    password: z.string().min(1).openapi({ example: "super-secreta" }),
+    image: z.string().optional(),
+    callbackURL: z.string().optional(),
+    rememberMe: z.boolean().optional(),
+  })
+  .openapi("SignUpBody");
+
+export const SignInBodySchema = z
+  .object({
+    email: z.string().openapi({ example: "ada@mercadoelineas.com" }),
+    password: z.string().openapi({ example: "super-secreta" }),
+    callbackURL: z.string().optional(),
+    rememberMe: z.boolean().optional(),
+  })
+  .openapi("SignInBody");
+
 export const UserSchema = z
   .object({
     id: z.string().openapi({ example: "usr_9f8a2b" }),
@@ -66,12 +86,63 @@ export const JwkSchema = z
     x: z.string().nullable().optional(),
     y: z.string().nullable().optional(),
   })
-  .passthrough()
+  .loose()
   .openapi("Jwk");
 
 export const JwksResponseSchema = z
   .object({ keys: z.array(JwkSchema) })
   .openapi("JwksResponse");
+
+export const UpdateUserBodySchema = z
+  .object({
+    name: z.string().optional(),
+    image: z.string().optional(),
+  })
+  .openapi("UpdateUserBody");
+
+export const ChangePasswordBodySchema = z
+  .object({
+    newPassword: z.string().openapi({ example: "nueva-super-secreta" }),
+    currentPassword: z.string().openapi({ example: "super-secreta" }),
+    revokeOtherSessions: z.boolean().optional(),
+  })
+  .openapi("ChangePasswordBody");
+
+export const ChangePasswordResponseSchema = z
+  .object({
+    token: z.string().nullable().optional(),
+    user: UserSchema,
+  })
+  .openapi("ChangePasswordResponse");
+
+export const ChangeEmailBodySchema = z
+  .object({
+    newEmail: z.email().openapi({ example: "nueva@mercadoelineas.com" }),
+    callbackURL: z.string().optional(),
+  })
+  .openapi("ChangeEmailBody");
+
+export const ChangeEmailResponseSchema = z
+  .object({
+    user: UserSchema.optional(),
+    status: z.boolean(),
+  })
+  .openapi("ChangeEmailResponse");
+
+export const DeleteUserBodySchema = z
+  .object({
+    callbackURL: z.string().optional(),
+    password: z.string().optional(),
+    token: z.string().optional(),
+  })
+  .openapi("DeleteUserBody");
+
+export const DeleteUserResponseSchema = z
+  .object({
+    success: z.boolean(),
+    message: z.string(),
+  })
+  .openapi("DeleteUserResponse");
 
 export const bearerAuthSecurity = [{ bearerAuth: [] }];
 

@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
-import { auth } from "../lib/auth.js";
-import type { AppEnv } from "../types/hono-env.js";
+import { auth } from "@/lib/auth";
+import type { AppEnv } from "@/types/hono-env";
 
 export async function requireSession(c: Context<AppEnv>, next: Next) {
   const result = await auth.api.getSession({ headers: c.req.raw.headers });

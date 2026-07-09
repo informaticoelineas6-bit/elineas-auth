@@ -1,41 +1,26 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { auth } from "../lib/auth.js";
-import { requireSession } from "../middleware/session.js";
-import { forwardAuthHeaders, handleAuthError, issueJwt } from "../lib/http.js";
-import type { AppEnv } from "../types/hono-env.js";
+import { requireSession } from "@/middleware/session";
+import type { AppEnv } from "@/types/hono-env";
 import {
   AuthResultSchema,
   JwksResponseSchema,
-  SessionSchema,
+  SignInBodySchema,
+  SignUpBodySchema,
   SuccessResponseSchema,
   TokenResponseSchema,
-  UserSchema,
   badRequestResponse,
   bearerAuthSecurity,
   unauthorizedResponse,
-} from "../openapi/schemas.js";
+} from "@/openapi/schemas";
+import {
+  getJwksFn,
+  getTokenFn,
+  signInFn,
+  signOutFn,
+  signUpFn,
+} from "@/services/auth.service";
 
 export const authRoutes = new OpenAPIHono<AppEnv>();
-
-const SignUpBodySchema = z
-  .object({
-    name: z.string().openapi({ example: "Ada Lovelace" }),
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
-    password: z.string().min(1).openapi({ example: "super-secreta" }),
-    image: z.string().optional(),
-    callbackURL: z.string().optional(),
-    rememberMe: z.boolean().optional(),
-  })
-  .openapi("SignUpBody");
-
-const SignInBodySchema = z
-  .object({
-    email: z.string().openapi({ example: "ada@mercadoelineas.com" }),
-    password: z.string().openapi({ example: "super-secreta" }),
-    callbackURL: z.string().optional(),
-    rememberMe: z.boolean().optional(),
-  })
-  .openapi("SignInBody");
 
 const signUpRoute = createRoute({
   method: "post",
@@ -54,21 +39,7 @@ const signUpRoute = createRoute({
   },
 });
 
-authRoutes.openapi(signUpRoute, async (c) => {
-  try {
-    const body = await c.req.json();
-    const { headers, response } = await auth.api.signUpEmail({
-      body,
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    const token = await issueJwt(response.token);
-    return c.json({ user: response.user, token }, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+authRoutes.openapi(signUpRoute, signUpFn);
 
 const signInRoute = createRoute({
   method: "post",
@@ -87,21 +58,7 @@ const signInRoute = createRoute({
   },
 });
 
-authRoutes.openapi(signInRoute, async (c) => {
-  try {
-    const body = await c.req.json();
-    const { headers, response } = await auth.api.signInEmail({
-      body,
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    const token = await issueJwt(response.token);
-    return c.json({ user: response.user, token }, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+authRoutes.openapi(signInRoute, signInFn);
 
 const signOutRoute = createRoute({
   method: "post",
@@ -119,42 +76,7 @@ const signOutRoute = createRoute({
   },
 });
 
-authRoutes.openapi(signOutRoute, async (c) => {
-  try {
-    const { headers, response } = await auth.api.signOut({
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    return c.json(response, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
-
-const getSessionRoute = createRoute({
-  method: "get",
-  path: "/session",
-  tags: ["Auth"],
-  summary: "Obtener el usuario y la sesión actuales",
-  security: bearerAuthSecurity,
-  middleware: [requireSession],
-  responses: {
-    200: {
-      description: "Sesión activa",
-      content: {
-        "application/json": {
-          schema: z.object({ user: UserSchema, session: SessionSchema }),
-        },
-      },
-    },
-    401: unauthorizedResponse,
-  },
-});
-
-authRoutes.openapi(getSessionRoute, (c) => {
-  return c.json({ user: c.get("user"), session: c.get("session") }, 200);
-});
+authRoutes.openapi(signOutRoute, signOutFn);
 
 const getTokenRoute = createRoute({
   method: "get",
@@ -172,14 +94,7 @@ const getTokenRoute = createRoute({
   },
 });
 
-authRoutes.openapi(getTokenRoute, async (c) => {
-  try {
-    const { token } = await auth.api.getToken({ headers: c.req.raw.headers });
-    return c.json({ token }, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+authRoutes.openapi(getTokenRoute, getTokenFn);
 
 const getJwksRoute = createRoute({
   method: "get",
@@ -194,7 +109,4 @@ const getJwksRoute = createRoute({
   },
 });
 
-authRoutes.openapi(getJwksRoute, async (c) => {
-  const jwks = await auth.api.getJwks();
-  return c.json(jwks, 200);
-});
+authRoutes.openapi(getJwksRoute, getJwksFn);

@@ -1,19 +1,47 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { auth } from "../lib/auth.js";
-import { requireSession } from "../middleware/session.js";
-import { forwardAuthHeaders, handleAuthError } from "../lib/http.js";
-import type { AppEnv } from "../types/hono-env.js";
+import { requireSession } from "@/middleware/session";
+import type { AppEnv } from "@/types/hono-env";
 import {
   SessionSchema,
   StatusResponseSchema,
+  UserSchema,
   badRequestResponse,
   bearerAuthSecurity,
   unauthorizedResponse,
-} from "../openapi/schemas.js";
+} from "@/openapi/schemas";
+import {
+  getSessionFn,
+  listSessionsFn,
+  revokeAllFn,
+  revokeOneFn,
+  revokeOthersFn,
+} from "@/services/session.service";
 
 export const sessionsRoutes = new OpenAPIHono<AppEnv>();
 
 sessionsRoutes.use("*", requireSession);
+
+const getSessionRoute = createRoute({
+  method: "get",
+  path: "/session",
+  tags: ["Auth"],
+  summary: "Obtener el usuario y la sesión actuales",
+  security: bearerAuthSecurity,
+  middleware: [requireSession],
+  responses: {
+    200: {
+      description: "Sesión activa",
+      content: {
+        "application/json": {
+          schema: z.object({ user: UserSchema, session: SessionSchema }),
+        },
+      },
+    },
+    401: unauthorizedResponse,
+  },
+});
+
+sessionsRoutes.openapi(getSessionRoute, getSessionFn);
 
 const listSessionsRoute = createRoute({
   method: "get",
@@ -34,14 +62,7 @@ const listSessionsRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(listSessionsRoute, async (c) => {
-  try {
-    const sessions = await auth.api.listSessions({ headers: c.req.raw.headers });
-    return c.json({ sessions }, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+sessionsRoutes.openapi(listSessionsRoute, listSessionsFn);
 
 const revokeOthersRoute = createRoute({
   method: "delete",
@@ -58,18 +79,7 @@ const revokeOthersRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(revokeOthersRoute, async (c) => {
-  try {
-    const { headers, response } = await auth.api.revokeOtherSessions({
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    return c.json(response, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+sessionsRoutes.openapi(revokeOthersRoute, revokeOthersFn);
 
 const revokeAllRoute = createRoute({
   method: "delete",
@@ -86,18 +96,7 @@ const revokeAllRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(revokeAllRoute, async (c) => {
-  try {
-    const { headers, response } = await auth.api.revokeSessions({
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    return c.json(response, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+sessionsRoutes.openapi(revokeAllRoute, revokeAllFn);
 
 const revokeOneRoute = createRoute({
   method: "delete",
@@ -107,7 +106,10 @@ const revokeOneRoute = createRoute({
   security: bearerAuthSecurity,
   request: {
     params: z.object({
-      token: z.string().openapi({ param: { name: "token", in: "path" }, example: "sess_abc123" }),
+      token: z.string().openapi({
+        param: { name: "token", in: "path" },
+        example: "sess_abc123",
+      }),
     }),
   },
   responses: {
@@ -120,17 +122,4 @@ const revokeOneRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(revokeOneRoute, async (c) => {
-  try {
-    const { token } = c.req.valid("param");
-    const { headers, response } = await auth.api.revokeSession({
-      body: { token },
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    return c.json(response, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-});
+sessionsRoutes.openapi(revokeOneRoute, revokeOneFn);

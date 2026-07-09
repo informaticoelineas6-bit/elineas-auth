@@ -1,4 +1,4 @@
-import type { auth } from "../lib/auth.js";
+import type { auth } from "@/lib/auth";
 
 export type SessionResult = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
 

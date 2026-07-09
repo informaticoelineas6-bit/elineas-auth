@@ -1,5 +1,5 @@
 import type { Context } from "hono";
-import { auth } from "./auth.js";
+import { auth } from "@/lib/auth";
 
 const FORWARDED_HEADERS = ["set-auth-token", "set-auth-jwt", "access-control-expose-headers"];
 

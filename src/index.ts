@@ -2,12 +2,12 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
-import { env } from "./config/env.js";
-import { authRoutes } from "./routes/auth.routes.js";
-import { usersRoutes } from "./routes/users.routes.js";
-import { sessionsRoutes } from "./routes/sessions.routes.js";
+import { env } from "@/config/env";
+import { authRoutes } from "@/routes/auth.routes";
+import { usersRoutes } from "@/routes/users.routes";
+import { sessionsRoutes } from "@/routes/sessions.routes";
 import { logger } from "hono/logger";
-import type { AppEnv } from "./types/hono-env.js";
+import type { AppEnv } from "@/types/hono-env";
 
 const app = new OpenAPIHono<AppEnv>();
 
