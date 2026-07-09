@@ -1,0 +1,39 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: elineas
+      POSTGRES_PASSWORD: elineas
+      POSTGRES_DB: elineas_auth
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elineas -d elineas_auth"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      target: dev
+    env_file:
+      - .env.local
+    environment:
+      APP_ENV: local
+      # Dentro de la red de compose el host es el nombre del servicio, no localhost.
+      DATABASE_URL: postgresql://elineas:elineas@postgres:5432/elineas_auth
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  pgdata:

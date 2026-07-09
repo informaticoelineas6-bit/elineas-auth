@@ -1,5 +1,4 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { serve } from "@hono/node-server";
 import { cors } from "hono/cors";
 import { swaggerUI } from "@hono/swagger-ui";
 import { env } from "@/config/env";
@@ -48,9 +47,9 @@ app.doc("/api/openapi.json", {
 
 app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 
-serve({
+const server = Bun.serve({
   fetch: app.fetch,
   port: 8080,
 });
 
-console.log("Serving on http://localhost:8080");
+console.log(`Serving on http://localhost:${server.port}`);
