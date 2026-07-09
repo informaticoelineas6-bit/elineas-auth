@@ -1,6 +1,12 @@
 import { defineRelations } from "drizzle-orm";
 import { user, session, account, verification, jwks } from "@/db/auth-schema";
-import { employee, role, system, userRole } from "@/db/business-schema";
+import {
+  employee,
+  role,
+  system,
+  userRole,
+  sessionSystem,
+} from "@/db/business-schema";
 
 export const schema = {
   user,
@@ -12,6 +18,7 @@ export const schema = {
   system,
   role,
   userRole,
+  sessionSystem,
 };
 
 export const relations = defineRelations(schema, (r) => ({
@@ -20,12 +27,14 @@ export const relations = defineRelations(schema, (r) => ({
     accounts: r.one.account(),
     employee: r.one.employee(),
     userRole: r.many.userRole(),
+    sessionSystem: r.many.sessionSystem(),
   },
   session: {
     user: r.one.user({
       from: r.session.userId,
       to: r.user.id,
     }),
+    sessionSystem: r.one.sessionSystem(),
   },
   account: {
     user: r.one.user({
@@ -41,6 +50,7 @@ export const relations = defineRelations(schema, (r) => ({
   },
   system: {
     roles: r.many.role(),
+    sessionSystem: r.many.sessionSystem(),
   },
   role: {
     system: r.one.system({
@@ -57,6 +67,20 @@ export const relations = defineRelations(schema, (r) => ({
     role: r.one.role({
       from: r.userRole.roleId,
       to: r.role.id,
+    }),
+  },
+  sessionSystem: {
+    session: r.one.session({
+      from: r.sessionSystem.sessionId,
+      to: r.session.id,
+    }),
+    user: r.one.user({
+      from: r.sessionSystem.userId,
+      to: r.user.id,
+    }),
+    system: r.one.system({
+      from: r.sessionSystem.systemId,
+      to: r.system.id,
     }),
   },
 }));

@@ -2,7 +2,7 @@
 import { config } from "dotenv";
 
 const environment = process.env.APP_ENV ?? "local";
-config({ path: `.env.${environment}`, quiet: true });
+config({ path: `.env.${environment}`, quiet: true, override: true });
 
 function required(name: string): string {
   const value = process.env[name];

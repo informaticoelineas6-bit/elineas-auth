@@ -6,7 +6,7 @@ import {
   index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
-import { user } from "@/db/auth-schema";
+import { user, session } from "@/db/auth-schema";
 
 // Datos personales del empleado. Un empleado puede existir sin usuario
 // (aún no se le ha creado cuenta) y un usuario puede no estar ligado a
@@ -21,13 +21,13 @@ export const employee = pgTable(
       .unique()
       .references(() => user.id, { onDelete: "set null" }),
     name: text("name").notNull(),
-    last_name: text("last_name").notNull(),
+    lastName: text("last_name").notNull(),
     ci: text("ci").notNull().unique(),
     birthday: timestamp("birthday"),
-    phone_number: text("phone_number"),
+    phoneNumber: text("phone_number"),
     address: text("address"),
-    in_date: timestamp("in_date"),
-    out_date: timestamp("out_date"),
+    inDate: timestamp("in_date"),
+    outDate: timestamp("out_date"),
     active: boolean("active").default(true).notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
@@ -63,7 +63,7 @@ export const role = pgTable(
     id: text("id")
       .primaryKey()
       .$defaultFn(() => crypto.randomUUID()),
-    systemId: text("systemId")
+    systemId: text("system_id")
       .notNull()
       .references(() => system.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
@@ -92,7 +92,7 @@ export const userRole = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    roleId: text("rol_id")
+    roleId: text("role_id")
       .notNull()
       .references(() => role.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -101,5 +101,36 @@ export const userRole = pgTable(
     index("userRole_userId_idx").on(table.userId),
     index("userRole_roleId_idx").on(table.roleId),
     uniqueIndex("userRole_userId_roleId_uidx").on(table.userId, table.roleId),
+  ],
+);
+
+// Cada sesión de login pertenece a exactamente un sistema: al ser un
+// identity server, el usuario abre una sesión distinta por cada sistema
+// al que accede (no una sesión SSO compartida entre todos). sessionId es
+// la propia PK, lo que garantiza la relación 1 a 1 con `session`.
+//
+// userId está denormalizado desde `session.userId`: Postgres no puede
+// validar un UNIQUE que cruce dos tablas, así que lo necesitamos aquí
+// para poder exigir "una sola sesión por usuario y sistema".
+export const sessionSystem = pgTable(
+  "session_system",
+  {
+    sessionId: text("session_id")
+      .primaryKey()
+      .references(() => session.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    systemId: text("system_id")
+      .notNull()
+      .references(() => system.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("sessionSystem_systemId_idx").on(table.systemId),
+    uniqueIndex("sessionSystem_userId_systemId_uidx").on(
+      table.userId,
+      table.systemId,
+    ),
   ],
 );
