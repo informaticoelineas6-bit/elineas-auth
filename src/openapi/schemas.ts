@@ -1,4 +1,5 @@
 import { z } from "@hono/zod-openapi";
+import { SystemSchema } from "@/openapi/business.schemas";
 
 export const SignUpBodySchema = z
   .object({
@@ -8,6 +9,8 @@ export const SignUpBodySchema = z
     image: z.string().optional(),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
+    // Opcional en el registro: si se indica, enlaza la sesión al sistema.
+    systemSlug: z.string().optional().openapi({ example: "pos" }),
   })
   .openapi("SignUpBody");
 
@@ -17,6 +20,8 @@ export const SignInBodySchema = z
     password: z.string().openapi({ example: "super-secreta" }),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
+    // Obligatorio: cada login pertenece a un sistema concreto.
+    systemSlug: z.string().openapi({ example: "pos" }),
   })
   .openapi("SignInBody");
 
@@ -71,7 +76,11 @@ export const TokenResponseSchema = z
   .openapi("TokenResponse");
 
 export const AuthResultSchema = z
-  .object({ user: UserSchema, token: z.string().nullable() })
+  .object({
+    user: UserSchema,
+    token: z.string().nullable(),
+    system: SystemSchema.nullable().optional(),
+  })
   .openapi("AuthResult");
 
 export const JwkSchema = z
@@ -153,5 +162,20 @@ export const unauthorizedResponse = {
 
 export const badRequestResponse = {
   description: "Solicitud inválida",
+  content: { "application/json": { schema: ErrorResponseSchema } },
+};
+
+export const forbiddenResponse = {
+  description: "Requiere privilegios de administrador",
+  content: { "application/json": { schema: ErrorResponseSchema } },
+};
+
+export const notFoundResponse = {
+  description: "Recurso no encontrado",
+  content: { "application/json": { schema: ErrorResponseSchema } },
+};
+
+export const conflictResponse = {
+  description: "Conflicto de unicidad",
   content: { "application/json": { schema: ErrorResponseSchema } },
 };

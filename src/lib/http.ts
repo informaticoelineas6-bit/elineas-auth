@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { auth } from "@/lib/auth";
 
 const FORWARDED_HEADERS = ["set-auth-token", "set-auth-jwt", "access-control-expose-headers"];
@@ -22,18 +23,80 @@ export async function issueJwt(sessionToken: string | null | undefined) {
   return token;
 }
 
+// Error de dominio que los servicios pueden lanzar para producir una respuesta
+// HTTP concreta (404, 400, 403, ...). Lo mapea `handleError`.
+export class HttpError extends Error {
+  constructor(
+    public status: ContentfulStatusCode,
+    message: string,
+    public code?: string,
+  ) {
+    super(message);
+    this.name = "HttpError";
+  }
+}
+
 type ApiError = { statusCode: number; body?: { message?: string; code?: string } };
 
 function isApiError(error: unknown): error is ApiError {
   return typeof error === "object" && error !== null && "statusCode" in error;
 }
 
-export function handleAuthError(c: Context, error: unknown) {
+// Extrae el SQLSTATE (code de 5 caracteres) de un error de Postgres. drizzle
+// envuelve el error nativo, por lo que el code puede estar en el propio error
+// o en su `cause`.
+function getPgCode(error: unknown): string | undefined {
+  for (const candidate of [error, (error as { cause?: unknown })?.cause]) {
+    if (
+      typeof candidate === "object" &&
+      candidate !== null &&
+      "code" in candidate &&
+      typeof (candidate as { code: unknown }).code === "string" &&
+      (candidate as { code: string }).code.length === 5
+    ) {
+      return (candidate as { code: string }).code;
+    }
+  }
+  return undefined;
+}
+
+// Manejador de errores único para toda la API. Se registra con `app.onError`,
+// de modo que cualquier handler puede simplemente lanzar y aquí se traduce.
+export function handleError(error: unknown, c: Context) {
+  // El status se emite como `any` a propósito: estos errores se devuelven desde
+  // handlers registrados con `.openapi()`, cuyo tipado no puede estrechar el
+  // status en tiempo de ejecución a un literal concreto de la ruta.
+  const json = (body: { error: string; code?: string }, status: ContentfulStatusCode) =>
+    c.json(body, status as any);
+
+  if (error instanceof HttpError) {
+    return json({ error: error.message, code: error.code }, error.status);
+  }
   if (isApiError(error)) {
-    return c.json(
+    return json(
       { error: error.body?.message ?? "Error de autenticación", code: error.body?.code },
-      error.statusCode as any,
+      error.statusCode as ContentfulStatusCode,
     );
   }
-  throw error;
+  switch (getPgCode(error)) {
+    case "23505": // unique_violation
+      return json(
+        { error: "El recurso ya existe (violación de unicidad)", code: "CONFLICT" },
+        409,
+      );
+    case "23503": // foreign_key_violation
+      return json(
+        { error: "Referencia inválida a otro recurso", code: "FK_VIOLATION" },
+        400,
+      );
+    case "23502": // not_null_violation
+      return json({ error: "Falta un campo obligatorio", code: "NOT_NULL" }, 400);
+  }
+  console.error("Error no controlado:", error);
+  return json({ error: "Error interno del servidor", code: "INTERNAL" }, 500);
+}
+
+// Compat: los servicios de auth existentes lo usan dentro de su try/catch.
+export function handleAuthError(c: Context, error: unknown) {
+  return handleError(error, c);
 }

@@ -5,6 +5,11 @@ import { env } from "@/config/env";
 import { authRoutes } from "@/routes/auth.routes";
 import { usersRoutes } from "@/routes/users.routes";
 import { sessionsRoutes } from "@/routes/sessions.routes";
+import { employeesRoutes } from "@/routes/employees.routes";
+import { systemsRoutes } from "@/routes/systems.routes";
+import { rolesRoutes } from "@/routes/roles.routes";
+import { userRolesRoutes } from "@/routes/user-roles.routes";
+import { handleError } from "@/lib/http";
 import { logger } from "hono/logger";
 import type { AppEnv } from "@/types/hono-env";
 
@@ -23,9 +28,15 @@ app.use(
 );
 app.use(logger());
 
+app.onError(handleError);
+
 app.route("/api/auth", authRoutes);
 app.route("/api/users", usersRoutes);
 app.route("/api/sessions", sessionsRoutes);
+app.route("/api/employees", employeesRoutes);
+app.route("/api/systems", systemsRoutes);
+app.route("/api/roles", rolesRoutes);
+app.route("/api/user-roles", userRolesRoutes);
 
 app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
   type: "http",
@@ -49,7 +60,7 @@ app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
 
 const server = Bun.serve({
   fetch: app.fetch,
-  port: 8080,
+  port: Number(process.env.PORT) || 8080,
 });
 
 console.log(`Serving on http://localhost:${server.port}`);

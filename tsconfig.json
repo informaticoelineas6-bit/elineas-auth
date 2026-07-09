@@ -11,9 +11,8 @@
     "skipLibCheck": true,
     "noEmit": true,
     "types": ["bun"],
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"]
+      "@/*": ["./src/*"]
     }
   },
   "include": ["src"],

@@ -1,11 +1,14 @@
 import { auth } from "@/lib/auth";
 import { forwardAuthHeaders, handleAuthError } from "@/lib/http";
+import { getSessionSystem } from "@/services/session-system.service";
 import type { AppEnv } from "@/types/hono-env";
 import { RevokeOneParamsInput } from "@/types/session";
 import { Context } from "hono";
 
 export const getSessionFn = async (c: Context) => {
-  return c.json({ user: c.get("user"), session: c.get("session") }, 200);
+  const session = c.get("session");
+  const system = await getSessionSystem(session.id);
+  return c.json({ user: c.get("user"), session, system }, 200);
 };
 
 export const listSessionsFn = async (c: Context) => {

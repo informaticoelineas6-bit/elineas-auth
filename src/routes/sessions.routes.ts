@@ -9,6 +9,7 @@ import {
   bearerAuthSecurity,
   unauthorizedResponse,
 } from "@/openapi/schemas";
+import { SystemSchema } from "@/openapi/business.schemas";
 import {
   getSessionFn,
   listSessionsFn,
@@ -33,7 +34,11 @@ const getSessionRoute = createRoute({
       description: "Sesión activa",
       content: {
         "application/json": {
-          schema: z.object({ user: UserSchema, session: SessionSchema }),
+          schema: z.object({
+            user: UserSchema,
+            session: SessionSchema,
+            system: SystemSchema.nullable(),
+          }),
         },
       },
     },

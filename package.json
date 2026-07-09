@@ -8,6 +8,8 @@
     "db:generate:migrations": "bunx --env-file=/dev/null drizzle-kit generate",
     "db:migrate:local": "APP_ENV=local bunx --env-file=/dev/null drizzle-kit migrate",
     "db:migrate:staging": "APP_ENV=staging bunx --env-file=/dev/null drizzle-kit migrate",
+    "db:seed:local": "APP_ENV=local bun --env-file=/dev/null src/db/seed.ts",
+    "db:seed:staging": "APP_ENV=staging bun --env-file=/dev/null src/db/seed.ts",
     "build": "tsc --noEmit",
     "start": "bun --env-file=/dev/null src/index.ts"
   },
