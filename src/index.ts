@@ -35,8 +35,14 @@ app.use(logger());
 
 // Rate limiting en los endpoints sensibles (contra fuerza bruta / credential
 // stuffing). Se registra antes que las rutas para que se ejecute primero.
-app.use("/api/auth/sign-in", rateLimit({ windowMs: 60_000, max: 10 }));
-app.use("/api/auth/sign-up", rateLimit({ windowMs: 60_000, max: 5 }));
+app.use(
+  "/api/auth/sign-in",
+  rateLimit({ name: "sign-in", windowMs: 60_000, max: 10 }),
+);
+app.use(
+  "/api/auth/sign-up",
+  rateLimit({ name: "sign-up", windowMs: 60_000, max: 5 }),
+);
 
 app.onError(handleError);
 

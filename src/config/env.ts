@@ -42,4 +42,8 @@ export const env = {
   // se siembra manualmente en BD (bootstrap).
   ADMIN_SYSTEM_SLUG: process.env.ADMIN_SYSTEM_SLUG ?? "auth",
   ADMIN_ROLE_NAME: process.env.ADMIN_ROLE_NAME ?? "admin",
+  // URL de Redis para el rate limiting distribuido (compartido entre réplicas).
+  // Opcional: si no se define, el rate limiter degrada a un contador en memoria
+  // por instancia (útil en desarrollo local sin Redis).
+  REDIS_URL: process.env.REDIS_URL,
 };

@@ -16,6 +16,19 @@ services:
       timeout: 5s
       retries: 5
 
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api:
     build:
       context: .
@@ -26,6 +39,7 @@ services:
       APP_ENV: local
       # Dentro de la red de compose el host es el nombre del servicio, no localhost.
       DATABASE_URL: postgresql://elineas:elineas@postgres:5432/elineas_auth
+      REDIS_URL: redis://redis:6379
     ports:
       - "8080:8080"
     volumes:
@@ -34,6 +48,9 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      redis:
+        condition: service_healthy
 
 volumes:
   pgdata:
+  redisdata:
