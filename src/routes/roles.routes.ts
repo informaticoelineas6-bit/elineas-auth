@@ -5,10 +5,12 @@ import type { AppEnv } from "@/types/hono-env";
 import {
   CreateRoleBodySchema,
   IdParamSchema,
+  PaginationSchema,
   RoleListQuerySchema,
   RoleSchema,
   UpdateRoleBodySchema,
 } from "@/openapi/business.schemas";
+import { paginationMeta } from "@/lib/pagination";
 import {
   StatusResponseSchema,
   badRequestResponse,
@@ -38,14 +40,19 @@ const listRoute = createRoute({
   path: "/",
   operationId: "listRoles",
   tags: ["Roles"],
-  summary: "Listar roles (opcionalmente filtrados por sistema)",
+  summary: "Listar roles (paginado, filtrable por sistema y búsqueda)",
   security: bearerAuthSecurity,
   request: { query: RoleListQuerySchema },
   responses: {
     200: {
       description: "Lista de roles",
       content: {
-        "application/json": { schema: z.object({ roles: z.array(RoleSchema) }) },
+        "application/json": {
+          schema: z.object({
+            roles: z.array(RoleSchema),
+            pagination: PaginationSchema,
+          }),
+        },
       },
     },
     401: unauthorizedResponse,
@@ -54,9 +61,9 @@ const listRoute = createRoute({
 });
 
 rolesRoutes.openapi(listRoute, async (c) => {
-  const { systemId } = c.req.valid("query");
-  const roles = await listRoles({ systemId });
-  return c.json({ roles }, 200);
+  const { systemId, search, page, limit } = c.req.valid("query");
+  const { rows, total } = await listRoles({ systemId, search }, { page, limit });
+  return c.json({ roles: rows, pagination: paginationMeta({ page, limit }, total) }, 200);
 });
 
 const getRoute = createRoute({

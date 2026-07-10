@@ -7,8 +7,10 @@ import {
   EmployeeListQuerySchema,
   EmployeeSchema,
   IdParamSchema,
+  PaginationSchema,
   UpdateEmployeeBodySchema,
 } from "@/openapi/business.schemas";
+import { paginationMeta } from "@/lib/pagination";
 import {
   StatusResponseSchema,
   badRequestResponse,
@@ -40,7 +42,7 @@ const listRoute = createRoute({
   path: "/",
   operationId: "listEmployees",
   tags: ["Employees"],
-  summary: "Listar empleados",
+  summary: "Listar empleados (paginado, filtrable por estado y búsqueda)",
   security: bearerAuthSecurity,
   request: { query: EmployeeListQuerySchema },
   responses: {
@@ -48,7 +50,10 @@ const listRoute = createRoute({
       description: "Lista de empleados",
       content: {
         "application/json": {
-          schema: z.object({ employees: z.array(EmployeeSchema) }),
+          schema: z.object({
+            employees: z.array(EmployeeSchema),
+            pagination: PaginationSchema,
+          }),
         },
       },
     },
@@ -58,11 +63,15 @@ const listRoute = createRoute({
 });
 
 employeesRoutes.openapi(listRoute, async (c) => {
-  const { active } = c.req.valid("query");
-  const employees = await listEmployees({
-    active: active === undefined ? undefined : active === "true",
-  });
-  return c.json({ employees }, 200);
+  const { active, search, page, limit } = c.req.valid("query");
+  const { rows, total } = await listEmployees(
+    { active: active === undefined ? undefined : active === "true", search },
+    { page, limit },
+  );
+  return c.json(
+    { employees: rows, pagination: paginationMeta({ page, limit }, total) },
+    200,
+  );
 });
 
 const getRoute = createRoute({

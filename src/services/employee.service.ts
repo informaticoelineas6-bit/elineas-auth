@@ -1,8 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { employee } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
   CreateEmployeeBodySchema,
   UpdateEmployeeBodySchema,
@@ -11,14 +12,35 @@ import type {
 type CreateEmployeeInput = z.infer<typeof CreateEmployeeBodySchema>;
 type UpdateEmployeeInput = z.infer<typeof UpdateEmployeeBodySchema>;
 
-export async function listEmployees(filters: { active?: boolean } = {}) {
-  const where =
-    filters.active === undefined ? undefined : eq(employee.active, filters.active);
-  return db
-    .select()
-    .from(employee)
-    .where(where)
-    .orderBy(desc(employee.createdAt));
+export async function listEmployees(
+  filters: { active?: boolean; search?: string },
+  pagination: PaginationInput,
+) {
+  const conditions = [
+    filters.active === undefined ? undefined : eq(employee.active, filters.active),
+    filters.search
+      ? or(
+          ilike(employee.name, `%${filters.search}%`),
+          ilike(employee.lastName, `%${filters.search}%`),
+          ilike(employee.ci, `%${filters.search}%`),
+        )
+      : undefined,
+  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  // Filas de la página y total (para los metadatos) en paralelo: comparten el
+  // mismo `where` para que el total refleje los filtros aplicados.
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(employee)
+      .where(where)
+      .orderBy(desc(employee.createdAt))
+      .limit(pagination.limit)
+      .offset(toOffset(pagination)),
+    db.select({ total: count() }).from(employee).where(where),
+  ]);
+  return { rows, total };
 }
 
 export async function getEmployee(id: string) {

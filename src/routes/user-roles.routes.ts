@@ -7,9 +7,11 @@ import {
   IdParamSchema,
   MyUserRoleSchema,
   MyUserRolesQuerySchema,
+  PaginationSchema,
   UserRoleListQuerySchema,
   UserRoleSchema,
 } from "@/openapi/business.schemas";
+import { paginationMeta } from "@/lib/pagination";
 import {
   StatusResponseSchema,
   badRequestResponse,
@@ -69,7 +71,7 @@ const listRoute = createRoute({
   path: "/",
   operationId: "listUserRoles",
   tags: ["UserRoles"],
-  summary: "Listar asignaciones de roles (filtrable por usuario o rol)",
+  summary: "Listar asignaciones de roles (paginado, filtrable por usuario o rol)",
   security: bearerAuthSecurity,
   middleware: [requireAdmin] as const,
   request: { query: UserRoleListQuerySchema },
@@ -78,7 +80,10 @@ const listRoute = createRoute({
       description: "Lista de asignaciones",
       content: {
         "application/json": {
-          schema: z.object({ userRoles: z.array(UserRoleSchema) }),
+          schema: z.object({
+            userRoles: z.array(UserRoleSchema),
+            pagination: PaginationSchema,
+          }),
         },
       },
     },
@@ -88,9 +93,12 @@ const listRoute = createRoute({
 });
 
 userRolesRoutes.openapi(listRoute, async (c) => {
-  const { userId, roleId } = c.req.valid("query");
-  const userRoles = await listUserRoles({ userId, roleId });
-  return c.json({ userRoles }, 200);
+  const { userId, roleId, page, limit } = c.req.valid("query");
+  const { rows, total } = await listUserRoles({ userId, roleId }, { page, limit });
+  return c.json(
+    { userRoles: rows, pagination: paginationMeta({ page, limit }, total) },
+    200,
+  );
 });
 
 const getRoute = createRoute({

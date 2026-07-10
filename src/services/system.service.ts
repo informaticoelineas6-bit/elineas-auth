@@ -1,8 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { system } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
   CreateSystemBodySchema,
   UpdateSystemBodySchema,
@@ -11,8 +12,32 @@ import type {
 type CreateSystemInput = z.infer<typeof CreateSystemBodySchema>;
 type UpdateSystemInput = z.infer<typeof UpdateSystemBodySchema>;
 
-export async function listSystems() {
-  return db.select().from(system).orderBy(desc(system.createdAt));
+export async function listSystems(
+  filters: { active?: boolean; search?: string },
+  pagination: PaginationInput,
+) {
+  const conditions = [
+    filters.active === undefined ? undefined : eq(system.active, filters.active),
+    filters.search
+      ? or(
+          ilike(system.name, `%${filters.search}%`),
+          ilike(system.slug, `%${filters.search}%`),
+        )
+      : undefined,
+  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(system)
+      .where(where)
+      .orderBy(desc(system.createdAt))
+      .limit(pagination.limit)
+      .offset(toOffset(pagination)),
+    db.select({ total: count() }).from(system).where(where),
+  ]);
+  return { rows, total };
 }
 
 export async function getSystem(id: string) {

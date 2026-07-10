@@ -1,8 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { and, count, desc, eq, ilike } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { role } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
   CreateRoleBodySchema,
   UpdateRoleBodySchema,
@@ -11,9 +12,27 @@ import type {
 type CreateRoleInput = z.infer<typeof CreateRoleBodySchema>;
 type UpdateRoleInput = z.infer<typeof UpdateRoleBodySchema>;
 
-export async function listRoles(filters: { systemId?: string } = {}) {
-  const where = filters.systemId ? eq(role.systemId, filters.systemId) : undefined;
-  return db.select().from(role).where(where).orderBy(desc(role.createdAt));
+export async function listRoles(
+  filters: { systemId?: string; search?: string },
+  pagination: PaginationInput,
+) {
+  const conditions = [
+    filters.systemId ? eq(role.systemId, filters.systemId) : undefined,
+    filters.search ? ilike(role.name, `%${filters.search}%`) : undefined,
+  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(role)
+      .where(where)
+      .orderBy(desc(role.createdAt))
+      .limit(pagination.limit)
+      .offset(toOffset(pagination)),
+    db.select({ total: count() }).from(role).where(where),
+  ]);
+  return { rows, total };
 }
 
 export async function getRole(id: string) {

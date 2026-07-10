@@ -403,7 +403,7 @@ necesites, no como middleware global.
 ## 6. CORS
 
 El IS refleja el `Origin` solo si está en `ALLOWED_ORIGIN`
-(`src/index.ts:19-33`). Si tu frontend recibe errores de CORS:
+(`src/app.ts:34-48`). Si tu frontend recibe errores de CORS:
 
 - Confirma que tu dominio exacto (esquema + host + puerto) está en
   `ALLOWED_ORIGIN` del entorno del IS.
@@ -482,7 +482,7 @@ deben vivir en tu propio backend, indexados por `identity.sub` (el
 
 Los endpoints `POST /api/auth/sign-in` (10 req/min por IP) y
 `POST /api/auth/sign-up` (5 req/min por IP) están limitados
-(`src/index.ts:38-45`, `src/middleware/rate-limit.ts`). Al superar el
+(`src/app.ts:66-73`, `src/middleware/rate-limit.ts`). Al superar el
 límite reciben `429` con cabecera `Retry-After` (segundos) y cuerpo
 `{ "error": "...", "code": "RATE_LIMITED" }`. Tu cliente debe:
 
@@ -516,9 +516,47 @@ ausente en sign-in/sign-up).
 | GET        | `/api/user-roles/me`                                              | Sesión           | Mis roles, opcionalmente filtrados por `systemSlug` |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna) |
 
+### 10.1 Paginación y filtros en listados
+
+Los listados administrativos —`GET /api/employees`, `GET /api/systems`,
+`GET /api/roles` y `GET /api/user-roles`— están **paginados** y aceptan
+filtros por query string:
+
+| Parámetro | Tipo   | Por defecto | Aplica a                | Descripción                                             |
+| --------- | ------ | ----------- | ----------------------- | ------------------------------------------------------- |
+| `page`    | entero | `1`         | todos                   | Página, 1-indexada.                                     |
+| `limit`   | entero | `20`        | todos                   | Elementos por página, acotado a `[1, 100]`.             |
+| `search`  | texto  | —           | employees, systems, roles | Búsqueda parcial (insensible a mayúsculas).           |
+| `active`  | `true`/`false` | —   | employees, systems      | Filtra por estado activo.                               |
+| `systemId`| texto  | —           | roles                   | Filtra los roles de un sistema.                         |
+| `userId`  | texto  | —           | user-roles              | Filtra las asignaciones de un usuario.                  |
+| `roleId`  | texto  | —           | user-roles              | Filtra las asignaciones de un rol.                      |
+
+El campo de `search` cubre: nombre/apellido/CI en empleados, nombre/slug en
+sistemas y nombre en roles.
+
+Cada respuesta incluye el array de recursos **y** un objeto `pagination` con
+los totales, de modo que el cliente puede construir la navegación sin llamadas
+extra:
+
+```jsonc
+// GET /api/employees?page=1&limit=20&active=true&search=ada
+{
+  "employees": [ /* ... hasta `limit` elementos ... */ ],
+  "pagination": { "page": 1, "limit": 20, "total": 57, "totalPages": 3 }
+}
+```
+
+`totalPages` vale `0` cuando no hay resultados. Los `limit` fuera de rango o los
+`page`/`limit` no numéricos se rechazan con `400` (validación de query). Los
+listados propios del usuario (`GET /api/sessions`, `GET /api/user-roles/me`) no
+se paginan: devuelven el conjunto completo del propio usuario.
+
 En entornos no productivos (`APP_ENV !== "production"`), el esquema completo
 está disponible en `GET /api/openapi.json` y Swagger UI en `GET /api/docs`
-(`src/index.ts:68-88`) — en producción se deshabilita intencionalmente.
+(`src/app.ts`) — en producción se deshabilita intencionalmente. El fichero
+`postman/elineas-auth.openapi.json` se regenera con `bun run openapi:generate`
+tras cambiar rutas o esquemas.
 
 ## 11. Checklist de seguridad para producción
 

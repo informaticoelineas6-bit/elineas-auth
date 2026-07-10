@@ -9,6 +9,33 @@ export const IdParamSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// Paginación (compartida por todos los listados)
+// ---------------------------------------------------------------------------
+// Query reutilizable: `page` 1-indexado y `limit` acotado a [1, 100] para que
+// un cliente no pueda pedir toda la tabla de una vez. z.coerce convierte el
+// string del query a número; los valores por defecto se aplican si se omiten.
+export const PaginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1).openapi({
+    param: { name: "page", in: "query", required: false },
+    example: 1,
+  }),
+  limit: z.coerce.number().int().min(1).max(100).default(20).openapi({
+    param: { name: "limit", in: "query", required: false },
+    example: 20,
+  }),
+});
+
+// Metadatos que acompañan a cada respuesta de listado.
+export const PaginationSchema = z
+  .object({
+    page: z.number().int().openapi({ example: 1 }),
+    limit: z.number().int().openapi({ example: 20 }),
+    total: z.number().int().openapi({ example: 57 }),
+    totalPages: z.number().int().openapi({ example: 3 }),
+  })
+  .openapi("Pagination");
+
+// ---------------------------------------------------------------------------
 // Employee
 // ---------------------------------------------------------------------------
 export const EmployeeSchema = z
@@ -48,9 +75,15 @@ export const UpdateEmployeeBodySchema = CreateEmployeeBodySchema.partial().opena
   "UpdateEmployeeBody",
 );
 
-export const EmployeeListQuerySchema = z.object({
+export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
   active: z.enum(["true", "false"]).optional().openapi({
-    param: { name: "active", in: "query" },
+    param: { name: "active", in: "query", required: false },
+  }),
+  // Búsqueda libre por nombre, apellido o CI (coincidencia parcial, sin
+  // distinguir mayúsculas).
+  search: z.string().optional().openapi({
+    param: { name: "search", in: "query", required: false },
+    example: "Ada",
   }),
 });
 
@@ -86,6 +119,18 @@ export const UpdateSystemBodySchema = CreateSystemBodySchema.partial().openapi(
   "UpdateSystemBody",
 );
 
+export const SystemListQuerySchema = PaginationQuerySchema.extend({
+  active: z.enum(["true", "false"]).optional().openapi({
+    param: { name: "active", in: "query", required: false },
+  }),
+  // Búsqueda libre por nombre o slug (coincidencia parcial, sin distinguir
+  // mayúsculas).
+  search: z.string().optional().openapi({
+    param: { name: "search", in: "query", required: false },
+    example: "pos",
+  }),
+});
+
 // ---------------------------------------------------------------------------
 // Role
 // ---------------------------------------------------------------------------
@@ -115,9 +160,15 @@ export const UpdateRoleBodySchema = z
   })
   .openapi("UpdateRoleBody");
 
-export const RoleListQuerySchema = z.object({
+export const RoleListQuerySchema = PaginationQuerySchema.extend({
   systemId: z.string().optional().openapi({
-    param: { name: "systemId", in: "query" },
+    param: { name: "systemId", in: "query", required: false },
+  }),
+  // Búsqueda libre por nombre del rol (coincidencia parcial, sin distinguir
+  // mayúsculas).
+  search: z.string().optional().openapi({
+    param: { name: "search", in: "query", required: false },
+    example: "admin",
   }),
 });
 
@@ -140,12 +191,12 @@ export const CreateUserRoleBodySchema = z
   })
   .openapi("CreateUserRoleBody");
 
-export const UserRoleListQuerySchema = z.object({
+export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
   userId: z.string().optional().openapi({
-    param: { name: "userId", in: "query" },
+    param: { name: "userId", in: "query", required: false },
   }),
   roleId: z.string().optional().openapi({
-    param: { name: "roleId", in: "query" },
+    param: { name: "roleId", in: "query", required: false },
   }),
 });
 

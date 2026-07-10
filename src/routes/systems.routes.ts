@@ -5,9 +5,12 @@ import type { AppEnv } from "@/types/hono-env";
 import {
   CreateSystemBodySchema,
   IdParamSchema,
+  PaginationSchema,
+  SystemListQuerySchema,
   SystemSchema,
   UpdateSystemBodySchema,
 } from "@/openapi/business.schemas";
+import { paginationMeta } from "@/lib/pagination";
 import {
   StatusResponseSchema,
   badRequestResponse,
@@ -37,13 +40,19 @@ const listRoute = createRoute({
   path: "/",
   operationId: "listSystems",
   tags: ["Systems"],
-  summary: "Listar sistemas",
+  summary: "Listar sistemas (paginado, filtrable por estado y búsqueda)",
   security: bearerAuthSecurity,
+  request: { query: SystemListQuerySchema },
   responses: {
     200: {
       description: "Lista de sistemas",
       content: {
-        "application/json": { schema: z.object({ systems: z.array(SystemSchema) }) },
+        "application/json": {
+          schema: z.object({
+            systems: z.array(SystemSchema),
+            pagination: PaginationSchema,
+          }),
+        },
       },
     },
     401: unauthorizedResponse,
@@ -52,8 +61,12 @@ const listRoute = createRoute({
 });
 
 systemsRoutes.openapi(listRoute, async (c) => {
-  const systems = await listSystems();
-  return c.json({ systems }, 200);
+  const { active, search, page, limit } = c.req.valid("query");
+  const { rows, total } = await listSystems(
+    { active: active === undefined ? undefined : active === "true", search },
+    { page, limit },
+  );
+  return c.json({ systems: rows, pagination: paginationMeta({ page, limit }, total) }, 200);
 });
 
 const getRoute = createRoute({

@@ -1038,7 +1038,7 @@
       "description": "Gestión de empleados (requiere rol admin).",
       "item": [
         {
-          "name": "Listar empleados",
+          "name": "Listar empleados (paginado, filtrable por estado y búsqueda)",
           "request": {
             "method": "GET",
             "header": [
@@ -1059,14 +1059,32 @@
               ],
               "query": [
                 {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página, 1-indexado. Por defecto 1.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Elementos por página (1-100). Por defecto 20.",
+                  "disabled": true
+                },
+                {
                   "key": "active",
                   "value": "true",
-                  "description": "",
+                  "description": "Filtrar por estado (true/false).",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Ada",
+                  "description": "Búsqueda parcial por nombre, apellido o CI.",
                   "disabled": true
                 }
               ]
             },
-            "description": "Listar empleados",
+            "description": "Listar empleados (paginado, filtrable por estado y búsqueda)",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1089,7 +1107,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"employees\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"name\": \"Ejemplo\",\n      \"lastName\": \"Apellido\",\n      \"ci\": \"12345678\",\n      \"birthday\": \"2026-07-10T12:00:00.000Z\",\n      \"phoneNumber\": \"+591 70012345\",\n      \"address\": \"Av. Siempre Viva 123\",\n      \"inDate\": \"2026-07-10T12:00:00.000Z\",\n      \"outDate\": \"2026-07-10T12:00:00.000Z\",\n      \"active\": true,\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ]\n}",
+              "body": "{\n  \"employees\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"name\": \"Ejemplo\",\n      \"lastName\": \"Apellido\",\n      \"ci\": \"12345678\",\n      \"birthday\": \"2026-07-10T12:00:00.000Z\",\n      \"phoneNumber\": \"+591 70012345\",\n      \"address\": \"Av. Siempre Viva 123\",\n      \"inDate\": \"2026-07-10T12:00:00.000Z\",\n      \"outDate\": \"2026-07-10T12:00:00.000Z\",\n      \"active\": true,\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -1560,7 +1578,7 @@
       "description": "Gestión de sistemas externos que consumen este Identity Server (requiere rol admin).",
       "item": [
         {
-          "name": "Listar sistemas",
+          "name": "Listar sistemas (paginado, filtrable por estado y búsqueda)",
           "request": {
             "method": "GET",
             "header": [
@@ -1578,9 +1596,35 @@
               "path": [
                 "api",
                 "systems"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página, 1-indexado. Por defecto 1.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Elementos por página (1-100). Por defecto 20.",
+                  "disabled": true
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "description": "Filtrar por estado (true/false).",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "pos",
+                  "description": "Búsqueda parcial por nombre o slug.",
+                  "disabled": true
+                }
               ]
             },
-            "description": "Listar sistemas",
+            "description": "Listar sistemas (paginado, filtrable por estado y búsqueda)",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -1603,7 +1647,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"systems\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"name\": \"Ejemplo\",\n      \"slug\": \"ejemplo-slug\",\n      \"description\": \"texto\",\n      \"active\": true,\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ]\n}",
+              "body": "{\n  \"systems\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"name\": \"Ejemplo\",\n      \"slug\": \"ejemplo-slug\",\n      \"description\": \"texto\",\n      \"active\": true,\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -2074,7 +2118,7 @@
       "description": "Gestión de roles por sistema (requiere rol admin).",
       "item": [
         {
-          "name": "Listar roles (opcionalmente filtrados por sistema)",
+          "name": "Listar roles (paginado, filtrable por sistema y búsqueda)",
           "request": {
             "method": "GET",
             "header": [
@@ -2095,14 +2139,32 @@
               ],
               "query": [
                 {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página, 1-indexado. Por defecto 1.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Elementos por página (1-100). Por defecto 20.",
+                  "disabled": true
+                },
+                {
                   "key": "systemId",
                   "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                  "description": "",
+                  "description": "Filtrar por sistema.",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "admin",
+                  "description": "Búsqueda parcial por nombre del rol.",
                   "disabled": true
                 }
               ]
             },
-            "description": "Listar roles (opcionalmente filtrados por sistema)",
+            "description": "Listar roles (paginado, filtrable por sistema y búsqueda)",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2125,7 +2187,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"roles\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"systemId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"name\": \"Ejemplo\",\n      \"description\": \"texto\",\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ]\n}",
+              "body": "{\n  \"roles\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"systemId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"name\": \"Ejemplo\",\n      \"description\": \"texto\",\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -2667,7 +2729,7 @@
           ]
         },
         {
-          "name": "Listar asignaciones de roles (filtrable por usuario o rol)",
+          "name": "Listar asignaciones de roles (paginado, filtrable por usuario o rol)",
           "request": {
             "method": "GET",
             "header": [
@@ -2688,20 +2750,32 @@
               ],
               "query": [
                 {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página, 1-indexado. Por defecto 1.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Elementos por página (1-100). Por defecto 20.",
+                  "disabled": true
+                },
+                {
                   "key": "userId",
                   "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                  "description": "",
+                  "description": "Filtrar por usuario.",
                   "disabled": true
                 },
                 {
                   "key": "roleId",
                   "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-                  "description": "",
+                  "description": "Filtrar por rol.",
                   "disabled": true
                 }
               ]
             },
-            "description": "Listar asignaciones de roles (filtrable por usuario o rol)",
+            "description": "Listar asignaciones de roles (paginado, filtrable por usuario o rol)",
             "auth": {
               "type": "bearer",
               "bearer": [
@@ -2724,7 +2798,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"userRoles\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"roleId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ]\n}",
+              "body": "{\n  \"userRoles\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"roleId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {

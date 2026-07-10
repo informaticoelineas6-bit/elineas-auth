@@ -11,6 +11,7 @@
     "db:seed:local": "APP_ENV=local bun --env-file=/dev/null src/db/seed.ts",
     "db:seed:staging": "APP_ENV=staging bun --env-file=/dev/null src/db/seed.ts",
     "build": "tsc --noEmit",
+    "openapi:generate": "APP_ENV=local bun --env-file=/dev/null scripts/generate-openapi.ts",
     "start": "bun --env-file=/dev/null src/index.ts"
   },
   "trustedDependencies": [

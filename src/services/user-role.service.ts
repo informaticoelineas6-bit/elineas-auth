@@ -1,21 +1,34 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { role, system, userRole } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type { CreateUserRoleBodySchema } from "@/openapi/business.schemas";
 
 type CreateUserRoleInput = z.infer<typeof CreateUserRoleBodySchema>;
 
 export async function listUserRoles(
-  filters: { userId?: string; roleId?: string } = {},
+  filters: { userId?: string; roleId?: string },
+  pagination: PaginationInput,
 ) {
   const conditions = [
     filters.userId ? eq(userRole.userId, filters.userId) : undefined,
     filters.roleId ? eq(userRole.roleId, filters.roleId) : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;
-  return db.select().from(userRole).where(where).orderBy(desc(userRole.createdAt));
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select()
+      .from(userRole)
+      .where(where)
+      .orderBy(desc(userRole.createdAt))
+      .limit(pagination.limit)
+      .offset(toOffset(pagination)),
+    db.select({ total: count() }).from(userRole).where(where),
+  ]);
+  return { rows, total };
 }
 
 export async function getUserRole(id: string) {
