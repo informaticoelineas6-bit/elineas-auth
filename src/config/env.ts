@@ -15,12 +15,28 @@ function required(name: string): string {
   return value;
 }
 
+// Lee una variable con una lista de valores separados por comas (p. ej. varios
+// orígenes CORS). Admite un único valor sin comas por compatibilidad.
+function requiredList(name: string): string[] {
+  const values = required(name)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  if (values.length === 0) {
+    throw new Error(`${name} está vacía en el entorno "${environment}"`);
+  }
+  return values;
+}
+
 export const env = {
   APP_ENV: environment,
   DATABASE_URL: required("DATABASE_URL"),
   BETTER_AUTH_SECRET: required("BETTER_AUTH_SECRET"),
   BETTER_AUTH_URL: required("BETTER_AUTH_URL"),
-  ALLOWED_ORIGIN: required("ALLOWED_ORIGIN"),
+  // Orígenes permitidos por CORS. Varios frontends/APIs consumen este IS, por
+  // lo que se admite una lista separada por comas
+  // (p. ej. "https://app.midominio.com,https://admin.midominio.com").
+  ALLOWED_ORIGINS: requiredList("ALLOWED_ORIGIN"),
   // Slug del sistema que representa a este propio identity server. Un usuario
   // es "admin" si tiene el rol `admin` dentro de este sistema. El primer admin
   // se siembra manualmente en BD (bootstrap).

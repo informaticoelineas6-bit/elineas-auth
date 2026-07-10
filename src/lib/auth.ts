@@ -12,7 +12,13 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
-  emailAndPassword: { enabled: true },
-  user: { deleteUser: { enabled: true } },
+  emailAndPassword: {
+    enabled: true,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
+  },
+  // Auto-borrado de cuenta deshabilitado: la baja de un usuario la gestiona un
+  // admin (no el propio usuario). Ver DELETE en los flujos administrativos.
+  user: { deleteUser: { enabled: false } },
   plugins: [jwt(), bearer()],
 });

@@ -26,7 +26,11 @@ import {
 
 export const userRolesRoutes = new OpenAPIHono<AppEnv>();
 
+// Todo el recurso requiere rol admin (lecturas incluidas): las asignaciones de
+// rol revelan quién es admin, información sensible que no debe exponerse a
+// sesiones normales. requireSession va primero (puebla el user de requireAdmin).
 userRolesRoutes.use("*", requireSession);
+userRolesRoutes.use("*", requireAdmin);
 
 const listRoute = createRoute({
   method: "get",
@@ -46,6 +50,7 @@ const listRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
   },
 });
 
@@ -71,6 +76,7 @@ const getRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
     404: notFoundResponse,
   },
 });
@@ -88,7 +94,6 @@ const createRouteDef = createRoute({
   tags: ["UserRoles"],
   summary: "Asignar un rol a un usuario",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateUserRoleBodySchema } } },
   },
@@ -119,7 +124,6 @@ const deleteRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Quitar un rol a un usuario",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {

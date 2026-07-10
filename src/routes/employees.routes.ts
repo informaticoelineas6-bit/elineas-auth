@@ -28,8 +28,12 @@ import {
 
 export const employeesRoutes = new OpenAPIHono<AppEnv>();
 
-// Lecturas: cualquier sesión válida. Escrituras: rol admin (por ruta).
+// Todo el recurso (lecturas y escrituras) requiere rol admin: los clientes
+// normales solo pueden iniciar sesión, consultar el estado de su sesión y su
+// propio usuario. requireAdmin se apoya en el user que puebla requireSession,
+// por eso este último se registra primero.
 employeesRoutes.use("*", requireSession);
+employeesRoutes.use("*", requireAdmin);
 
 const listRoute = createRoute({
   method: "get",
@@ -49,6 +53,7 @@ const listRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
   },
 });
 
@@ -76,6 +81,7 @@ const getRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
     404: notFoundResponse,
   },
 });
@@ -93,7 +99,6 @@ const createRouteDef = createRoute({
   tags: ["Employees"],
   summary: "Crear un empleado",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateEmployeeBodySchema } } },
   },
@@ -124,7 +129,6 @@ const updateRoute = createRoute({
   tags: ["Employees"],
   summary: "Actualizar un empleado",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     params: IdParamSchema,
     body: { content: { "application/json": { schema: UpdateEmployeeBodySchema } } },
@@ -158,7 +162,6 @@ const deleteRoute = createRoute({
   tags: ["Employees"],
   summary: "Eliminar un empleado",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {

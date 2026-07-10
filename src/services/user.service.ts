@@ -50,18 +50,3 @@ export const changeEmailFn = async (c: Context) => {
     return handleAuthError(c, error);
   }
 };
-
-export const deleteMeFn = async (c: Context) => {
-  try {
-    const body = await c.req.json().catch(() => ({}));
-    const { headers, response } = await auth.api.deleteUser({
-      body,
-      headers: c.req.raw.headers,
-      returnHeaders: true,
-    });
-    forwardAuthHeaders(c, headers);
-    return c.json(response, 200);
-  } catch (error) {
-    return handleAuthError(c, error);
-  }
-};

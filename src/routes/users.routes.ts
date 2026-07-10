@@ -6,8 +6,6 @@ import {
   ChangeEmailResponseSchema,
   ChangePasswordBodySchema,
   ChangePasswordResponseSchema,
-  DeleteUserBodySchema,
-  DeleteUserResponseSchema,
   StatusResponseSchema,
   UpdateUserBodySchema,
   UserSchema,
@@ -18,7 +16,6 @@ import {
 import {
   changeEmailFn,
   changePasswordFn,
-  deleteMeFn,
   getMeFn,
   updateMeFn,
 } from "@/services/user.service";
@@ -117,27 +114,6 @@ const changeEmailRoute = createRoute({
 
 usersRoutes.openapi(changeEmailRoute, changeEmailFn);
 
-const deleteMeRoute = createRoute({
-  method: "delete",
-  path: "/me",
-  operationId: "deleteMe",
-  tags: ["Users"],
-  summary: "Eliminar la cuenta del usuario autenticado",
-  security: bearerAuthSecurity,
-  request: {
-    body: {
-      required: false,
-      content: { "application/json": { schema: DeleteUserBodySchema } },
-    },
-  },
-  responses: {
-    200: {
-      description: "Cuenta eliminada o solicitud de eliminación enviada",
-      content: { "application/json": { schema: DeleteUserResponseSchema } },
-    },
-    400: badRequestResponse,
-    401: unauthorizedResponse,
-  },
-});
-
-usersRoutes.openapi(deleteMeRoute, deleteMeFn);
+// El auto-borrado de cuenta está deshabilitado (ver lib/auth.ts). La baja de un
+// usuario la realiza un admin sobre el recurso correspondiente, no el propio
+// usuario, por lo que no se expone un endpoint DELETE /me.

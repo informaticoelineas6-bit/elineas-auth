@@ -1,18 +1,21 @@
-// Seeder de arranque: crea el sistema y rol de administrador de este identity
-// server y se lo asigna a un usuario ya existente (identificado por email).
-//
-// El usuario debe haberse registrado antes (POST /api/auth/sign-up), ya que la
-// creación de cuentas la gestiona better-auth.
+// Seeder de arranque (bootstrap del primer admin): crea el sistema y rol de
+// administrador de este identity server y se lo asigna a un usuario. Si el
+// usuario no existe todavía, lo CREA (por eso el registro puede quedar cerrado
+// a admin en la API: el primer admin nace aquí, no vía POST /api/auth/sign-up).
 //
 // Uso:
+//   # usuario ya existente → solo asigna rol admin
 //   bun run db:seed:local -- admin@mercadoelineas.com
-//   ADMIN_EMAIL=admin@mercadoelineas.com bun run db:seed:local
+//   # usuario nuevo → hay que pasar una contraseña (arg 2 o ADMIN_PASSWORD)
+//   bun run db:seed:local -- admin@mercadoelineas.com 'ContraseñaMuyFuerte'
+//   ADMIN_EMAIL=... ADMIN_PASSWORD=... ADMIN_NAME=... bun run db:seed:local
 //
 // Es idempotente: puede ejecutarse varias veces sin duplicar datos.
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/index";
 import { role, system, userRole } from "@/db/business-schema";
 import { user } from "@/db/auth-schema";
+import { auth } from "@/lib/auth";
 import { env } from "@/config/env";
 
 const email = process.argv[2] ?? process.env.ADMIN_EMAIL;
@@ -26,18 +29,44 @@ if (!email) {
   process.exit(1);
 }
 
-const [targetUser] = await db
-  .select({ id: user.id, email: user.email })
-  .from(user)
-  .where(eq(user.email, email))
-  .limit(1);
+async function findUser(byEmail: string) {
+  const [row] = await db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(eq(user.email, byEmail))
+    .limit(1);
+  return row;
+}
 
+let targetUser = await findUser(email);
+
+// Si el usuario no existe, lo creamos (bootstrap). La contraseña se pasa por
+// argumento o por la variable ADMIN_PASSWORD y debe cumplir la política de
+// longitud mínima configurada en lib/auth.ts.
 if (!targetUser) {
-  console.error(
-    `No existe ningún usuario con email "${email}".\n` +
-      "Regístralo primero con POST /api/auth/sign-up y vuelve a ejecutar el seeder.",
-  );
-  process.exit(1);
+  const password = process.argv[3] ?? process.env.ADMIN_PASSWORD;
+  if (!password) {
+    console.error(
+      `No existe ningún usuario con email "${email}".\n` +
+        "Para crearlo, indica una contraseña:\n" +
+        "  bun run db:seed:local -- " +
+        email +
+        " 'ContraseñaMuyFuerte'\n" +
+        "  o define ADMIN_PASSWORD en el entorno.",
+    );
+    process.exit(1);
+  }
+
+  await auth.api.signUpEmail({
+    body: { email, password, name: process.env.ADMIN_NAME ?? email },
+  });
+
+  targetUser = await findUser(email);
+  if (!targetUser) {
+    console.error("No se pudo crear el usuario administrador.");
+    process.exit(1);
+  }
+  console.log(`✔ Usuario administrador creado: ${targetUser.email}`);
 }
 
 // 1) Sistema que representa a este identity server.

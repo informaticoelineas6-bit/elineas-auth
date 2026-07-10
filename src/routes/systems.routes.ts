@@ -27,7 +27,10 @@ import {
 
 export const systemsRoutes = new OpenAPIHono<AppEnv>();
 
+// Todo el recurso requiere rol admin (lecturas incluidas). requireSession va
+// primero porque requireAdmin usa el user que aquél puebla.
 systemsRoutes.use("*", requireSession);
+systemsRoutes.use("*", requireAdmin);
 
 const listRoute = createRoute({
   method: "get",
@@ -44,6 +47,7 @@ const listRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
   },
 });
 
@@ -68,6 +72,7 @@ const getRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
     404: notFoundResponse,
   },
 });
@@ -85,7 +90,6 @@ const createRouteDef = createRoute({
   tags: ["Systems"],
   summary: "Crear un sistema",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateSystemBodySchema } } },
   },
@@ -116,7 +120,6 @@ const updateRoute = createRoute({
   tags: ["Systems"],
   summary: "Actualizar un sistema",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     params: IdParamSchema,
     body: { content: { "application/json": { schema: UpdateSystemBodySchema } } },
@@ -150,7 +153,6 @@ const deleteRoute = createRoute({
   tags: ["Systems"],
   summary: "Eliminar un sistema",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {

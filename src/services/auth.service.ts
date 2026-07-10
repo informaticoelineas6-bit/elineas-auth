@@ -8,16 +8,18 @@ import { Context } from "hono";
 
 export const signUpFn = async (c: Context) => {
   try {
-    // systemSlug es opcional en el registro (permite crear el primer admin
-    // antes de que exista ningún sistema).
+    // Este endpoint lo invoca un admin para crear la cuenta de OTRO usuario
+    // (ver middleware requireAdmin en la ruta). Por eso NO se reenvían las
+    // cabeceras de sesión de la respuesta: harían que el navegador del admin
+    // adoptara la sesión/cookies del usuario recién creado. Se devuelve el
+    // usuario, su token y el sistema en el cuerpo, sin tocar la sesión del admin.
     const { systemSlug, ...credentials } = await c.req.json();
     const sys = systemSlug ? await resolveActiveSystem(systemSlug) : null;
-    const { headers, response } = await auth.api.signUpEmail({
+    const { response } = await auth.api.signUpEmail({
       body: credentials,
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
-    forwardAuthHeaders(c, headers);
     if (sys && response.token) {
       await bindSessionToSystem({
         sessionToken: response.token,

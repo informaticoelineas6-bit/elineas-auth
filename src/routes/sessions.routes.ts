@@ -29,7 +29,6 @@ const getSessionRoute = createRoute({
   tags: ["Auth"],
   summary: "Obtener el usuario y la sesión actuales",
   security: bearerAuthSecurity,
-  middleware: [requireSession],
   responses: {
     200: {
       description: "Sesión activa",

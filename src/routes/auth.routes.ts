@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { requireSession } from "@/middleware/session";
+import { requireAdmin } from "@/middleware/admin";
 import type { AppEnv } from "@/types/hono-env";
 import {
   AuthResultSchema,
@@ -10,6 +11,7 @@ import {
   TokenResponseSchema,
   badRequestResponse,
   bearerAuthSecurity,
+  forbiddenResponse,
   unauthorizedResponse,
 } from "@/openapi/schemas";
 import {
@@ -22,12 +24,17 @@ import {
 
 export const authRoutes = new OpenAPIHono<AppEnv>();
 
+// El alta de cuentas NO es autoservicio: solo un admin puede crear usuarios.
+// El primer admin se siembra con `bun run db:seed` (crea el usuario si no existe
+// y le asigna el rol admin), evitando el problema de arranque.
 const signUpRoute = createRoute({
   method: "post",
   path: "/sign-up",
   operationId: "authSignUp",
   tags: ["Auth"],
-  summary: "Registrar un nuevo usuario",
+  summary: "Registrar un nuevo usuario (requiere rol admin)",
+  security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: SignUpBodySchema } } },
   },
@@ -37,6 +44,8 @@ const signUpRoute = createRoute({
       content: { "application/json": { schema: AuthResultSchema } },
     },
     400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
   },
 });
 

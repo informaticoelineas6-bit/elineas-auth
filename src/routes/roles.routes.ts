@@ -28,7 +28,10 @@ import {
 
 export const rolesRoutes = new OpenAPIHono<AppEnv>();
 
+// Todo el recurso requiere rol admin (lecturas incluidas). requireSession va
+// primero porque requireAdmin usa el user que aquél puebla.
 rolesRoutes.use("*", requireSession);
+rolesRoutes.use("*", requireAdmin);
 
 const listRoute = createRoute({
   method: "get",
@@ -46,6 +49,7 @@ const listRoute = createRoute({
       },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
   },
 });
 
@@ -69,6 +73,7 @@ const getRoute = createRoute({
       content: { "application/json": { schema: z.object({ role: RoleSchema }) } },
     },
     401: unauthorizedResponse,
+    403: forbiddenResponse,
     404: notFoundResponse,
   },
 });
@@ -86,7 +91,6 @@ const createRouteDef = createRoute({
   tags: ["Roles"],
   summary: "Crear un rol",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateRoleBodySchema } } },
   },
@@ -115,7 +119,6 @@ const updateRoute = createRoute({
   tags: ["Roles"],
   summary: "Actualizar un rol",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: {
     params: IdParamSchema,
     body: { content: { "application/json": { schema: UpdateRoleBodySchema } } },
@@ -147,7 +150,6 @@ const deleteRoute = createRoute({
   tags: ["Roles"],
   summary: "Eliminar un rol",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
