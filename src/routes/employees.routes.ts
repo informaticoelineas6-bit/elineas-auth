@@ -34,6 +34,7 @@ employeesRoutes.use("*", requireSession);
 const listRoute = createRoute({
   method: "get",
   path: "/",
+  operationId: "listEmployees",
   tags: ["Employees"],
   summary: "Listar empleados",
   security: bearerAuthSecurity,
@@ -62,6 +63,7 @@ employeesRoutes.openapi(listRoute, async (c) => {
 const getRoute = createRoute({
   method: "get",
   path: "/{id}",
+  operationId: "getEmployee",
   tags: ["Employees"],
   summary: "Obtener un empleado por id",
   security: bearerAuthSecurity,
@@ -87,6 +89,7 @@ employeesRoutes.openapi(getRoute, async (c) => {
 const createRouteDef = createRoute({
   method: "post",
   path: "/",
+  operationId: "createEmployee",
   tags: ["Employees"],
   summary: "Crear un empleado",
   security: bearerAuthSecurity,
@@ -117,6 +120,7 @@ employeesRoutes.openapi(createRouteDef, async (c) => {
 const updateRoute = createRoute({
   method: "patch",
   path: "/{id}",
+  operationId: "updateEmployee",
   tags: ["Employees"],
   summary: "Actualizar un empleado",
   security: bearerAuthSecurity,
@@ -150,6 +154,7 @@ employeesRoutes.openapi(updateRoute, async (c) => {
 const deleteRoute = createRoute({
   method: "delete",
   path: "/{id}",
+  operationId: "deleteEmployee",
   tags: ["Employees"],
   summary: "Eliminar un empleado",
   security: bearerAuthSecurity,

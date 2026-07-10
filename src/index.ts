@@ -46,17 +46,23 @@ app.openAPIRegistry.registerComponent("securitySchemes", "bearerAuth", {
     "Token JWT emitido por /api/auth/token o devuelto al iniciar sesión.",
 });
 
-app.doc("/api/openapi.json", {
+// El servidor se deriva del origen de la petición que sirve la documentación,
+// de modo que "Try it out" en Swagger UI apunte siempre a esta misma API
+// (local, staging o producción) sin depender de BETTER_AUTH_URL.
+app.doc("/api/openapi.json", (c) => ({
   openapi: "3.0.0",
   info: {
     title: "Elineas Auth API",
     version: "1.0.0",
     description: "API de autenticación.",
   },
-  servers: [{ url: env.BETTER_AUTH_URL }],
-});
+  servers: [{ url: new URL(c.req.url).origin, description: "Servidor actual" }],
+}));
 
-app.get("/api/docs", swaggerUI({ url: "/api/openapi.json" }));
+app.get(
+  "/api/docs",
+  swaggerUI({ url: "/api/openapi.json", version: "5.18.2" }),
+);
 
 const server = Bun.serve({
   fetch: app.fetch,

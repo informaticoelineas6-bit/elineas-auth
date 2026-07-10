@@ -33,6 +33,7 @@ rolesRoutes.use("*", requireSession);
 const listRoute = createRoute({
   method: "get",
   path: "/",
+  operationId: "listRoles",
   tags: ["Roles"],
   summary: "Listar roles (opcionalmente filtrados por sistema)",
   security: bearerAuthSecurity,
@@ -57,6 +58,7 @@ rolesRoutes.openapi(listRoute, async (c) => {
 const getRoute = createRoute({
   method: "get",
   path: "/{id}",
+  operationId: "getRole",
   tags: ["Roles"],
   summary: "Obtener un rol por id",
   security: bearerAuthSecurity,
@@ -80,6 +82,7 @@ rolesRoutes.openapi(getRoute, async (c) => {
 const createRouteDef = createRoute({
   method: "post",
   path: "/",
+  operationId: "createRole",
   tags: ["Roles"],
   summary: "Crear un rol",
   security: bearerAuthSecurity,
@@ -108,6 +111,7 @@ rolesRoutes.openapi(createRouteDef, async (c) => {
 const updateRoute = createRoute({
   method: "patch",
   path: "/{id}",
+  operationId: "updateRole",
   tags: ["Roles"],
   summary: "Actualizar un rol",
   security: bearerAuthSecurity,
@@ -139,6 +143,7 @@ rolesRoutes.openapi(updateRoute, async (c) => {
 const deleteRoute = createRoute({
   method: "delete",
   path: "/{id}",
+  operationId: "deleteRole",
   tags: ["Roles"],
   summary: "Eliminar un rol",
   security: bearerAuthSecurity,

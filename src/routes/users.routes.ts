@@ -30,6 +30,7 @@ usersRoutes.use("*", requireSession);
 const getMeRoute = createRoute({
   method: "get",
   path: "/me",
+  operationId: "getMe",
   tags: ["Users"],
   summary: "Obtener el perfil del usuario autenticado",
   security: bearerAuthSecurity,
@@ -49,6 +50,7 @@ usersRoutes.openapi(getMeRoute, getMeFn);
 const updateMeRoute = createRoute({
   method: "patch",
   path: "/me",
+  operationId: "updateMe",
   tags: ["Users"],
   summary: "Actualizar el perfil del usuario autenticado",
   security: bearerAuthSecurity,
@@ -70,6 +72,7 @@ usersRoutes.openapi(updateMeRoute, updateMeFn);
 const changePasswordRoute = createRoute({
   method: "post",
   path: "/me/change-password",
+  operationId: "changePassword",
   tags: ["Users"],
   summary: "Cambiar la contraseña del usuario autenticado",
   security: bearerAuthSecurity,
@@ -93,6 +96,7 @@ usersRoutes.openapi(changePasswordRoute, changePasswordFn);
 const changeEmailRoute = createRoute({
   method: "post",
   path: "/me/change-email",
+  operationId: "changeEmail",
   tags: ["Users"],
   summary: "Cambiar el email del usuario autenticado",
   security: bearerAuthSecurity,
@@ -116,6 +120,7 @@ usersRoutes.openapi(changeEmailRoute, changeEmailFn);
 const deleteMeRoute = createRoute({
   method: "delete",
   path: "/me",
+  operationId: "deleteMe",
   tags: ["Users"],
   summary: "Eliminar la cuenta del usuario autenticado",
   security: bearerAuthSecurity,

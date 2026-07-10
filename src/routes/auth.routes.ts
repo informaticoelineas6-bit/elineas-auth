@@ -25,6 +25,7 @@ export const authRoutes = new OpenAPIHono<AppEnv>();
 const signUpRoute = createRoute({
   method: "post",
   path: "/sign-up",
+  operationId: "authSignUp",
   tags: ["Auth"],
   summary: "Registrar un nuevo usuario",
   request: {
@@ -44,6 +45,7 @@ authRoutes.openapi(signUpRoute, signUpFn);
 const signInRoute = createRoute({
   method: "post",
   path: "/sign-in",
+  operationId: "authSignIn",
   tags: ["Auth"],
   summary: "Iniciar sesión con email y contraseña",
   request: {
@@ -63,6 +65,7 @@ authRoutes.openapi(signInRoute, signInFn);
 const signOutRoute = createRoute({
   method: "post",
   path: "/sign-out",
+  operationId: "authSignOut",
   tags: ["Auth"],
   summary: "Cerrar la sesión actual",
   security: bearerAuthSecurity,
@@ -81,6 +84,7 @@ authRoutes.openapi(signOutRoute, signOutFn);
 const getTokenRoute = createRoute({
   method: "get",
   path: "/token",
+  operationId: "authGetToken",
   tags: ["Auth"],
   summary: "Obtener un JWT para la sesión actual",
   security: bearerAuthSecurity,
@@ -99,6 +103,7 @@ authRoutes.openapi(getTokenRoute, getTokenFn);
 const getJwksRoute = createRoute({
   method: "get",
   path: "/jwks",
+  operationId: "authGetJwks",
   tags: ["Auth"],
   summary: "Obtener el JSON Web Key Set público",
   responses: {

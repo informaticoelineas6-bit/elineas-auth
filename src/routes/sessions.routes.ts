@@ -25,6 +25,7 @@ sessionsRoutes.use("*", requireSession);
 const getSessionRoute = createRoute({
   method: "get",
   path: "/session",
+  operationId: "getCurrentSession",
   tags: ["Auth"],
   summary: "Obtener el usuario y la sesión actuales",
   security: bearerAuthSecurity,
@@ -51,6 +52,7 @@ sessionsRoutes.openapi(getSessionRoute, getSessionFn);
 const listSessionsRoute = createRoute({
   method: "get",
   path: "/",
+  operationId: "listSessions",
   tags: ["Sessions"],
   summary: "Listar las sesiones activas del usuario",
   security: bearerAuthSecurity,
@@ -72,6 +74,7 @@ sessionsRoutes.openapi(listSessionsRoute, listSessionsFn);
 const revokeOthersRoute = createRoute({
   method: "delete",
   path: "/others",
+  operationId: "revokeOtherSessions",
   tags: ["Sessions"],
   summary: "Revocar todas las sesiones excepto la actual",
   security: bearerAuthSecurity,
@@ -89,6 +92,7 @@ sessionsRoutes.openapi(revokeOthersRoute, revokeOthersFn);
 const revokeAllRoute = createRoute({
   method: "delete",
   path: "/",
+  operationId: "revokeAllSessions",
   tags: ["Sessions"],
   summary: "Revocar todas las sesiones del usuario",
   security: bearerAuthSecurity,
@@ -106,6 +110,7 @@ sessionsRoutes.openapi(revokeAllRoute, revokeAllFn);
 const revokeOneRoute = createRoute({
   method: "delete",
   path: "/{token}",
+  operationId: "revokeSession",
   tags: ["Sessions"],
   summary: "Revocar una sesión específica por su token",
   security: bearerAuthSecurity,

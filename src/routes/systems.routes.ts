@@ -32,6 +32,7 @@ systemsRoutes.use("*", requireSession);
 const listRoute = createRoute({
   method: "get",
   path: "/",
+  operationId: "listSystems",
   tags: ["Systems"],
   summary: "Listar sistemas",
   security: bearerAuthSecurity,
@@ -54,6 +55,7 @@ systemsRoutes.openapi(listRoute, async (c) => {
 const getRoute = createRoute({
   method: "get",
   path: "/{id}",
+  operationId: "getSystem",
   tags: ["Systems"],
   summary: "Obtener un sistema por id",
   security: bearerAuthSecurity,
@@ -79,6 +81,7 @@ systemsRoutes.openapi(getRoute, async (c) => {
 const createRouteDef = createRoute({
   method: "post",
   path: "/",
+  operationId: "createSystem",
   tags: ["Systems"],
   summary: "Crear un sistema",
   security: bearerAuthSecurity,
@@ -109,6 +112,7 @@ systemsRoutes.openapi(createRouteDef, async (c) => {
 const updateRoute = createRoute({
   method: "patch",
   path: "/{id}",
+  operationId: "updateSystem",
   tags: ["Systems"],
   summary: "Actualizar un sistema",
   security: bearerAuthSecurity,
@@ -142,6 +146,7 @@ systemsRoutes.openapi(updateRoute, async (c) => {
 const deleteRoute = createRoute({
   method: "delete",
   path: "/{id}",
+  operationId: "deleteSystem",
   tags: ["Systems"],
   summary: "Eliminar un sistema",
   security: bearerAuthSecurity,
