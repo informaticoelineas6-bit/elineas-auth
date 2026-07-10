@@ -2,7 +2,7 @@ import { auth } from "@/lib/auth";
 import { forwardAuthHeaders, handleAuthError } from "@/lib/http";
 import { getSessionSystem } from "@/services/session-system.service";
 import type { AppEnv } from "@/types/hono-env";
-import { RevokeOneParamsInput } from "@/types/session";
+import { RevokeOneBodyInput } from "@/types/session";
 import { Context } from "hono";
 
 export const getSessionFn = async (c: Context) => {
@@ -49,10 +49,10 @@ export const revokeAllFn = async (c: Context) => {
 };
 
 export const revokeOneFn = async (
-  c: Context<AppEnv, string, RevokeOneParamsInput>,
+  c: Context<AppEnv, string, RevokeOneBodyInput>,
 ) => {
   try {
-    const { token } = c.req.valid("param");
+    const { token } = c.req.valid("json");
     const { headers, response } = await auth.api.revokeSession({
       body: { token },
       headers: c.req.raw.headers,

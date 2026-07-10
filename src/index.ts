@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
+import { bodyLimit } from "hono/body-limit";
 import { swaggerUI } from "@hono/swagger-ui";
 import { env } from "@/config/env";
 import { authRoutes } from "@/routes/auth.routes";
@@ -33,6 +34,21 @@ app.use(
 );
 app.use(logger());
 
+// Límite de tamaño del cuerpo: los endpoints solo reciben JSON pequeño
+// (credenciales, actualizaciones de perfil). 64 KB es holgado y evita que un
+// atacante agote memoria enviando cuerpos enormes a rutas públicas.
+app.use(
+  "/api/*",
+  bodyLimit({
+    maxSize: 64 * 1024,
+    onError: (c) =>
+      c.json(
+        { error: "Cuerpo de la petición demasiado grande", code: "PAYLOAD_TOO_LARGE" },
+        413,
+      ),
+  }),
+);
+
 // Rate limiting en los endpoints sensibles (contra fuerza bruta / credential
 // stuffing). Se registra antes que las rutas para que se ejecute primero.
 app.use(
@@ -42,6 +58,17 @@ app.use(
 app.use(
   "/api/auth/sign-up",
   rateLimit({ name: "sign-up", windowMs: 60_000, max: 5 }),
+);
+// Cambio de contraseña/email: aunque exigen sesión, deben limitarse para que una
+// sesión robada no permita fuerza bruta de la contraseña actual saltándose el
+// límite del login.
+app.use(
+  "/api/users/me/change-password",
+  rateLimit({ name: "change-password", windowMs: 60_000, max: 5 }),
+);
+app.use(
+  "/api/users/me/change-email",
+  rateLimit({ name: "change-email", windowMs: 60_000, max: 5 }),
 );
 
 app.onError(handleError);

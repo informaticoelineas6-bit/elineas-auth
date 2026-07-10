@@ -108,18 +108,23 @@ sessionsRoutes.openapi(revokeAllRoute, revokeAllFn);
 
 const revokeOneRoute = createRoute({
   method: "delete",
-  path: "/{token}",
+  path: "/revoke",
   operationId: "revokeSession",
   tags: ["Sessions"],
   summary: "Revocar una sesión específica por su token",
+  // El token va en el CUERPO, no en la URL: un token de sesión en el path
+  // acabaría en los logs de acceso (app.use(logger())) y en proxies intermedios.
   security: bearerAuthSecurity,
   request: {
-    params: z.object({
-      token: z.string().openapi({
-        param: { name: "token", in: "path" },
-        example: "sess_abc123",
-      }),
-    }),
+    body: {
+      content: {
+        "application/json": {
+          schema: z.object({
+            token: z.string().openapi({ example: "sess_abc123" }),
+          }),
+        },
+      },
+    },
   },
   responses: {
     200: {

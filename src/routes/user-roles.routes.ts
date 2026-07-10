@@ -5,6 +5,8 @@ import type { AppEnv } from "@/types/hono-env";
 import {
   CreateUserRoleBodySchema,
   IdParamSchema,
+  MyUserRoleSchema,
+  MyUserRolesQuerySchema,
   UserRoleListQuerySchema,
   UserRoleSchema,
 } from "@/openapi/business.schemas";
@@ -21,16 +23,46 @@ import {
   createUserRole,
   deleteUserRole,
   getUserRole,
+  listMyRoles,
   listUserRoles,
 } from "@/services/user-role.service";
 
 export const userRolesRoutes = new OpenAPIHono<AppEnv>();
 
-// Todo el recurso requiere rol admin (lecturas incluidas): las asignaciones de
-// rol revelan quién es admin, información sensible que no debe exponerse a
-// sesiones normales. requireSession va primero (puebla el user de requireAdmin).
+// Todas las rutas requieren sesión; el resto del recurso (lecturas y
+// escrituras sobre asignaciones ajenas) exige además rol admin por ruta, ya
+// que revela quién es admin — información sensible que no debe exponerse a
+// sesiones normales. La excepción es /me: cualquier usuario autenticado
+// puede consultar SUS PROPIOS roles.
 userRolesRoutes.use("*", requireSession);
-userRolesRoutes.use("*", requireAdmin);
+
+const myRolesRoute = createRoute({
+  method: "get",
+  path: "/me",
+  operationId: "listMyUserRoles",
+  tags: ["UserRoles"],
+  summary: "Listar los roles del usuario autenticado (opcionalmente filtrados por sistema)",
+  security: bearerAuthSecurity,
+  request: { query: MyUserRolesQuerySchema },
+  responses: {
+    200: {
+      description: "Roles del usuario autenticado",
+      content: {
+        "application/json": {
+          schema: z.object({ roles: z.array(MyUserRoleSchema) }),
+        },
+      },
+    },
+    401: unauthorizedResponse,
+  },
+});
+
+userRolesRoutes.openapi(myRolesRoute, async (c) => {
+  const { systemSlug } = c.req.valid("query");
+  const user = c.get("user");
+  const roles = await listMyRoles(user.id, systemSlug);
+  return c.json({ roles }, 200);
+});
 
 const listRoute = createRoute({
   method: "get",
@@ -39,6 +71,7 @@ const listRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Listar asignaciones de roles (filtrable por usuario o rol)",
   security: bearerAuthSecurity,
+  middleware: [requireAdmin] as const,
   request: { query: UserRoleListQuerySchema },
   responses: {
     200: {
@@ -67,6 +100,7 @@ const getRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Obtener una asignación por id",
   security: bearerAuthSecurity,
+  middleware: [requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -94,6 +128,7 @@ const createRouteDef = createRoute({
   tags: ["UserRoles"],
   summary: "Asignar un rol a un usuario",
   security: bearerAuthSecurity,
+  middleware: [requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateUserRoleBodySchema } } },
   },
@@ -124,6 +159,7 @@ const deleteRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Quitar un rol a un usuario",
   security: bearerAuthSecurity,
+  middleware: [requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {

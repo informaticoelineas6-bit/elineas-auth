@@ -37,7 +37,6 @@ services:
       - .env.local
     environment:
       APP_ENV: local
-      # Dentro de la red de compose el host es el nombre del servicio, no localhost.
       DATABASE_URL: postgresql://elineas:elineas@postgres:5432/elineas_auth
       REDIS_URL: redis://redis:6379
     ports:

@@ -1,3 +1,3 @@
-export type RevokeOneParamsInput = {
-  out: { param: { token: string } };
+export type RevokeOneBodyInput = {
+  out: { json: { token: string } };
 };

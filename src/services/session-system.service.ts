@@ -48,10 +48,13 @@ export async function bindSessionToSystem(params: {
     .where(and(eq(sessionSystem.userId, userId), eq(sessionSystem.systemId, systemId)));
 
   const authHeaders = new Headers({ authorization: `Bearer ${sessionToken}` });
-  for (const prev of previous) {
-    if (prev.sessionId === current.id) continue;
-    await auth.api.revokeSession({ body: { token: prev.token }, headers: authHeaders });
-  }
+  await Promise.all(
+    previous
+      .filter((prev) => prev.sessionId !== current.id)
+      .map((prev) =>
+        auth.api.revokeSession({ body: { token: prev.token }, headers: authHeaders }),
+      ),
+  );
 
   await db
     .insert(sessionSystem)

@@ -46,4 +46,9 @@ export const env = {
   // Opcional: si no se define, el rate limiter degrada a un contador en memoria
   // por instancia (útil en desarrollo local sin Redis).
   REDIS_URL: process.env.REDIS_URL,
+  // Nº de proxies de confianza por delante de la API. Determina cuántos saltos
+  // de X-Forwarded-For son fiables al calcular la IP del cliente para el rate
+  // limiting. 0 (por defecto) = ignorar XFF y usar solo la IP del socket, que
+  // no es falsificable. Ponlo a 1 si hay un reverse proxy propio delante, etc.
+  TRUST_PROXY_HOPS: Math.max(0, Number(process.env.TRUST_PROXY_HOPS ?? "0")) || 0,
 };

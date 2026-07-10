@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
-import { userRole } from "@/db/business-schema";
+import { role, system, userRole } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
 import type { CreateUserRoleBodySchema } from "@/openapi/business.schemas";
 
@@ -35,4 +35,26 @@ export async function deleteUserRole(id: string) {
     .where(eq(userRole.id, id))
     .returning({ id: userRole.id });
   if (!row) throw new HttpError(404, "Asignación no encontrada", "NOT_FOUND");
+}
+
+// Roles del propio usuario autenticado, con el sistema al que pertenece cada
+// uno. A diferencia de listUserRoles, no requiere admin: solo puede filtrar
+// por el userId de quien llama.
+export async function listMyRoles(userId: string, systemSlug?: string) {
+  const conditions = [
+    eq(userRole.userId, userId),
+    systemSlug ? eq(system.slug, systemSlug) : undefined,
+  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+
+  return db
+    .select({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      system: { id: system.id, slug: system.slug, name: system.name },
+    })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
+    .innerJoin(system, eq(role.systemId, system.id))
+    .where(and(...conditions));
 }

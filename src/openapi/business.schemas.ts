@@ -148,3 +148,25 @@ export const UserRoleListQuerySchema = z.object({
     param: { name: "roleId", in: "query" },
   }),
 });
+
+// Rol propio (vista de solo lectura para el usuario autenticado, no un admin):
+// incluye el sistema al que pertenece el rol para que un cliente pueda filtrar
+// por `systemSlug` sin exponer el resto de asignaciones de otros usuarios.
+export const MyUserRoleSchema = z
+  .object({
+    id: z.string(),
+    name: z.string(),
+    description: z.string().nullable(),
+    system: z.object({
+      id: z.string(),
+      slug: z.string(),
+      name: z.string(),
+    }),
+  })
+  .openapi("MyUserRole");
+
+export const MyUserRolesQuerySchema = z.object({
+  systemSlug: z.string().optional().openapi({
+    param: { name: "systemSlug", in: "query" },
+  }),
+});

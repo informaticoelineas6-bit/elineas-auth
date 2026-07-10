@@ -4,16 +4,23 @@ import {
   bindSessionToSystem,
   resolveActiveSystem,
 } from "@/services/session-system.service";
+import type { z } from "@hono/zod-openapi";
+import type { SignInBodySchema, SignUpBodySchema } from "@/openapi/schemas";
 import { Context } from "hono";
 
-export const signUpFn = async (c: Context) => {
+type SignUpInput = { out: { json: z.infer<typeof SignUpBodySchema> } };
+type SignInInput = { out: { json: z.infer<typeof SignInBodySchema> } };
+
+export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
   try {
     // Este endpoint lo invoca un admin para crear la cuenta de OTRO usuario
     // (ver middleware requireAdmin en la ruta). Por eso NO se reenvían las
     // cabeceras de sesión de la respuesta: harían que el navegador del admin
     // adoptara la sesión/cookies del usuario recién creado. Se devuelve el
     // usuario, su token y el sistema en el cuerpo, sin tocar la sesión del admin.
-    const { systemSlug, ...credentials } = await c.req.json();
+    // Se usa el body ya validado por Zod (valid("json")), que descarta campos
+    // desconocidos y evita reenviar propiedades no previstas a better-auth.
+    const { systemSlug, ...credentials } = c.req.valid("json");
     const sys = systemSlug ? await resolveActiveSystem(systemSlug) : null;
     const { response } = await auth.api.signUpEmail({
       body: credentials,
@@ -34,10 +41,11 @@ export const signUpFn = async (c: Context) => {
   }
 };
 
-export const signInFn = async (c: Context) => {
+export const signInFn = async (c: Context<any, string, SignInInput>) => {
   try {
     // systemSlug es obligatorio: cada login pertenece a un sistema concreto.
-    const { systemSlug, ...credentials } = await c.req.json();
+    // Body ya validado por Zod: descarta campos desconocidos.
+    const { systemSlug, ...credentials } = c.req.valid("json");
     const sys = await resolveActiveSystem(systemSlug);
     const { headers, response } = await auth.api.signInEmail({
       body: credentials,
