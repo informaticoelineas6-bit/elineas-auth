@@ -1,5 +1,7 @@
 import { createApp } from "@/app";
 import { env } from "@/config/env";
+import { pool } from "@/db/index";
+import { redis } from "@/lib/redis";
 
 // Red de seguridad de proceso. Cualquier rechazo o excepción que escape del
 // ciclo request/response (callbacks, timers, listeners de eventos) llega aquí.
@@ -34,3 +36,34 @@ const server = Bun.serve({
 // (local, staging o producción). `server.port` se mantiene como referencia
 // del puerto en el que efectivamente escucha el proceso.
 console.log(`Serving on ${env.BETTER_AUTH_URL} (puerto ${server.port})`);
+
+// Apagado ordenado. `docker stop` envía SIGTERM: sin esto, el proceso se corta
+// en seco, abortando peticiones en vuelo y dejando conexiones de BD/Redis sin
+// cerrar. Aquí se deja de aceptar conexiones nuevas, se drena el pool de
+// Postgres y se cierra Redis antes de salir. Un segundo SIGTERM/SIGINT fuerza
+// la salida inmediata por si el drenado se atasca.
+let shuttingDown = false;
+async function shutdown(signal: string) {
+  if (shuttingDown) {
+    console.warn(`${signal} recibido durante el apagado; salida forzada.`);
+    process.exit(1);
+  }
+  shuttingDown = true;
+  console.log(`${signal} recibido, cerrando ordenadamente…`);
+  try {
+    await server.stop();
+    await pool.end();
+    if (redis) redis.close();
+    console.log("Apagado completado.");
+    process.exit(0);
+  } catch (error) {
+    console.error(
+      "Error durante el apagado:",
+      error instanceof Error ? error.message : error,
+    );
+    process.exit(1);
+  }
+}
+
+process.on("SIGTERM", () => void shutdown("SIGTERM"));
+process.on("SIGINT", () => void shutdown("SIGINT"));
