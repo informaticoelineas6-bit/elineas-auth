@@ -12,6 +12,8 @@ import {
 } from "@/openapi/business.schemas";
 import { paginationMeta } from "@/lib/pagination";
 import {
+  CreateEmployeeWithUserBodySchema,
+  EmployeeWithUserResultSchema,
   StatusResponseSchema,
   badRequestResponse,
   bearerAuthSecurity,
@@ -22,6 +24,7 @@ import {
 } from "@/openapi/schemas";
 import {
   createEmployee,
+  createEmployeeWithUser,
   deleteEmployee,
   getEmployee,
   listEmployees,
@@ -129,6 +132,40 @@ employeesRoutes.openapi(createRouteDef, async (c) => {
   const body = c.req.valid("json");
   const employee = await createEmployee(body);
   return c.json({ employee }, 201);
+});
+
+const createWithUserRoute = createRoute({
+  method: "post",
+  path: "/with-user",
+  operationId: "createEmployeeWithUser",
+  tags: ["Employees"],
+  summary: "Crear un usuario y su empleado enlazado en una sola operación",
+  security: bearerAuthSecurity,
+  request: {
+    body: {
+      content: {
+        "application/json": { schema: CreateEmployeeWithUserBodySchema },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Usuario y empleado creados",
+      content: {
+        "application/json": { schema: EmployeeWithUserResultSchema },
+      },
+    },
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    409: conflictResponse,
+  },
+});
+
+employeesRoutes.openapi(createWithUserRoute, async (c) => {
+  const body = c.req.valid("json");
+  const result = await createEmployeeWithUser(body, c.req.raw.headers);
+  return c.json(result, 201);
 });
 
 const updateRoute = createRoute({

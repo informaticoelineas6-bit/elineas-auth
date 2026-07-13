@@ -57,7 +57,7 @@
             "description": "Registrar un nuevo usuario (requiere rol admin)",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"email\": \"ada@mercadoelineas.com\",\n  \"password\": \"super-secreta\",\n  \"image\": \"texto\",\n  \"callbackURL\": \"texto\",\n  \"rememberMe\": true,\n  \"systemSlug\": \"pos\"\n}",
+              "raw": "{\n  \"name\": \"Ada Lovelace\",\n  \"email\": \"ada@example.com\",\n  \"password\": \"tu-contraseña-segura\",\n  \"image\": \"texto\",\n  \"callbackURL\": \"texto\",\n  \"rememberMe\": true,\n  \"systemSlug\": \"pos\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -86,7 +86,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@mercadoelineas.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"system\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ejemplo\",\n    \"slug\": \"ejemplo-slug\",\n    \"description\": \"texto\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"system\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ejemplo\",\n    \"slug\": \"ejemplo-slug\",\n    \"description\": \"texto\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -155,7 +155,7 @@
             "description": "Iniciar sesión con email y contraseña\n\n_No requiere autenticación._",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"ada@mercadoelineas.com\",\n  \"password\": \"super-secreta\",\n  \"callbackURL\": \"texto\",\n  \"rememberMe\": true,\n  \"systemSlug\": \"pos\"\n}",
+              "raw": "{\n  \"email\": \"ada@example.com\",\n  \"password\": \"tu-contraseña-segura\",\n  \"callbackURL\": \"texto\",\n  \"rememberMe\": true,\n  \"systemSlug\": \"pos\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -177,7 +177,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@mercadoelineas.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"system\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ejemplo\",\n    \"slug\": \"ejemplo-slug\",\n    \"description\": \"texto\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"system\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ejemplo\",\n    \"slug\": \"ejemplo-slug\",\n    \"description\": \"texto\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -409,7 +409,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@mercadoelineas.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"session\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"expiresAt\": \"2026-07-10T12:00:00.000Z\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"ipAddress\": \"texto\",\n    \"userAgent\": \"texto\",\n    \"impersonatedBy\": \"texto\",\n    \"activeOrganizationId\": \"texto\"\n  },\n  \"system\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ejemplo\",\n    \"slug\": \"ejemplo-slug\",\n    \"description\": \"texto\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"session\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"expiresAt\": \"2026-07-10T12:00:00.000Z\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"ipAddress\": \"texto\",\n    \"userAgent\": \"texto\",\n    \"impersonatedBy\": \"texto\",\n    \"activeOrganizationId\": \"texto\"\n  },\n  \"system\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ejemplo\",\n    \"slug\": \"ejemplo-slug\",\n    \"description\": \"texto\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -478,7 +478,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@mercadoelineas.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -607,7 +607,7 @@
             "description": "Cambiar la contraseña del usuario autenticado",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"newPassword\": \"nueva-super-secreta\",\n  \"currentPassword\": \"super-secreta\",\n  \"revokeOtherSessions\": true\n}",
+              "raw": "{\n  \"newPassword\": \"tu-nueva-contraseña\",\n  \"currentPassword\": \"tu-contraseña-segura\",\n  \"revokeOtherSessions\": true\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -636,7 +636,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@mercadoelineas.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
               "_postman_previewlanguage": "json"
             },
             {
@@ -693,7 +693,7 @@
             "description": "Cambiar el email del usuario autenticado",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"newEmail\": \"nueva@mercadoelineas.com\",\n  \"callbackURL\": \"texto\"\n}",
+              "raw": "{\n  \"newEmail\": \"nueva@example.com\",\n  \"callbackURL\": \"texto\"\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -722,7 +722,7 @@
                   "value": "application/json"
                 }
               ],
-              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@mercadoelineas.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"status\": true\n}",
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"status\": true\n}",
               "_postman_previewlanguage": "json"
             },
             {

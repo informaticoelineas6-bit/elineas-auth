@@ -27,17 +27,38 @@ if (redis) {
   };
 }
 
-// Ejecuta un comando de Redis con un límite de tiempo. Un Redis "vivo pero
-// lento" (red congestionada, failover en curso) podría dejar un `send()`
-// colgado indefinidamente y frenar cada petición; con este tope, si no responde
-// a tiempo la promesa rechaza y quien llama degrada a su plan B (memoria/BD).
+// --- Circuit breaker ---
+//
+// Un Redis caído o "vivo pero lento" haría que CADA petición a rutas con rate
+// limit o requireAdmin pagara el timeout completo antes de degradar. El breaker
+// corta esa penalización: tras varios fallos seguidos "abre" y, durante un
+// cooldown, `redisCommand` rechaza al instante (sin intentar la conexión), de
+// modo que quien llama cae a su plan B (memoria/BD) sin latencia. Pasado el
+// cooldown deja pasar UNA petición de prueba (half-open): si va bien, cierra; si
+// falla, reabre otro cooldown.
+const BREAKER_FAILURE_THRESHOLD = 5;
+const BREAKER_COOLDOWN_MS = 30_000;
+
+let consecutiveFailures = 0;
+let breakerOpenUntil = 0;
+
+// Ejecuta un comando de Redis con un límite de tiempo y protegido por el
+// breaker. Un Redis "vivo pero lento" (red congestionada, failover en curso)
+// podría dejar un `send()` colgado indefinidamente y frenar cada petición; con
+// el tope, si no responde a tiempo la promesa rechaza y quien llama degrada a su
+// plan B (memoria/BD).
 export async function redisCommand<T>(
   fn: () => Promise<T>,
   timeoutMs = 250,
 ): Promise<T> {
+  // Breaker abierto: rechazamos sin tocar Redis para no pagar el timeout.
+  if (breakerOpenUntil > Date.now()) {
+    throw new Error("Redis circuit breaker abierto");
+  }
+
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
-    return await Promise.race([
+    const result = await Promise.race([
       fn(),
       new Promise<never>((_, reject) => {
         timer = setTimeout(
@@ -46,6 +67,19 @@ export async function redisCommand<T>(
         );
       }),
     ]);
+    // Éxito (incluye la petición de prueba en half-open): cerramos el breaker.
+    consecutiveFailures = 0;
+    breakerOpenUntil = 0;
+    return result;
+  } catch (error) {
+    consecutiveFailures += 1;
+    if (consecutiveFailures >= BREAKER_FAILURE_THRESHOLD) {
+      breakerOpenUntil = Date.now() + BREAKER_COOLDOWN_MS;
+      console.error(
+        `Redis: ${consecutiveFailures} fallos seguidos; breaker abierto ${BREAKER_COOLDOWN_MS}ms.`,
+      );
+    }
+    throw error;
   } finally {
     if (timer) clearTimeout(timer);
   }

@@ -2,6 +2,8 @@ import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { employee } from "@/db/business-schema";
+import { user } from "@/db/auth-schema";
+import { auth } from "@/lib/auth";
 import { HttpError } from "@/lib/http";
 import { escapeLike } from "@/lib/search";
 import { toOffset, type PaginationInput } from "@/lib/pagination";
@@ -9,9 +11,11 @@ import type {
   CreateEmployeeBodySchema,
   UpdateEmployeeBodySchema,
 } from "@/openapi/business.schemas";
+import type { CreateEmployeeWithUserBodySchema } from "@/openapi/schemas";
 
 type CreateEmployeeInput = z.infer<typeof CreateEmployeeBodySchema>;
 type UpdateEmployeeInput = z.infer<typeof UpdateEmployeeBodySchema>;
+type CreateEmployeeWithUserInput = z.infer<typeof CreateEmployeeWithUserBodySchema>;
 
 export async function listEmployees(
   filters: { active?: boolean; search?: string },
@@ -56,6 +60,61 @@ export async function getEmployee(id: string) {
 export async function createEmployee(input: CreateEmployeeInput) {
   const [row] = await db.insert(employee).values(input).returning();
   return row;
+}
+
+// Alta combinada: crea el usuario (vía better-auth) y el empleado enlazado en
+// una sola operación de cara al cliente.
+//
+// No hay una transacción única que abarque ambos pasos: `signUpEmail` escribe
+// en la BD por su cuenta (tablas user/account), fuera del control de una
+// transacción de Drizzle. Por eso se usa el patrón pre-chequeo + compensación:
+//   1. Se comprueba que el CI no exista ANTES de crear el usuario, para que el
+//      caso habitual de CI duplicado falle sin dejar rastro (409, sin usuario).
+//   2. Se crea el usuario.
+//   3. Se inserta el empleado; si ese insert falla (p. ej. una carrera contra
+//      el paso 1, o el userId ya ligado a otro empleado), se borra el usuario
+//      recién creado para no dejar cuentas huérfanas y se relanza el error.
+// El borrado del usuario cascadea a account/session (FK onDelete: cascade).
+export async function createEmployeeWithUser(
+  input: CreateEmployeeWithUserInput,
+  headers: Headers,
+) {
+  const [existing] = await db
+    .select({ id: employee.id })
+    .from(employee)
+    .where(eq(employee.ci, input.employee.ci))
+    .limit(1);
+  if (existing) {
+    throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+  }
+
+  const { response } = await auth.api.signUpEmail({
+    body: input.user,
+    headers,
+    returnHeaders: true,
+  });
+
+  try {
+    const [row] = await db
+      .insert(employee)
+      .values({ ...input.employee, userId: response.user.id })
+      .returning();
+    return { user: response.user, employee: row };
+  } catch (error) {
+    // Compensación: borra el usuario recién creado para no dejar una cuenta
+    // huérfana. Su propio fallo (p. ej. BD caída a mitad) se registra pero NO
+    // se propaga: relanzar el error de compensación enmascararía el error real
+    // del insert, que es el que explica al cliente por qué falló la operación.
+    try {
+      await db.delete(user).where(eq(user.id, response.user.id));
+    } catch (cleanupError) {
+      console.error(
+        `No se pudo revertir el usuario huérfano ${response.user.id} tras fallar el alta del empleado:`,
+        cleanupError instanceof Error ? cleanupError.message : cleanupError,
+      );
+    }
+    throw error;
+  }
 }
 
 export async function updateEmployee(id: string, input: UpdateEmployeeInput) {

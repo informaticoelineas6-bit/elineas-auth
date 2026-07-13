@@ -1,4 +1,5 @@
 import type { Context } from "hono";
+import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
 import { auth } from "@/lib/auth";
 
@@ -71,6 +72,11 @@ export function handleError(error: unknown, c: Context) {
 
   if (error instanceof HttpError) {
     return json({ error: error.message, code: error.code }, error.status);
+  }
+  // HTTPException de Hono (p. ej. el 504 del middleware `timeout`). Se respeta su
+  // status en vez de degradarlo al 500 genérico del final.
+  if (error instanceof HTTPException) {
+    return json({ error: error.message, code: "HTTP_EXCEPTION" }, error.status);
   }
   if (isApiError(error)) {
     return json(

@@ -105,7 +105,20 @@ export const getTokenFn = async (c: Context) => {
   }
 };
 
+// El JWKS es público y sin autenticación: sin caché, cada verificador que lo
+// consulte dispara una operación en better-auth (y potencialmente en BD), un
+// vector barato de agotamiento de recursos. Las claves casi nunca rotan, así que
+// se cachea en memoria unos minutos. El coste es que una clave recién rotada
+// tarda como mucho este TTL en publicarse; los verificadores ya cachean el JWKS
+// por su cuenta, de modo que este margen es aceptable.
+const JWKS_CACHE_TTL_MS = 5 * 60_000;
+let jwksCache: { value: Awaited<ReturnType<typeof auth.api.getJwks>>; expiresAt: number } | null =
+  null;
+
 export const getJwksFn = async (c: Context) => {
-  const jwks = await auth.api.getJwks();
-  return c.json(jwks, 200);
+  const now = Date.now();
+  if (!jwksCache || jwksCache.expiresAt <= now) {
+    jwksCache = { value: await auth.api.getJwks(), expiresAt: now + JWKS_CACHE_TTL_MS };
+  }
+  return c.json(jwksCache.value, 200);
 };

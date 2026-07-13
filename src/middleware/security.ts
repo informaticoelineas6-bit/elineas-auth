@@ -3,14 +3,37 @@ import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
 import { logger } from "hono/logger";
+import { timeout } from "hono/timeout";
+import { HTTPException } from "hono/http-exception";
 import { env } from "@/config/env";
 import type { AppEnv } from "@/types/hono-env";
+
+// Tope de tiempo por petición. Si un handler se cuelga (BD bloqueada, better-auth
+// sin responder, etc.), el cliente recibe un 504 en vez de esperar para siempre
+// y retener recursos. Es holgado respecto a los timeouts de query del pool
+// (10-12s) para que el error específico de la query gane la carrera cuando el
+// problema sea de BD, dejando este como red de seguridad de último recurso.
+const REQUEST_TIMEOUT_MS = 15_000;
 
 // Middleware transversal de seguridad y observabilidad (CORS, cabeceras de
 // seguridad, logging y límite de tamaño del cuerpo). Se agrupa aquí para que
 // createApp() sea una composición legible y para poder razonar sobre toda la
 // postura de seguridad HTTP en un solo lugar.
 export function registerSecurityMiddleware(app: OpenAPIHono<AppEnv>) {
+  // Se registra el primero para que envuelva a todo el resto de la cadena
+  // (validación, rutas, BD). Lanza una HTTPException 504 que handleError traduce
+  // a JSON consistente con el resto de la API.
+  app.use(
+    "/api/*",
+    timeout(
+      REQUEST_TIMEOUT_MS,
+      () =>
+        new HTTPException(504, {
+          message: "La solicitud tardó demasiado en procesarse",
+        }),
+    ),
+  );
+
   app.use(
     "/api/*",
     cors({

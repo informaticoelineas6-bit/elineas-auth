@@ -45,6 +45,18 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/auth/sign-up",
     rateLimit({ name: "sign-up", windowMs: 60_000, max: 5 }),
   );
+  // JWKS (público) y token (autenticado) sin límite eran un vector barato de
+  // agotamiento de recursos: cada hit dispara trabajo en better-auth. El límite
+  // por IP es holgado para el uso legítimo (un verificador cachea el JWKS) pero
+  // corta el abuso.
+  app.use(
+    "/api/auth/jwks",
+    rateLimit({ name: "jwks", windowMs: 60_000, max: 60 }),
+  );
+  app.use(
+    "/api/auth/token",
+    rateLimit({ name: "token", windowMs: 60_000, max: 60 }),
+  );
   // Sign-out no lleva cuerpo, así que no hay preflight CORS que lo proteja de
   // un CSRF: se exige mismo origen explícitamente.
   app.use("/api/auth/sign-out", requireSameOrigin);

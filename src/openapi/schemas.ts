@@ -1,5 +1,9 @@
 import { z } from "@hono/zod-openapi";
-import { SystemSchema } from "@/openapi/business.schemas";
+import {
+  CreateEmployeeBodySchema,
+  EmployeeSchema,
+  SystemSchema,
+} from "@/openapi/business.schemas";
 
 // URL de imagen (avatar): acotada en longitud y restringida a http(s) para
 // evitar que se almacene un `javascript:`/`data:` que dispare XSS al renderizar
@@ -13,13 +17,20 @@ const ImageUrl = z
 // arbitrariamente grandes que acaben renderizadas sin escapar en un cliente.
 const DisplayName = z.string().min(1).max(100);
 
+// Política de contraseña única y compartida por todas las rutas que reciben una
+// contraseña NUEVA (alta y cambio). Debe coincidir con la política de
+// better-auth (min/maxPasswordLength en lib/auth.ts); tenerla en un único sitio
+// evita que se desincronicen. No aplica al login (SignIn), donde solo se
+// comprueba contra la contraseña ya almacenada.
+const Password = z.string().min(12).max(128);
+
 export const SignUpBodySchema = z
   .object({
     name: DisplayName.openapi({ example: "Ada Lovelace" }),
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
-    // Debe cumplir la política de better-auth (min 12, max 128); se valida aquí
-    // también para dar un error claro antes de llegar a la capa de auth.
-    password: z.string().min(12).max(128).openapi({ example: "super-secreta1" }),
+    email: z.email().openapi({ example: "ada@example.com" }),
+    // Se valida aquí también para dar un error claro antes de llegar a la capa
+    // de auth (better-auth aplica la misma política).
+    password: Password.openapi({ example: "tu-contraseña-segura" }),
     image: ImageUrl.optional(),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
@@ -30,8 +41,8 @@ export const SignUpBodySchema = z
 
 export const SignInBodySchema = z
   .object({
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
-    password: z.string().min(1).max(128).openapi({ example: "super-secreta1" }),
+    email: z.email().openapi({ example: "ada@example.com" }),
+    password: z.string().min(1).max(128).openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
     // Obligatorio: cada login pertenece a un sistema concreto.
@@ -43,7 +54,7 @@ export const UserSchema = z
   .object({
     id: z.string().openapi({ example: "usr_9f8a2b" }),
     name: z.string().openapi({ example: "Ada Lovelace" }),
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
+    email: z.email().openapi({ example: "ada@example.com" }),
     emailVerified: z.boolean(),
     image: z.string().nullable().optional(),
     createdAt: z.date(),
@@ -105,6 +116,30 @@ export const AuthResultSchema = z
   })
   .openapi("AuthResult");
 
+// Alta combinada usuario + empleado (POST /api/employees/with-user). Se anida
+// para evitar la colisión de `name` (nombre visible del usuario vs. nombre de
+// pila del empleado) y para dejar claro qué campos pertenecen a cada recurso.
+// El `userId` del empleado NO se acepta aquí: lo fija el servidor con el id del
+// usuario recién creado, que es justo el vínculo que este endpoint garantiza.
+export const CreateEmployeeWithUserBodySchema = z
+  .object({
+    user: SignUpBodySchema.pick({
+      name: true,
+      email: true,
+      password: true,
+      image: true,
+    }),
+    employee: CreateEmployeeBodySchema.omit({ userId: true }),
+  })
+  .openapi("CreateEmployeeWithUserBody");
+
+export const EmployeeWithUserResultSchema = z
+  .object({
+    user: UserSchema,
+    employee: EmployeeSchema,
+  })
+  .openapi("EmployeeWithUserResult");
+
 export const JwkSchema = z
   .object({
     kid: z.string().optional(),
@@ -133,8 +168,11 @@ export const UpdateUserBodySchema = z
 
 export const ChangePasswordBodySchema = z
   .object({
-    newPassword: z.string().openapi({ example: "nueva-super-secreta" }),
-    currentPassword: z.string().openapi({ example: "super-secreta" }),
+    // La nueva contraseña debe cumplir la misma política que el alta (12-128);
+    // sin esta validación se aceptaba cualquier cadena y la política mínima la
+    // ponía better-auth (más laxa), permitiendo bajar a una contraseña débil.
+    newPassword: Password.openapi({ example: "tu-nueva-contraseña" }),
+    currentPassword: z.string().openapi({ example: "tu-contraseña-actual" }),
     revokeOtherSessions: z.boolean().optional(),
   })
   .openapi("ChangePasswordBody");
@@ -148,7 +186,12 @@ export const ChangePasswordResponseSchema = z
 
 export const ChangeEmailBodySchema = z
   .object({
-    newEmail: z.email().openapi({ example: "nueva@mercadoelineas.com" }),
+    newEmail: z.email().openapi({ example: "nueva@example.com" }),
+    // Re-autenticación: el cambio de email se aplica sin verificación por correo
+    // (updateEmailWithoutVerification), así que una sesión robada podría
+    // consumar el robo de la cuenta. Exigir la contraseña actual lo evita sin
+    // depender de envío de correos.
+    currentPassword: z.string().openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
   })
   .openapi("ChangeEmailBody");

@@ -2,6 +2,7 @@ import { OpenAPIHono } from "@hono/zod-openapi";
 import { handleError } from "@/lib/http";
 import { registerSecurityMiddleware } from "@/middleware/security";
 import { registerAuthRateLimits } from "@/middleware/auth-rate-limits";
+import { registerHealthChecks } from "@/routes/health.routes";
 import { registerRoutes } from "@/routes";
 import { registerOpenApiDocs } from "@/openapi/docs";
 import type { AppEnv } from "@/types/hono-env";
@@ -19,6 +20,9 @@ export { openApiInfo } from "@/openapi/docs";
 export function createApp() {
   const app = new OpenAPIHono<AppEnv>();
 
+  // Health checks primero: así no heredan logger (ruido en cada sondeo), CORS,
+  // rate limiting ni el timeout, y no dependen de nada externo.
+  registerHealthChecks(app);
   registerSecurityMiddleware(app);
   registerAuthRateLimits(app);
   app.onError(handleError);
