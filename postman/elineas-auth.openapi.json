@@ -350,6 +350,8 @@
         "properties": {
           "newPassword": {
             "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
             "example": "tu-nueva-contraseña"
           },
           "currentPassword": {

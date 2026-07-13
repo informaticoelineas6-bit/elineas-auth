@@ -17,13 +17,20 @@ const ImageUrl = z
 // arbitrariamente grandes que acaben renderizadas sin escapar en un cliente.
 const DisplayName = z.string().min(1).max(100);
 
+// Política de contraseña única y compartida por todas las rutas que reciben una
+// contraseña NUEVA (alta y cambio). Debe coincidir con la política de
+// better-auth (min/maxPasswordLength en lib/auth.ts); tenerla en un único sitio
+// evita que se desincronicen. No aplica al login (SignIn), donde solo se
+// comprueba contra la contraseña ya almacenada.
+const Password = z.string().min(12).max(128);
+
 export const SignUpBodySchema = z
   .object({
     name: DisplayName.openapi({ example: "Ada Lovelace" }),
     email: z.email().openapi({ example: "ada@example.com" }),
-    // Debe cumplir la política de better-auth (min 12, max 128); se valida aquí
-    // también para dar un error claro antes de llegar a la capa de auth.
-    password: z.string().min(12).max(128).openapi({ example: "tu-contraseña-segura" }),
+    // Se valida aquí también para dar un error claro antes de llegar a la capa
+    // de auth (better-auth aplica la misma política).
+    password: Password.openapi({ example: "tu-contraseña-segura" }),
     image: ImageUrl.optional(),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
@@ -161,7 +168,10 @@ export const UpdateUserBodySchema = z
 
 export const ChangePasswordBodySchema = z
   .object({
-    newPassword: z.string().openapi({ example: "tu-nueva-contraseña" }),
+    // La nueva contraseña debe cumplir la misma política que el alta (12-128);
+    // sin esta validación se aceptaba cualquier cadena y la política mínima la
+    // ponía better-auth (más laxa), permitiendo bajar a una contraseña débil.
+    newPassword: Password.openapi({ example: "tu-nueva-contraseña" }),
     currentPassword: z.string().openapi({ example: "tu-contraseña-segura" }),
     revokeOtherSessions: z.boolean().optional(),
   })
