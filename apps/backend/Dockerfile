@@ -12,12 +12,17 @@ FROM oven/bun:${BUN_VERSION} AS base
 WORKDIR /app
 
 # ---- deps: instala las dependencias del backend; cacheado mientras no cambien los manifiestos ----
-# Se copian solo los package.json (raíz + workspace backend) + el lockfile para
-# que la capa de instalación se reutilice mientras las dependencias no cambien,
-# aunque sí cambie el código fuente.
+# `bun.lock` describe la topología de LOS TRES workspaces (backend, frontend,
+# api-client): hay que copiar los package.json de los tres aunque --filter solo
+# instale las dependencias del backend, o bun ve un workspace incompleto y
+# rechaza el lockfile ("lockfile had changes, but lockfile is frozen"). Copiar
+# solo manifiestos (no el código fuente) mantiene esta capa cacheada mientras
+# las dependencias no cambien, aunque sí cambie el código.
 FROM base AS deps
 COPY package.json bun.lock ./
 COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY packages/api-client/package.json ./packages/api-client/
 RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --filter @elineas/backend
 
@@ -39,9 +44,13 @@ WORKDIR /app/apps/backend
 RUN bun run build && bun run build:prod
 
 # ---- prod-deps: solo dependencias de producción del backend ----
+# Misma razón que en `deps`: hay que copiar los tres manifiestos de workspace
+# para que bun reconozca la topología completa que describe bun.lock.
 FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/backend/package.json ./apps/backend/
+COPY apps/frontend/package.json ./apps/frontend/
+COPY packages/api-client/package.json ./packages/api-client/
 RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --production --filter @elineas/backend
 
