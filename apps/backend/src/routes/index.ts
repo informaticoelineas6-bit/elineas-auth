@@ -11,12 +11,18 @@ import type { AppEnv } from "@/types/hono-env";
 // Tabla de montaje de la API: cada familia de endpoints bajo su prefijo. Es el
 // único sitio que hay que tocar para añadir o quitar un grupo de rutas, de modo
 // que el mapa completo de la API se lee de un vistazo.
+// Devuelve el app con las rutas montadas ENCADENADAS: así el tipo resultante
+// acumula la firma de cada endpoint (método, path, entrada y salida), que es lo
+// que el cliente RPC de Hono (`hc<AppType>`) necesita para dar type safety
+// extremo a extremo. Si se rompe el encadenado (montar con sentencias sueltas),
+// el RPC compila pero pierde los tipos por endpoint.
 export function registerRoutes(app: OpenAPIHono<AppEnv>) {
-  app.route("/api/auth", authRoutes);
-  app.route("/api/users", usersRoutes);
-  app.route("/api/sessions", sessionsRoutes);
-  app.route("/api/employees", employeesRoutes);
-  app.route("/api/systems", systemsRoutes);
-  app.route("/api/roles", rolesRoutes);
-  app.route("/api/user-roles", userRolesRoutes);
+  return app
+    .route("/api/auth", authRoutes)
+    .route("/api/users", usersRoutes)
+    .route("/api/sessions", sessionsRoutes)
+    .route("/api/employees", employeesRoutes)
+    .route("/api/systems", systemsRoutes)
+    .route("/api/roles", rolesRoutes)
+    .route("/api/user-roles", userRolesRoutes);
 }

@@ -31,15 +31,6 @@ import {
   updateEmployee,
 } from "@/services/employee.service";
 
-export const employeesRoutes = new OpenAPIHono<AppEnv>();
-
-// Todo el recurso (lecturas y escrituras) requiere rol admin: los clientes
-// normales solo pueden iniciar sesión, consultar el estado de su sesión y su
-// propio usuario. requireAdmin se apoya en el user que puebla requireSession,
-// por eso este último se registra primero.
-employeesRoutes.use("*", requireSession);
-employeesRoutes.use("*", requireAdmin);
-
 const listRoute = createRoute({
   method: "get",
   path: "/",
@@ -65,18 +56,6 @@ const listRoute = createRoute({
   },
 });
 
-employeesRoutes.openapi(listRoute, async (c) => {
-  const { active, search, page, limit } = c.req.valid("query");
-  const { rows, total } = await listEmployees(
-    { active: active === undefined ? undefined : active === "true", search },
-    { page, limit },
-  );
-  return c.json(
-    { employees: rows, pagination: paginationMeta({ page, limit }, total) },
-    200,
-  );
-});
-
 const getRoute = createRoute({
   method: "get",
   path: "/{id}",
@@ -96,12 +75,6 @@ const getRoute = createRoute({
     403: forbiddenResponse,
     404: notFoundResponse,
   },
-});
-
-employeesRoutes.openapi(getRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const employee = await getEmployee(id);
-  return c.json({ employee }, 200);
 });
 
 const createRouteDef = createRoute({
@@ -126,12 +99,6 @@ const createRouteDef = createRoute({
     403: forbiddenResponse,
     409: conflictResponse,
   },
-});
-
-employeesRoutes.openapi(createRouteDef, async (c) => {
-  const body = c.req.valid("json");
-  const employee = await createEmployee(body);
-  return c.json({ employee }, 201);
 });
 
 const createWithUserRoute = createRoute({
@@ -162,12 +129,6 @@ const createWithUserRoute = createRoute({
   },
 });
 
-employeesRoutes.openapi(createWithUserRoute, async (c) => {
-  const body = c.req.valid("json");
-  const result = await createEmployeeWithUser(body, c.req.raw.headers);
-  return c.json(result, 201);
-});
-
 const updateRoute = createRoute({
   method: "patch",
   path: "/{id}",
@@ -194,13 +155,6 @@ const updateRoute = createRoute({
   },
 });
 
-employeesRoutes.openapi(updateRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const body = c.req.valid("json");
-  const employee = await updateEmployee(id, body);
-  return c.json({ employee }, 200);
-});
-
 const deleteRoute = createRoute({
   method: "delete",
   path: "/{id}",
@@ -220,8 +174,53 @@ const deleteRoute = createRoute({
   },
 });
 
-employeesRoutes.openapi(deleteRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  await deleteEmployee(id);
-  return c.json({ status: true }, 200);
-});
+// Todo el recurso (lecturas y escrituras) requiere rol admin: los clientes
+// normales solo pueden iniciar sesión, consultar el estado de su sesión y su
+// propio usuario. requireAdmin se apoya en el user que puebla requireSession,
+// por eso este último se registra primero.
+// El middleware se registra sobre la instancia base (no dentro de la cadena):
+// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
+// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
+// orden de ejecución en runtime es el mismo (middleware primero).
+const employeesRoutesBase = new OpenAPIHono<AppEnv>();
+employeesRoutesBase.use("*", requireSession);
+employeesRoutesBase.use("*", requireAdmin);
+
+export const employeesRoutes = employeesRoutesBase
+  .openapi(listRoute, async (c) => {
+    const { active, search, page, limit } = c.req.valid("query");
+    const { rows, total } = await listEmployees(
+      { active: active === undefined ? undefined : active === "true", search },
+      { page, limit },
+    );
+    return c.json(
+      { employees: rows, pagination: paginationMeta({ page, limit }, total) },
+      200,
+    );
+  })
+  .openapi(getRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const employee = await getEmployee(id);
+    return c.json({ employee }, 200);
+  })
+  .openapi(createRouteDef, async (c) => {
+    const body = c.req.valid("json");
+    const employee = await createEmployee(body);
+    return c.json({ employee }, 201);
+  })
+  .openapi(createWithUserRoute, async (c) => {
+    const body = c.req.valid("json");
+    const result = await createEmployeeWithUser(body, c.req.raw.headers);
+    return c.json(result, 201);
+  })
+  .openapi(updateRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const body = c.req.valid("json");
+    const employee = await updateEmployee(id, body);
+    return c.json({ employee }, 200);
+  })
+  .openapi(deleteRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    await deleteEmployee(id);
+    return c.json({ status: true }, 200);
+  });

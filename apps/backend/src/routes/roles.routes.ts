@@ -28,13 +28,6 @@ import {
   updateRole,
 } from "@/services/role.service";
 
-export const rolesRoutes = new OpenAPIHono<AppEnv>();
-
-// Todo el recurso requiere rol admin (lecturas incluidas). requireSession va
-// primero porque requireAdmin usa el user que aquél puebla.
-rolesRoutes.use("*", requireSession);
-rolesRoutes.use("*", requireAdmin);
-
 const listRoute = createRoute({
   method: "get",
   path: "/",
@@ -60,12 +53,6 @@ const listRoute = createRoute({
   },
 });
 
-rolesRoutes.openapi(listRoute, async (c) => {
-  const { systemId, search, page, limit } = c.req.valid("query");
-  const { rows, total } = await listRoles({ systemId, search }, { page, limit });
-  return c.json({ roles: rows, pagination: paginationMeta({ page, limit }, total) }, 200);
-});
-
 const getRoute = createRoute({
   method: "get",
   path: "/{id}",
@@ -83,12 +70,6 @@ const getRoute = createRoute({
     403: forbiddenResponse,
     404: notFoundResponse,
   },
-});
-
-rolesRoutes.openapi(getRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const role = await getRole(id);
-  return c.json({ role }, 200);
 });
 
 const createRouteDef = createRoute({
@@ -111,12 +92,6 @@ const createRouteDef = createRoute({
     403: forbiddenResponse,
     409: conflictResponse,
   },
-});
-
-rolesRoutes.openapi(createRouteDef, async (c) => {
-  const body = c.req.valid("json");
-  const role = await createRole(body);
-  return c.json({ role }, 201);
 });
 
 const updateRoute = createRoute({
@@ -143,13 +118,6 @@ const updateRoute = createRoute({
   },
 });
 
-rolesRoutes.openapi(updateRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const body = c.req.valid("json");
-  const role = await updateRole(id, body);
-  return c.json({ role }, 200);
-});
-
 const deleteRoute = createRoute({
   method: "delete",
   path: "/{id}",
@@ -169,8 +137,40 @@ const deleteRoute = createRoute({
   },
 });
 
-rolesRoutes.openapi(deleteRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  await deleteRole(id);
-  return c.json({ status: true }, 200);
-});
+// Todo el recurso requiere rol admin (lecturas incluidas). requireSession va
+// primero porque requireAdmin usa el user que aquél puebla.
+// El middleware se registra sobre la instancia base (no dentro de la cadena):
+// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
+// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
+// orden de ejecución en runtime es el mismo (middleware primero).
+const rolesRoutesBase = new OpenAPIHono<AppEnv>();
+rolesRoutesBase.use("*", requireSession);
+rolesRoutesBase.use("*", requireAdmin);
+
+export const rolesRoutes = rolesRoutesBase
+  .openapi(listRoute, async (c) => {
+    const { systemId, search, page, limit } = c.req.valid("query");
+    const { rows, total } = await listRoles({ systemId, search }, { page, limit });
+    return c.json({ roles: rows, pagination: paginationMeta({ page, limit }, total) }, 200);
+  })
+  .openapi(getRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const role = await getRole(id);
+    return c.json({ role }, 200);
+  })
+  .openapi(createRouteDef, async (c) => {
+    const body = c.req.valid("json");
+    const role = await createRole(body);
+    return c.json({ role }, 201);
+  })
+  .openapi(updateRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const body = c.req.valid("json");
+    const role = await updateRole(id, body);
+    return c.json({ role }, 200);
+  })
+  .openapi(deleteRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    await deleteRole(id);
+    return c.json({ status: true }, 200);
+  });

@@ -20,10 +20,6 @@ import {
   updateMeFn,
 } from "@/services/user.service";
 
-export const usersRoutes = new OpenAPIHono<AppEnv>();
-
-usersRoutes.use("*", requireSession);
-
 const getMeRoute = createRoute({
   method: "get",
   path: "/me",
@@ -41,8 +37,6 @@ const getMeRoute = createRoute({
     401: unauthorizedResponse,
   },
 });
-
-usersRoutes.openapi(getMeRoute, getMeFn);
 
 const updateMeRoute = createRoute({
   method: "patch",
@@ -63,8 +57,6 @@ const updateMeRoute = createRoute({
     401: unauthorizedResponse,
   },
 });
-
-usersRoutes.openapi(updateMeRoute, updateMeFn);
 
 const changePasswordRoute = createRoute({
   method: "post",
@@ -88,8 +80,6 @@ const changePasswordRoute = createRoute({
   },
 });
 
-usersRoutes.openapi(changePasswordRoute, changePasswordFn);
-
 const changeEmailRoute = createRoute({
   method: "post",
   path: "/me/change-email",
@@ -112,7 +102,18 @@ const changeEmailRoute = createRoute({
   },
 });
 
-usersRoutes.openapi(changeEmailRoute, changeEmailFn);
+// El middleware se registra como sentencia sobre la instancia base (no dentro
+// de la cadena): OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así
+// que encadenarlo cortaría la inferencia de tipos del RPC. Registrado antes de
+// las rutas, el orden de ejecución en runtime es el mismo (middleware primero).
+const usersRoutesBase = new OpenAPIHono<AppEnv>();
+usersRoutesBase.use("*", requireSession);
+
+export const usersRoutes = usersRoutesBase
+  .openapi(getMeRoute, getMeFn)
+  .openapi(updateMeRoute, updateMeFn)
+  .openapi(changePasswordRoute, changePasswordFn)
+  .openapi(changeEmailRoute, changeEmailFn);
 
 // El auto-borrado de cuenta está deshabilitado (ver lib/auth.ts). La baja de un
 // usuario la realiza un admin sobre el recurso correspondiente, no el propio

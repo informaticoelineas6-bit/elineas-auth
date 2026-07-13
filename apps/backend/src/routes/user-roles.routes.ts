@@ -29,15 +29,6 @@ import {
   listUserRoles,
 } from "@/services/user-role.service";
 
-export const userRolesRoutes = new OpenAPIHono<AppEnv>();
-
-// Todas las rutas requieren sesión; el resto del recurso (lecturas y
-// escrituras sobre asignaciones ajenas) exige además rol admin por ruta, ya
-// que revela quién es admin — información sensible que no debe exponerse a
-// sesiones normales. La excepción es /me: cualquier usuario autenticado
-// puede consultar SUS PROPIOS roles.
-userRolesRoutes.use("*", requireSession);
-
 const myRolesRoute = createRoute({
   method: "get",
   path: "/me",
@@ -57,13 +48,6 @@ const myRolesRoute = createRoute({
     },
     401: unauthorizedResponse,
   },
-});
-
-userRolesRoutes.openapi(myRolesRoute, async (c) => {
-  const { systemSlug } = c.req.valid("query");
-  const user = c.get("user");
-  const roles = await listMyRoles(user.id, systemSlug);
-  return c.json({ roles }, 200);
 });
 
 const listRoute = createRoute({
@@ -92,15 +76,6 @@ const listRoute = createRoute({
   },
 });
 
-userRolesRoutes.openapi(listRoute, async (c) => {
-  const { userId, roleId, page, limit } = c.req.valid("query");
-  const { rows, total } = await listUserRoles({ userId, roleId }, { page, limit });
-  return c.json(
-    { userRoles: rows, pagination: paginationMeta({ page, limit }, total) },
-    200,
-  );
-});
-
 const getRoute = createRoute({
   method: "get",
   path: "/{id}",
@@ -121,12 +96,6 @@ const getRoute = createRoute({
     403: forbiddenResponse,
     404: notFoundResponse,
   },
-});
-
-userRolesRoutes.openapi(getRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  const userRole = await getUserRole(id);
-  return c.json({ userRole }, 200);
 });
 
 const createRouteDef = createRoute({
@@ -154,12 +123,6 @@ const createRouteDef = createRoute({
   },
 });
 
-userRolesRoutes.openapi(createRouteDef, async (c) => {
-  const body = c.req.valid("json");
-  const userRole = await createUserRole(body);
-  return c.json({ userRole }, 201);
-});
-
 const deleteRoute = createRoute({
   method: "delete",
   path: "/{id}",
@@ -180,8 +143,46 @@ const deleteRoute = createRoute({
   },
 });
 
-userRolesRoutes.openapi(deleteRoute, async (c) => {
-  const { id } = c.req.valid("param");
-  await deleteUserRole(id);
-  return c.json({ status: true }, 200);
-});
+// Todas las rutas requieren sesión; el resto del recurso (lecturas y
+// escrituras sobre asignaciones ajenas) exige además rol admin por ruta, ya
+// que revela quién es admin — información sensible que no debe exponerse a
+// sesiones normales. La excepción es /me: cualquier usuario autenticado
+// puede consultar SUS PROPIOS roles.
+// El middleware se registra sobre la instancia base (no dentro de la cadena):
+// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
+// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
+// orden de ejecución en runtime es el mismo (middleware primero). El requireAdmin
+// por-ruta sigue declarado en el `middleware` de cada createRoute.
+const userRolesRoutesBase = new OpenAPIHono<AppEnv>();
+userRolesRoutesBase.use("*", requireSession);
+
+export const userRolesRoutes = userRolesRoutesBase
+  .openapi(myRolesRoute, async (c) => {
+    const { systemSlug } = c.req.valid("query");
+    const user = c.get("user");
+    const roles = await listMyRoles(user.id, systemSlug);
+    return c.json({ roles }, 200);
+  })
+  .openapi(listRoute, async (c) => {
+    const { userId, roleId, page, limit } = c.req.valid("query");
+    const { rows, total } = await listUserRoles({ userId, roleId }, { page, limit });
+    return c.json(
+      { userRoles: rows, pagination: paginationMeta({ page, limit }, total) },
+      200,
+    );
+  })
+  .openapi(getRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const userRole = await getUserRole(id);
+    return c.json({ userRole }, 200);
+  })
+  .openapi(createRouteDef, async (c) => {
+    const body = c.req.valid("json");
+    const userRole = await createUserRole(body);
+    return c.json({ userRole }, 201);
+  })
+  .openapi(deleteRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    await deleteUserRole(id);
+    return c.json({ status: true }, 200);
+  });

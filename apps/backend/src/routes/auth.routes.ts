@@ -22,8 +22,6 @@ import {
   signUpFn,
 } from "@/services/auth.service";
 
-export const authRoutes = new OpenAPIHono<AppEnv>();
-
 // El alta de cuentas NO es autoservicio: solo un admin puede crear usuarios.
 // El primer admin se siembra con `bun run db:seed` (crea el usuario si no existe
 // y le asigna el rol admin), evitando el problema de arranque.
@@ -49,8 +47,6 @@ const signUpRoute = createRoute({
   },
 });
 
-authRoutes.openapi(signUpRoute, signUpFn);
-
 const signInRoute = createRoute({
   method: "post",
   path: "/sign-in",
@@ -70,8 +66,6 @@ const signInRoute = createRoute({
   },
 });
 
-authRoutes.openapi(signInRoute, signInFn);
-
 const signOutRoute = createRoute({
   method: "post",
   path: "/sign-out",
@@ -88,8 +82,6 @@ const signOutRoute = createRoute({
     401: unauthorizedResponse,
   },
 });
-
-authRoutes.openapi(signOutRoute, signOutFn);
 
 const getTokenRoute = createRoute({
   method: "get",
@@ -108,8 +100,6 @@ const getTokenRoute = createRoute({
   },
 });
 
-authRoutes.openapi(getTokenRoute, getTokenFn);
-
 const getJwksRoute = createRoute({
   method: "get",
   path: "/jwks",
@@ -124,4 +114,9 @@ const getJwksRoute = createRoute({
   },
 });
 
-authRoutes.openapi(getJwksRoute, getJwksFn);
+export const authRoutes = new OpenAPIHono<AppEnv>()
+  .openapi(signUpRoute, signUpFn)
+  .openapi(signInRoute, signInFn)
+  .openapi(signOutRoute, signOutFn)
+  .openapi(getTokenRoute, getTokenFn)
+  .openapi(getJwksRoute, getJwksFn);

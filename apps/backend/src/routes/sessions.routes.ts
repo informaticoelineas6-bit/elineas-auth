@@ -18,10 +18,6 @@ import {
   revokeOthersFn,
 } from "@/services/session.service";
 
-export const sessionsRoutes = new OpenAPIHono<AppEnv>();
-
-sessionsRoutes.use("*", requireSession);
-
 const getSessionRoute = createRoute({
   method: "get",
   path: "/session",
@@ -46,8 +42,6 @@ const getSessionRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(getSessionRoute, getSessionFn);
-
 const listSessionsRoute = createRoute({
   method: "get",
   path: "/",
@@ -68,8 +62,6 @@ const listSessionsRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(listSessionsRoute, listSessionsFn);
-
 const revokeOthersRoute = createRoute({
   method: "delete",
   path: "/others",
@@ -86,8 +78,6 @@ const revokeOthersRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(revokeOthersRoute, revokeOthersFn);
-
 const revokeAllRoute = createRoute({
   method: "delete",
   path: "/",
@@ -103,8 +93,6 @@ const revokeAllRoute = createRoute({
     401: unauthorizedResponse,
   },
 });
-
-sessionsRoutes.openapi(revokeAllRoute, revokeAllFn);
 
 const revokeOneRoute = createRoute({
   method: "delete",
@@ -138,4 +126,16 @@ const revokeOneRoute = createRoute({
   },
 });
 
-sessionsRoutes.openapi(revokeOneRoute, revokeOneFn);
+// El middleware se registra sobre la instancia base (no dentro de la cadena):
+// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
+// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
+// orden de ejecución en runtime es el mismo (middleware primero).
+const sessionsRoutesBase = new OpenAPIHono<AppEnv>();
+sessionsRoutesBase.use("*", requireSession);
+
+export const sessionsRoutes = sessionsRoutesBase
+  .openapi(getSessionRoute, getSessionFn)
+  .openapi(listSessionsRoute, listSessionsFn)
+  .openapi(revokeOthersRoute, revokeOthersFn)
+  .openapi(revokeAllRoute, revokeAllFn)
+  .openapi(revokeOneRoute, revokeOneFn);

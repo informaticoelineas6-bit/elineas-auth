@@ -26,8 +26,16 @@ export function createApp() {
   registerSecurityMiddleware(app);
   registerAuthRateLimits(app);
   app.onError(handleError);
-  registerRoutes(app);
-  registerOpenApiDocs(app);
+  // registerRoutes devuelve el app con las rutas ENCADENADAS: capturamos ese
+  // valor (no el `app` original) porque es el que lleva los tipos por endpoint.
+  const routedApp = registerRoutes(app);
+  registerOpenApiDocs(routedApp);
 
-  return app;
+  return routedApp;
 }
+
+// Contrato del servidor para el cliente RPC. `AppType` captura la firma completa
+// del grafo de rutas (métodos, paths, entradas y salidas); los clientes lo
+// consumen vía `hc<AppType>` para obtener type safety sin acoplarse al código
+// del servidor. Se reexporta desde `@/rpc` (el entry público del paquete).
+export type AppType = ReturnType<typeof createApp>;
