@@ -101,7 +101,18 @@ export async function createEmployeeWithUser(
       .returning();
     return { user: response.user, employee: row };
   } catch (error) {
-    await db.delete(user).where(eq(user.id, response.user.id));
+    // Compensación: borra el usuario recién creado para no dejar una cuenta
+    // huérfana. Su propio fallo (p. ej. BD caída a mitad) se registra pero NO
+    // se propaga: relanzar el error de compensación enmascararía el error real
+    // del insert, que es el que explica al cliente por qué falló la operación.
+    try {
+      await db.delete(user).where(eq(user.id, response.user.id));
+    } catch (cleanupError) {
+      console.error(
+        `No se pudo revertir el usuario huérfano ${response.user.id} tras fallar el alta del empleado:`,
+        cleanupError instanceof Error ? cleanupError.message : cleanupError,
+      );
+    }
     throw error;
   }
 }
