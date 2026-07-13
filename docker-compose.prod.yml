@@ -73,6 +73,17 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "8080:8080"
+    # `restart: unless-stopped` solo actúa si el proceso MUERE. Un proceso vivo
+    # pero colgado (p. ej. pool de BD agotado) no se reiniciaría nunca. Con el
+    # healthcheck, Docker marca el contenedor como unhealthy y —según la política
+    # del orquestador— lo reinicia. Usa /health (liveness, sin tocar BD): si no
+    # responde, el problema es el propio proceso. `wget` viene con busybox (alpine).
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
     depends_on:
       postgres:
         condition: service_healthy
