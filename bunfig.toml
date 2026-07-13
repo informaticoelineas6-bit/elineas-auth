@@ -1,0 +1,6 @@
+# Linker hoisted (node_modules aplanado, estilo npm) en vez del aislado por
+# defecto de Bun. Necesario para el admin de TanStack Start: nitro-nightly hace
+# un auto-import interno de `nitro`, que en el store aislado (.bun) no resuelve.
+# El hoisted coloca `nitro` en un node_modules ascendente y el import resuelve.
+[install]
+linker = "hoisted"
