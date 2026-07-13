@@ -480,17 +480,26 @@ deben vivir en tu propio backend, indexados por `identity.sub` (el
 
 ## 8. Rate limiting
 
-Los endpoints `POST /api/auth/sign-in` (10 req/min por IP) y
-`POST /api/auth/sign-up` (5 req/min por IP) están limitados
-(`src/app.ts:66-73`, `src/middleware/rate-limit.ts`). Al superar el
-límite reciben `429` con cabecera `Retry-After` (segundos) y cuerpo
+Endpoints con límite (`src/middleware/auth-rate-limits.ts`, `src/middleware/rate-limit.ts`):
+
+| Endpoint                          | Límite            | Dimensión |
+| --------------------------------- | ----------------- | --------- |
+| `POST /api/auth/sign-in`          | 10/min y 10/15min | IP y cuenta (email) |
+| `POST /api/auth/sign-up`          | 5/min             | IP        |
+| `POST /api/users/me/change-password` | 5/min          | IP        |
+| `POST /api/users/me/change-email` | 5/min             | IP        |
+| `GET /api/auth/jwks`              | 60/min            | IP        |
+| `GET /api/auth/token`             | 60/min            | IP        |
+
+Al superar el límite reciben `429` con cabecera `Retry-After` (segundos) y cuerpo
 `{ "error": "...", "code": "RATE_LIMITED" }`. Tu cliente debe:
 
 - Mostrar el mensaje de "demasiados intentos" sin reintentar automáticamente
   antes de `Retry-After`.
-- No implementar reintentos agresivos en bucle: el IS aplica _fail-open_ si
-  Redis cae, así que un reintento en bucle desde muchos clientes sí podría
-  degradar el servicio en ese escenario.
+- No implementar reintentos agresivos en bucle: si Redis cae, el limitador
+  degrada a un contador **en memoria por instancia** (nunca _fail-open_), y un
+  circuit breaker deja de consultar a Redis durante ~30s tras varios fallos
+  seguidos para no penalizar cada petición con el timeout.
 
 ## 9. Formato de errores
 
@@ -513,9 +522,11 @@ ausente en sign-in/sign-up).
 | GET        | `/api/auth/jwks`                                                  | — (pública)      | Claves públicas para verificar JWT            |
 | GET        | `/api/sessions/session`                                           | Sesión           | Usuario, sesión y sistema actuales            |
 | GET/DELETE | `/api/sessions*`                                                  | Sesión           | Listar/revocar sesiones propias               |
-| GET/PATCH  | `/api/users/me*`                                                  | Sesión           | Perfil propio, cambio de email/contraseña     |
+| GET/PATCH  | `/api/users/me*`                                                  | Sesión           | Perfil propio; cambio de contraseña/email (ambos exigen la contraseña actual) |
 | GET        | `/api/user-roles/me`                                              | Sesión           | Mis roles, opcionalmente filtrados por `systemSlug` |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna) |
+| GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)    |
+| GET        | `/health/ready`                                                   | — (pública)      | Readiness: además comprueba la BD (`503` si no responde) |
 
 ### 10.1 Alta combinada de usuario + empleado
 
@@ -606,3 +617,28 @@ tras cambiar rutas o esquemas.
 - [ ] `APP_ENV=production` en el IS para que `/api/docs` y `/api/openapi.json` queden deshabilitados.
 - [ ] `BETTER_AUTH_SECRET` y `REDIS_PASSWORD` gestionados como secretos (no en el repo).
 - [ ] Tu cliente maneja `401` (token vencido → renovar o cerrar sesión) y `429` (backoff, sin reintento en bucle).
+- [ ] Si el IS va detrás de un reverse proxy, `TRUST_PROXY_HOPS` = nº de proxies de confianza (por defecto `0`). Dejarlo en `0` con un proxy delante hace que todas las peticiones compartan la IP del proxy y los usuarios legítimos se rate-limiten entre sí.
+- [ ] La monitorización sondea `GET /health` (liveness) y `GET /health/ready` (readiness) y reinicia/reprograma el contenedor si fallan.
+
+## 12. Resiliencia y operación
+
+El IS está endurecido para no quedarse colgado ante fallos de sus dependencias
+(BD/Redis) ni ante errores inesperados:
+
+- **Timeouts en cascada**: cada query tiene `statement_timeout`/`query_timeout`
+  (10-12s) y cada petición HTTP un `timeout` global de 15s (`504`). Una query o
+  un handler colgados se abortan en vez de retener conexiones del pool
+  indefinidamente (lo que agotaría el pool y tumbaría toda la API).
+- **Pool de Postgres**: máx. 20 conexiones, con un listener de `error` que evita
+  que la caída de una conexión idle (reinicio de BD, failover) tumbe el proceso.
+- **Redis**: timeout por comando (250ms) + circuit breaker (abre 30s tras 5
+  fallos) para que un Redis caído/lento no penalice cada petición; el rate
+  limiter degrada a memoria por instancia.
+- **Health checks**: `GET /health` (liveness, no toca BD) y `GET /health/ready`
+  (readiness con `SELECT 1`). El `healthcheck` de compose los usa para reiniciar
+  un contenedor vivo-pero-colgado (algo que `restart: unless-stopped` no cubre).
+- **Apagado ordenado**: ante `SIGTERM`/`SIGINT` deja de aceptar conexiones,
+  drena el pool y cierra Redis antes de salir.
+- **Errores de proceso**: `unhandledRejection` se registra sin tumbar el
+  servidor; `uncaughtException` registra y sale con código de error para que el
+  orquestador levante un proceso limpio.
