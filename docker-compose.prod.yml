@@ -21,10 +21,15 @@ services:
         "--requirepass",
         "${REDIS_PASSWORD:?Define REDIS_PASSWORD para producción}",
       ]
+    # redis-cli lee la contraseña de REDISCLI_AUTH, así no aparece en la línea de
+    # comandos del healthcheck (visible en `docker inspect` / la lista de
+    # procesos, a diferencia de pasarla con `-a`).
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
       - redisdata:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5

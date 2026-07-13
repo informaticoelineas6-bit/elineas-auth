@@ -2,7 +2,7 @@ import type { Context, Next } from "hono";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/index";
 import { role, system, userRole } from "@/db/business-schema";
-import { redis } from "@/lib/redis";
+import { redis, redisCommand } from "@/lib/redis";
 import { env } from "@/config/env";
 import type { AppEnv } from "@/types/hono-env";
 
@@ -37,11 +37,11 @@ async function isAdmin(userId: string): Promise<boolean> {
 
   if (redis) {
     try {
-      const cached = await redis.send("GET", [cacheKey]);
+      const cached = await redisCommand(() => redis!.send("GET", [cacheKey]));
       if (cached === "1") return true;
       if (cached === "0") return false;
     } catch {
-      // Redis no disponible: seguimos con la consulta a BD.
+      // Redis no disponible o lento: seguimos con la consulta a BD.
     }
   }
 
@@ -49,12 +49,14 @@ async function isAdmin(userId: string): Promise<boolean> {
 
   if (redis) {
     try {
-      await redis.send("SET", [
-        cacheKey,
-        result ? "1" : "0",
-        "EX",
-        String(ADMIN_CACHE_TTL_SECONDS),
-      ]);
+      await redisCommand(() =>
+        redis!.send("SET", [
+          cacheKey,
+          result ? "1" : "0",
+          "EX",
+          String(ADMIN_CACHE_TTL_SECONDS),
+        ]),
+      );
     } catch {
       // Si no se puede cachear, no pasa nada: la próxima vez se recalcula.
     }

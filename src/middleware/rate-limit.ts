@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
 import { getConnInfo } from "hono/bun";
-import { redis } from "@/lib/redis";
+import { redis, redisCommand } from "@/lib/redis";
 import { env } from "@/config/env";
 
 type Options = {
@@ -8,6 +8,12 @@ type Options = {
   name: string;
   windowMs: number;
   max: number;
+  // Identificador opcional del sujeto a limitar. Por defecto se usa la IP del
+  // cliente; con esto se puede limitar por otra dimensión (p. ej. el email de
+  // destino, para frenar la fuerza bruta distribuida contra UNA sola cuenta).
+  // Si devuelve undefined (no se pudo derivar la clave), NO se limita: la
+  // protección por IP —registrada aparte— sigue aplicando.
+  key?: (c: Context) => string | undefined | Promise<string | undefined>;
 };
 
 // IP del cliente para el rate limiting. Por defecto usa la IP real del socket
@@ -71,12 +77,9 @@ async function redisAllowed(
   windowMs: number,
   max: number,
 ): Promise<{ limited: boolean; retryAfter: number }> {
-  const result = (await redis!.send("EVAL", [
-    RATE_LIMIT_LUA,
-    "1",
-    key,
-    String(windowMs),
-  ])) as [number | string, number | string];
+  const result = (await redisCommand(() =>
+    redis!.send("EVAL", [RATE_LIMIT_LUA, "1", key, String(windowMs)]),
+  )) as [number | string, number | string];
 
   const count = Number(result[0]);
   if (count > max) {
@@ -96,11 +99,12 @@ async function redisAllowed(
 // pasar todo).
 function inMemoryLimiter(windowMs: number, max: number) {
   const hits = new Map<string, number[]>();
+  let lastSweep = 0;
 
-  return function check(ip: string): { limited: boolean; retryAfter: number } {
+  return function check(id: string): { limited: boolean; retryAfter: number } {
     const now = Date.now();
     const windowStart = now - windowMs;
-    const timestamps = (hits.get(ip) ?? []).filter((t) => t > windowStart);
+    const timestamps = (hits.get(id) ?? []).filter((t) => t > windowStart);
 
     if (timestamps.length >= max) {
       const retryAfter = Math.ceil((timestamps[0]! + windowMs - now) / 1000);
@@ -108,10 +112,13 @@ function inMemoryLimiter(windowMs: number, max: number) {
     }
 
     timestamps.push(now);
-    hits.set(ip, timestamps);
+    hits.set(id, timestamps);
 
-    // Limpieza oportunista para evitar que el Map crezca sin límite.
-    if (hits.size > 10_000) {
+    // Limpieza oportunista para evitar que el Map crezca sin límite. Se acota a
+    // como mucho una barrida por ventana: si hay >10k claves ACTIVAS, sin este
+    // tope se recorrería el Map entero en CADA petición (O(n) por request).
+    if (hits.size > 10_000 && now - lastSweep > windowMs) {
+      lastSweep = now;
       for (const [key, ts] of hits) {
         const fresh = ts.filter((t) => t > windowStart);
         if (fresh.length === 0) hits.delete(key);
@@ -127,16 +134,21 @@ function inMemoryLimiter(windowMs: number, max: number) {
 // entre réplicas); si no —o si Redis falla— cae a un contador en memoria por
 // instancia. Nunca "fail open": ante un fallo de Redis degradamos, no
 // desprotegemos.
-export function rateLimit({ name, windowMs, max }: Options) {
+export function rateLimit({ name, windowMs, max, key }: Options) {
   const memoryCheck = inMemoryLimiter(windowMs, max);
 
   return async function rateLimitMiddleware(c: Context, next: Next) {
-    const ip = clientIp(c);
+    // El sujeto a limitar: la clave personalizada (p. ej. el email) si se
+    // definió, o la IP del cliente en caso contrario. Si el generador de clave
+    // no pudo derivar un valor, se omite este limitador (la protección por IP
+    // se registra como un middleware aparte).
+    const id = key ? await key(c) : clientIp(c);
+    if (id === undefined) return next();
 
     if (redis) {
       try {
         const { limited, retryAfter } = await redisAllowed(
-          `ratelimit:${name}:${ip}`,
+          `ratelimit:${name}:${id}`,
           windowMs,
           max,
         );
@@ -152,7 +164,7 @@ export function rateLimit({ name, windowMs, max }: Options) {
       }
     }
 
-    const { limited, retryAfter } = memoryCheck(ip);
+    const { limited, retryAfter } = memoryCheck(id);
     if (limited) return tooMany(c, retryAfter);
     return next();
   };

@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { employee } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { escapeLike } from "@/lib/search";
 import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
   CreateEmployeeBodySchema,
@@ -19,11 +20,14 @@ export async function listEmployees(
   const conditions = [
     filters.active === undefined ? undefined : eq(employee.active, filters.active),
     filters.search
-      ? or(
-          ilike(employee.name, `%${filters.search}%`),
-          ilike(employee.lastName, `%${filters.search}%`),
-          ilike(employee.ci, `%${filters.search}%`),
-        )
+      ? (() => {
+          const term = `%${escapeLike(filters.search)}%`;
+          return or(
+            ilike(employee.name, term),
+            ilike(employee.lastName, term),
+            ilike(employee.ci, term),
+          );
+        })()
       : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;

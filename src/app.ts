@@ -1,6 +1,8 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
+import type { Context } from "hono";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
+import { secureHeaders } from "hono/secure-headers";
 import { swaggerUI } from "@hono/swagger-ui";
 import { env } from "@/config/env";
 import { authRoutes } from "@/routes/auth.routes";
@@ -12,8 +14,26 @@ import { rolesRoutes } from "@/routes/roles.routes";
 import { userRolesRoutes } from "@/routes/user-roles.routes";
 import { handleError } from "@/lib/http";
 import { rateLimit } from "@/middleware/rate-limit";
+import { requireSameOrigin } from "@/middleware/same-origin";
 import { logger } from "hono/logger";
 import type { AppEnv } from "@/types/hono-env";
+
+// Extrae el email del cuerpo de una petición de login para poder limitar los
+// intentos POR CUENTA (no solo por IP): así una botnet que rota IPs no puede
+// hacer fuerza bruta ilimitada contra un único usuario. Hono cachea el cuerpo
+// ya parseado, de modo que leerlo aquí no impide que el validador Zod lo lea
+// después. Si el cuerpo no es JSON válido o no trae email, se omite el límite
+// por cuenta (el límite por IP —registrado aparte— sigue aplicando).
+async function signInAccountKey(c: Context): Promise<string | undefined> {
+  try {
+    const body = (await c.req.json()) as { email?: unknown };
+    if (typeof body.email !== "string") return undefined;
+    const email = body.email.trim().toLowerCase();
+    return email.length > 0 ? email : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 // Metadatos del documento OpenAPI. Se reutilizan tanto en el endpoint en vivo
 // (`/api/openapi.json`) como en el generador estático (scripts/generate-openapi.ts),
@@ -45,6 +65,27 @@ export function createApp() {
       credentials: true,
     }),
   );
+  // Cabeceras de seguridad (nosniff, HSTS, X-Frame-Options: DENY, etc.). El CSP
+  // permite el CDN de Swagger UI (cdn.jsdelivr.net) e inline solo porque la
+  // página de documentación —único HTML que sirve esta API— lo requiere; en
+  // producción la doc está deshabilitada y el resto de respuestas son JSON, para
+  // las que el CSP es inocuo.
+  app.use(
+    "*",
+    secureHeaders({
+      contentSecurityPolicy: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+        styleSrc: ["'self'", "https://cdn.jsdelivr.net", "'unsafe-inline'"],
+        imgSrc: ["'self'", "https://cdn.jsdelivr.net", "data:"],
+        connectSrc: ["'self'"],
+        workerSrc: ["'self'", "blob:"],
+        frameAncestors: ["'none'"],
+        objectSrc: ["'none'"],
+        baseUri: ["'self'"],
+      },
+    }),
+  );
   app.use(logger());
 
   // Límite de tamaño del cuerpo: los endpoints solo reciben JSON pequeño
@@ -64,14 +105,29 @@ export function createApp() {
 
   // Rate limiting en los endpoints sensibles (contra fuerza bruta / credential
   // stuffing). Se registra antes que las rutas para que se ejecute primero.
+  // Login: dos límites complementarios. Uno por IP (frena a un atacante desde
+  // una misma máquina) y otro por CUENTA (frena la fuerza bruta distribuida
+  // contra un único usuario desde muchas IPs).
   app.use(
     "/api/auth/sign-in",
     rateLimit({ name: "sign-in", windowMs: 60_000, max: 10 }),
   );
   app.use(
+    "/api/auth/sign-in",
+    rateLimit({
+      name: "sign-in-account",
+      windowMs: 15 * 60_000,
+      max: 10,
+      key: signInAccountKey,
+    }),
+  );
+  app.use(
     "/api/auth/sign-up",
     rateLimit({ name: "sign-up", windowMs: 60_000, max: 5 }),
   );
+  // Sign-out no lleva cuerpo, así que no hay preflight CORS que lo proteja de
+  // un CSRF: se exige mismo origen explícitamente.
+  app.use("/api/auth/sign-out", requireSameOrigin);
   // Cambio de contraseña/email: aunque exigen sesión, deben limitarse para que una
   // sesión robada no permita fuerza bruta de la contraseña actual saltándose el
   // límite del login.

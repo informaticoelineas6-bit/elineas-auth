@@ -9,6 +9,17 @@ import { relations } from "@/db/relations";
 // (p. ej. el contenedor local de docker-compose) usa el driver TCP estándar.
 const isNeon = env.DATABASE_URL.includes("neon.tech");
 
+// Parámetros del pool explícitos (en vez de los valores por defecto implícitos)
+// para que el comportamiento bajo carga sea deliberado: como máximo 20
+// conexiones, con timeouts acotados para no acumular conexiones colgadas ni
+// esperar indefinidamente a que haya una libre.
+const poolConfig = {
+  connectionString: env.DATABASE_URL,
+  max: 20,
+  idleTimeoutMillis: 30_000,
+  connectionTimeoutMillis: 10_000,
+};
+
 export const db = isNeon
-  ? drizzleNeon({ client: new NeonPool({ connectionString: env.DATABASE_URL }), relations })
-  : drizzlePg({ client: new PgPool({ connectionString: env.DATABASE_URL }), relations });
+  ? drizzleNeon({ client: new NeonPool(poolConfig), relations })
+  : drizzlePg({ client: new PgPool(poolConfig), relations });

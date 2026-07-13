@@ -58,13 +58,13 @@ export const EmployeeSchema = z
 
 export const CreateEmployeeBodySchema = z
   .object({
-    userId: z.string().optional(),
-    name: z.string().min(1).openapi({ example: "Ada" }),
-    lastName: z.string().min(1).openapi({ example: "Lovelace" }),
-    ci: z.string().min(1).openapi({ example: "12345678" }),
+    userId: z.string().max(100).optional(),
+    name: z.string().min(1).max(100).openapi({ example: "Ada" }),
+    lastName: z.string().min(1).max(100).openapi({ example: "Lovelace" }),
+    ci: z.string().min(1).max(50).openapi({ example: "12345678" }),
     birthday: z.coerce.date().optional(),
-    phoneNumber: z.string().optional(),
-    address: z.string().optional(),
+    phoneNumber: z.string().max(30).optional(),
+    address: z.string().max(300).optional(),
     inDate: z.coerce.date().optional(),
     outDate: z.coerce.date().optional(),
     active: z.boolean().optional(),
@@ -81,7 +81,7 @@ export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Búsqueda libre por nombre, apellido o CI (coincidencia parcial, sin
   // distinguir mayúsculas).
-  search: z.string().optional().openapi({
+  search: z.string().max(100).optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "Ada",
   }),
@@ -104,13 +104,14 @@ export const SystemSchema = z
 
 export const CreateSystemBodySchema = z
   .object({
-    name: z.string().min(1).openapi({ example: "Punto de Venta" }),
+    name: z.string().min(1).max(100).openapi({ example: "Punto de Venta" }),
     slug: z
       .string()
       .min(1)
+      .max(50)
       .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones")
       .openapi({ example: "pos" }),
-    description: z.string().optional(),
+    description: z.string().max(500).optional(),
     active: z.boolean().optional(),
   })
   .openapi("CreateSystemBody");
@@ -125,7 +126,7 @@ export const SystemListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Búsqueda libre por nombre o slug (coincidencia parcial, sin distinguir
   // mayúsculas).
-  search: z.string().optional().openapi({
+  search: z.string().max(100).optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "pos",
   }),
@@ -147,16 +148,16 @@ export const RoleSchema = z
 
 export const CreateRoleBodySchema = z
   .object({
-    systemId: z.string().openapi({ example: "sys_9f8a2b" }),
-    name: z.string().min(1).openapi({ example: "admin" }),
-    description: z.string().optional(),
+    systemId: z.string().max(100).openapi({ example: "sys_9f8a2b" }),
+    name: z.string().min(1).max(100).openapi({ example: "admin" }),
+    description: z.string().max(500).optional(),
   })
   .openapi("CreateRoleBody");
 
 export const UpdateRoleBodySchema = z
   .object({
-    name: z.string().min(1).optional(),
-    description: z.string().optional(),
+    name: z.string().min(1).max(100).optional(),
+    description: z.string().max(500).optional(),
   })
   .openapi("UpdateRoleBody");
 
@@ -166,7 +167,7 @@ export const RoleListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Búsqueda libre por nombre del rol (coincidencia parcial, sin distinguir
   // mayúsculas).
-  search: z.string().optional().openapi({
+  search: z.string().max(100).optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "admin",
   }),
@@ -186,8 +187,8 @@ export const UserRoleSchema = z
 
 export const CreateUserRoleBodySchema = z
   .object({
-    userId: z.string().openapi({ example: "usr_9f8a2b" }),
-    roleId: z.string().openapi({ example: "role_9f8a2b" }),
+    userId: z.string().min(1).max(100).openapi({ example: "usr_9f8a2b" }),
+    roleId: z.string().min(1).max(100).openapi({ example: "role_9f8a2b" }),
   })
   .openapi("CreateUserRoleBody");
 

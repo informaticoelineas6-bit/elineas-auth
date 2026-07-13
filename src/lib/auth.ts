@@ -14,11 +14,28 @@ export const auth = betterAuth({
   }),
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 12,
-    maxPasswordLength: 128,
+    minPasswordLength: 8,
+    maxPasswordLength: 24,
   },
-  // Auto-borrado de cuenta deshabilitado: la baja de un usuario la gestiona un
-  // admin (no el propio usuario). Ver DELETE en los flujos administrativos.
-  user: { deleteUser: { enabled: false } },
+  // Caché de sesión en cookie firmada: evita una consulta a BD en CADA petición
+  // autenticada (requireSession). La cookie va firmada con BETTER_AUTH_SECRET, así
+  // que no es falsificable; su vida corta (5 min) acota cuánto puede tardar en
+  // reflejarse una revocación de sesión en las rutas que solo leen la sesión.
+  session: {
+    cookieCache: { enabled: true, maxAge: 5 * 60 },
+  },
+  user: {
+    // Auto-borrado de cuenta deshabilitado: la baja de un usuario la gestiona un
+    // admin (no el propio usuario). Ver DELETE en los flujos administrativos.
+    deleteUser: { enabled: false },
+    // Cambio de email habilitado. Como este IS no verifica emails
+    // (emailVerified arranca en false y no hay envío de correos configurado),
+    // el cambio se aplica directamente para cuentas no verificadas. Si en el
+    // futuro se añade verificación por correo, endurecer este flujo.
+    changeEmail: {
+      enabled: true,
+      updateEmailWithoutVerification: true,
+    },
+  },
   plugins: [jwt(), bearer()],
 });

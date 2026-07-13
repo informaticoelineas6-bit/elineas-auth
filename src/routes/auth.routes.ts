@@ -66,6 +66,7 @@ const signInRoute = createRoute({
       content: { "application/json": { schema: AuthResultSchema } },
     },
     400: badRequestResponse,
+    403: forbiddenResponse,
   },
 });
 

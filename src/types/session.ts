@@ -1,3 +1,3 @@
 export type RevokeOneBodyInput = {
-  out: { json: { token: string } };
+  out: { json: { sessionId: string } };
 };

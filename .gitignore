@@ -13,9 +13,11 @@ node_modules/
 dist/
 
 # env
+# Ignora TODOS los .env.* (incluye .env.staging y cualquier entorno futuro) para
+# no filtrar credenciales por accidente. La única excepción es la plantilla.
 .env
-.env.production
-.env.local
+.env.*
+!.env.example
 
 # logs
 logs/
