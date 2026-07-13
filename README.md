@@ -507,6 +507,7 @@ ausente en sign-in/sign-up).
 | ---------- | ----------------------------------------------------------------- | ---------------- | --------------------------------------------- |
 | POST       | `/api/auth/sign-in`                                               | — (rate limited) | Login; requiere `systemSlug`                  |
 | POST       | `/api/auth/sign-up`                                               | Sesión + admin   | Alta de usuario (no autoservicio)             |
+| POST       | `/api/employees/with-user`                                        | Sesión + admin   | Crea usuario **y** su empleado enlazado a la vez |
 | POST       | `/api/auth/sign-out`                                              | Sesión           | Cierra la sesión actual                       |
 | GET        | `/api/auth/token`                                                 | Sesión           | Emite/renueva un JWT                          |
 | GET        | `/api/auth/jwks`                                                  | — (pública)      | Claves públicas para verificar JWT            |
@@ -516,7 +517,44 @@ ausente en sign-in/sign-up).
 | GET        | `/api/user-roles/me`                                              | Sesión           | Mis roles, opcionalmente filtrados por `systemSlug` |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna) |
 
-### 10.1 Paginación y filtros en listados
+### 10.1 Alta combinada de usuario + empleado
+
+`POST /api/employees/with-user` (sesión + admin) crea en una sola llamada el
+**usuario** y el **empleado** ya enlazado a él, evitando encadenar
+`POST /api/auth/sign-up` seguido de `POST /api/employees` desde el cliente. El
+cuerpo anida ambos recursos para no confundir el `name` del usuario (nombre
+visible) con el `name` del empleado (nombre de pila). El `userId` del empleado
+no se envía: lo fija el servidor con el id del usuario recién creado.
+
+```jsonc
+// POST /api/employees/with-user
+{
+  "user": {
+    "name": "Ada Lovelace",
+    "email": "ada@example.com",
+    "password": "tu-contraseña-segura"   // min 12, max 128 (política de better-auth)
+  },
+  "employee": {
+    "name": "Ada",
+    "lastName": "Lovelace",
+    "ci": "12345678"
+    // birthday, phoneNumber, address, inDate, outDate, active son opcionales
+  }
+}
+// 201 → { "user": { /* User */ }, "employee": { /* Employee */ } }
+```
+
+No hay una transacción única que abarque los dos pasos: el alta del usuario la
+realiza better-auth, que escribe en la BD por su cuenta y queda fuera del
+control de una transacción de Drizzle. Para que el resultado sea consistente el
+endpoint usa **pre-chequeo + compensación**: comprueba que el CI no exista
+antes de crear el usuario (así un CI duplicado responde `409` sin dejar ninguna
+cuenta), y si el `INSERT` del empleado fallara igualmente (p. ej. una carrera),
+borra el usuario recién creado para no dejar cuentas huérfanas. El alta no
+asigna roles: para que el nuevo usuario pueda iniciar sesión en un sistema hay
+que darle un rol con `POST /api/user-roles`.
+
+### 10.2 Paginación y filtros en listados
 
 Los listados administrativos —`GET /api/employees`, `GET /api/systems`,
 `GET /api/roles` y `GET /api/user-roles`— están **paginados** y aceptan

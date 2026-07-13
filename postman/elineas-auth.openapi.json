@@ -54,7 +54,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "ada@mercadoelineas.com"
+            "example": "ada@example.com"
           },
           "emailVerified": {
             "type": "boolean"
@@ -165,13 +165,13 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "ada@mercadoelineas.com"
+            "example": "ada@example.com"
           },
           "password": {
             "type": "string",
             "minLength": 12,
             "maxLength": 128,
-            "example": "super-secreta1"
+            "example": "tu-contraseña-segura"
           },
           "image": {
             "type": "string",
@@ -201,13 +201,13 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "ada@mercadoelineas.com"
+            "example": "ada@example.com"
           },
           "password": {
             "type": "string",
             "minLength": 1,
             "maxLength": 128,
-            "example": "super-secreta1"
+            "example": "tu-contraseña-segura"
           },
           "callbackURL": {
             "type": "string"
@@ -350,11 +350,11 @@
         "properties": {
           "newPassword": {
             "type": "string",
-            "example": "nueva-super-secreta"
+            "example": "tu-nueva-contraseña"
           },
           "currentPassword": {
             "type": "string",
-            "example": "super-secreta"
+            "example": "tu-contraseña-segura"
           },
           "revokeOtherSessions": {
             "type": "boolean"
@@ -385,7 +385,7 @@
           "newEmail": {
             "type": "string",
             "format": "email",
-            "example": "nueva@mercadoelineas.com"
+            "example": "nueva@example.com"
           },
           "callbackURL": {
             "type": "string"
@@ -594,6 +594,116 @@
           "name",
           "lastName",
           "ci"
+        ]
+      },
+      "EmployeeWithUserResult": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "$ref": "#/components/schemas/User"
+          },
+          "employee": {
+            "$ref": "#/components/schemas/Employee"
+          }
+        },
+        "required": [
+          "user",
+          "employee"
+        ]
+      },
+      "CreateEmployeeWithUserBody": {
+        "type": "object",
+        "properties": {
+          "user": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "example": "Ada Lovelace"
+              },
+              "email": {
+                "type": "string",
+                "format": "email",
+                "example": "ada@example.com"
+              },
+              "password": {
+                "type": "string",
+                "minLength": 12,
+                "maxLength": 128,
+                "example": "tu-contraseña-segura"
+              },
+              "image": {
+                "type": "string",
+                "maxLength": 2048,
+                "pattern": "^https?:\\/\\//i"
+              }
+            },
+            "required": [
+              "name",
+              "email",
+              "password"
+            ]
+          },
+          "employee": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "example": "Ada"
+              },
+              "lastName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "example": "Lovelace"
+              },
+              "ci": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 50,
+                "example": "12345678"
+              },
+              "birthday": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "phoneNumber": {
+                "type": "string",
+                "maxLength": 30
+              },
+              "address": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "inDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "outDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "name",
+              "lastName",
+              "ci"
+            ]
+          }
+        },
+        "required": [
+          "user",
+          "employee"
         ]
       },
       "UpdateEmployeeBody": {
@@ -1932,6 +2042,81 @@
           },
           "404": {
             "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/employees/with-user": {
+      "post": {
+        "operationId": "createEmployeeWithUser",
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Crear un usuario y su empleado enlazado en una sola operación",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateEmployeeWithUserBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario y empleado creados",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWithUserResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto de unicidad",
             "content": {
               "application/json": {
                 "schema": {

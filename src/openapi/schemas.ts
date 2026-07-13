@@ -1,5 +1,9 @@
 import { z } from "@hono/zod-openapi";
-import { SystemSchema } from "@/openapi/business.schemas";
+import {
+  CreateEmployeeBodySchema,
+  EmployeeSchema,
+  SystemSchema,
+} from "@/openapi/business.schemas";
 
 // URL de imagen (avatar): acotada en longitud y restringida a http(s) para
 // evitar que se almacene un `javascript:`/`data:` que dispare XSS al renderizar
@@ -16,10 +20,10 @@ const DisplayName = z.string().min(1).max(100);
 export const SignUpBodySchema = z
   .object({
     name: DisplayName.openapi({ example: "Ada Lovelace" }),
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
+    email: z.email().openapi({ example: "ada@example.com" }),
     // Debe cumplir la política de better-auth (min 12, max 128); se valida aquí
     // también para dar un error claro antes de llegar a la capa de auth.
-    password: z.string().min(12).max(128).openapi({ example: "super-secreta1" }),
+    password: z.string().min(12).max(128).openapi({ example: "tu-contraseña-segura" }),
     image: ImageUrl.optional(),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
@@ -30,8 +34,8 @@ export const SignUpBodySchema = z
 
 export const SignInBodySchema = z
   .object({
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
-    password: z.string().min(1).max(128).openapi({ example: "super-secreta1" }),
+    email: z.email().openapi({ example: "ada@example.com" }),
+    password: z.string().min(1).max(128).openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
     // Obligatorio: cada login pertenece a un sistema concreto.
@@ -43,7 +47,7 @@ export const UserSchema = z
   .object({
     id: z.string().openapi({ example: "usr_9f8a2b" }),
     name: z.string().openapi({ example: "Ada Lovelace" }),
-    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
+    email: z.email().openapi({ example: "ada@example.com" }),
     emailVerified: z.boolean(),
     image: z.string().nullable().optional(),
     createdAt: z.date(),
@@ -105,6 +109,30 @@ export const AuthResultSchema = z
   })
   .openapi("AuthResult");
 
+// Alta combinada usuario + empleado (POST /api/employees/with-user). Se anida
+// para evitar la colisión de `name` (nombre visible del usuario vs. nombre de
+// pila del empleado) y para dejar claro qué campos pertenecen a cada recurso.
+// El `userId` del empleado NO se acepta aquí: lo fija el servidor con el id del
+// usuario recién creado, que es justo el vínculo que este endpoint garantiza.
+export const CreateEmployeeWithUserBodySchema = z
+  .object({
+    user: SignUpBodySchema.pick({
+      name: true,
+      email: true,
+      password: true,
+      image: true,
+    }),
+    employee: CreateEmployeeBodySchema.omit({ userId: true }),
+  })
+  .openapi("CreateEmployeeWithUserBody");
+
+export const EmployeeWithUserResultSchema = z
+  .object({
+    user: UserSchema,
+    employee: EmployeeSchema,
+  })
+  .openapi("EmployeeWithUserResult");
+
 export const JwkSchema = z
   .object({
     kid: z.string().optional(),
@@ -133,8 +161,8 @@ export const UpdateUserBodySchema = z
 
 export const ChangePasswordBodySchema = z
   .object({
-    newPassword: z.string().openapi({ example: "nueva-super-secreta" }),
-    currentPassword: z.string().openapi({ example: "super-secreta" }),
+    newPassword: z.string().openapi({ example: "tu-nueva-contraseña" }),
+    currentPassword: z.string().openapi({ example: "tu-contraseña-segura" }),
     revokeOtherSessions: z.boolean().optional(),
   })
   .openapi("ChangePasswordBody");
@@ -148,7 +176,7 @@ export const ChangePasswordResponseSchema = z
 
 export const ChangeEmailBodySchema = z
   .object({
-    newEmail: z.email().openapi({ example: "nueva@mercadoelineas.com" }),
+    newEmail: z.email().openapi({ example: "nueva@example.com" }),
     callbackURL: z.string().optional(),
   })
   .openapi("ChangeEmailBody");

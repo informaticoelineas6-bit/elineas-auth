@@ -5,9 +5,9 @@
 //
 // Uso:
 //   # usuario ya existente → solo asigna rol admin
-//   bun run db:seed:local -- admin@mercadoelineas.com
+//   bun run db:seed:local -- admin@example.com
 //   # usuario nuevo → hay que pasar una contraseña (arg 2 o ADMIN_PASSWORD)
-//   bun run db:seed:local -- admin@mercadoelineas.com 'ContraseñaMuyFuerte'
+//   bun run db:seed:local -- admin@example.com 'tu-contraseña-segura'
 //   ADMIN_EMAIL=... ADMIN_PASSWORD=... ADMIN_NAME=... bun run db:seed:local
 //
 // Es idempotente: puede ejecutarse varias veces sin duplicar datos.
@@ -23,8 +23,8 @@ const email = process.argv[2] ?? process.env.ADMIN_EMAIL;
 if (!email) {
   console.error(
     "Falta el email del administrador.\n" +
-      "Uso: bun run db:seed:local -- admin@mercadoelineas.com\n" +
-      "  o: ADMIN_EMAIL=admin@mercadoelineas.com bun run db:seed:local",
+      "Uso: bun run db:seed:local -- admin@example.com\n" +
+      "  o: ADMIN_EMAIL=admin@example.com bun run db:seed:local",
   );
   process.exit(1);
 }
@@ -51,7 +51,7 @@ if (!targetUser) {
         "Para crearlo, indica una contraseña:\n" +
         "  bun run db:seed:local -- " +
         email +
-        " 'ContraseñaMuyFuerte'\n" +
+        " 'tu-contraseña-segura'\n" +
         "  o define ADMIN_PASSWORD en el entorno.",
     );
     process.exit(1);
