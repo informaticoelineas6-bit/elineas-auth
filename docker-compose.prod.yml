@@ -1,6 +1,6 @@
 # Despliegue de producción: Postgres y Redis se despliegan como contenedores
-# internos (no se usa ningún Postgres serverless externo como Neon). La API se
-# conecta a ambos por la red interna de compose.
+# internos (no se usa ningún Postgres serverless externo como Neon). El backend
+# se conecta a ambos por la red interna de compose.
 #
 # Requiere que REDIS_PASSWORD y POSTGRES_PASSWORD estén disponibles para compose
 # (en un archivo `.env` junto a este compose o exportadas en el entorno). Ejemplo:
@@ -10,14 +10,14 @@
 # Uso:
 #   # 1) Aplica migraciones pendientes (one-shot; levanta Postgres si hace falta)
 #   docker compose -f docker-compose.prod.yml run --rm migrate
-#   # 2) Levanta la API + servicios
+#   # 2) Levanta el backend + frontend + servicios
 #   docker compose -f docker-compose.prod.yml up -d --build
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
     # Postgres NO expone puertos al host: solo es accesible desde la red interna
-    # de compose (servicio `api`). Protegido con contraseña.
+    # de compose (servicio `backend`). Protegido con contraseña.
     environment:
       POSTGRES_USER: elineas
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para producción}
@@ -34,7 +34,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     # Redis NO expone puertos al host: solo es accesible desde la red interna
-    # de compose (servicio `api`). Protegido además con contraseña.
+    # de compose (servicio `backend`). Protegido además con contraseña.
     command:
       [
         "redis-server",
@@ -57,14 +57,15 @@ services:
       timeout: 3s
       retries: 5
 
-  api:
+  backend:
     build:
       context: .
+      dockerfile: apps/backend/Dockerfile
       target: prod
-    image: elineas-auth:latest
+    image: elineas-backend:latest
     restart: unless-stopped
     env_file:
-      - .env.production
+      - apps/backend/.env.production
     environment:
       APP_ENV: production
       # DATABASE_URL apunta al contenedor interno de Postgres, sobreescribiendo
@@ -100,10 +101,12 @@ services:
   migrate:
     build:
       context: .
+      dockerfile: apps/backend/Dockerfile
       target: dev
     profiles: ["migrate"]
     env_file:
-      - .env.production
+      - apps/backend/.env.production
+    working_dir: /app/apps/backend
     environment:
       APP_ENV: production
       DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
@@ -111,6 +114,37 @@ services:
     restart: "no"
     depends_on:
       postgres:
+        condition: service_healthy
+
+  # Frontend de administración (TanStack Start), servicio SEPARADO que consume
+  # el backend por red. Requiere PUBLIC_BACKEND_URL (la URL pública del backend,
+  # la que usa el NAVEGADOR; se hornea en el bundle en tiempo de build). El SSR
+  # usa la red interna (http://backend:8080). Además, apps/backend/.env.production
+  # debe incluir el origen público del frontend en ALLOWED_ORIGIN para que el
+  # CORS lo permita.
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      target: prod
+      args:
+        VITE_BACKEND_URL: ${PUBLIC_BACKEND_URL:?Define PUBLIC_BACKEND_URL (URL pública del backend para el navegador)}
+    image: elineas-frontend:latest
+    restart: unless-stopped
+    environment:
+      # SSR/loaders → backend por la red interna de compose.
+      BACKEND_INTERNAL_URL: http://backend:8080
+      PORT: 3000
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+    depends_on:
+      backend:
         condition: service_healthy
 
 volumes:

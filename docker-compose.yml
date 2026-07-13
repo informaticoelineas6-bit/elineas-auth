@@ -29,21 +29,28 @@ services:
       timeout: 3s
       retries: 5
 
-  api:
+  backend:
     build:
       context: .
+      dockerfile: apps/backend/Dockerfile
       target: dev
     env_file:
-      - .env.local
+      - apps/backend/.env.local
     environment:
       APP_ENV: local
       DATABASE_URL: postgresql://elineas:elineas@postgres:5432/elineas_auth
       REDIS_URL: redis://redis:6379
+      # Origen del frontend tal como lo ve el NAVEGADOR (para CORS). El SSR del
+      # frontend llama al backend server-a-server (sin Origin), así que solo el
+      # origen del navegador necesita estar permitido aquí. Sobrescribe lo que
+      # hubiera en apps/backend/.env.local.
+      ALLOWED_ORIGIN: http://localhost:3000
     ports:
       - "8080:8080"
     volumes:
       - .:/app
       - /app/node_modules
+      - /app/apps/backend/node_modules
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
       interval: 10s
@@ -55,6 +62,30 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+
+  # Frontend de administración (TanStack Start). Servicio SEPARADO que consume
+  # el backend por red. `docker compose up frontend` levanta también
+  # backend+postgres+redis (vía depends_on); `docker compose up backend`
+  # levanta solo el backend y sus datos.
+  frontend:
+    build:
+      context: .
+      dockerfile: apps/frontend/Dockerfile
+      target: dev
+    environment:
+      # Navegador → backend por su URL pública (mapeada al host en :8080).
+      VITE_BACKEND_URL: http://localhost:8080
+      # SSR/loaders (dentro del contenedor) → backend por la red interna de compose.
+      BACKEND_INTERNAL_URL: http://backend:8080
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/apps/frontend/node_modules
+    depends_on:
+      backend:
+        condition: service_started
 
 volumes:
   pgdata:
