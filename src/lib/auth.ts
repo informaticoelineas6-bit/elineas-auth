@@ -12,10 +12,14 @@ export const auth = betterAuth({
     provider: "pg",
     schema,
   }),
+  // La política de contraseñas debe coincidir con la validación Zod de las rutas
+  // (SignUpBodySchema / ChangePasswordBodySchema: min 12, max 128). Si no
+  // coinciden, una contraseña válida para Zod pero fuera del rango de better-auth
+  // se aceptaría en la validación y luego fallaría aquí con un error confuso.
   emailAndPassword: {
     enabled: true,
-    minPasswordLength: 8,
-    maxPasswordLength: 24,
+    minPasswordLength: 12,
+    maxPasswordLength: 128,
   },
   // Caché de sesión en cookie firmada: evita una consulta a BD en CADA petición
   // autenticada (requireSession). La cookie va firmada con BETTER_AUTH_SECRET, así
