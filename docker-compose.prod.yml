@@ -1,12 +1,31 @@
-# Despliegue de producción: sin Postgres local, la API se conecta a Neon.
-# Redis SÍ se despliega aquí (contenedor interno) para el rate limiting.
+# Despliegue de producción: Postgres y Redis se despliegan como contenedores
+# internos (no se usa ningún Postgres serverless externo como Neon). La API se
+# conecta a ambos por la red interna de compose.
 #
-# Requiere que REDIS_PASSWORD esté disponible para compose (en un archivo `.env`
-# junto a este compose o exportada en el entorno). Ejemplo:
+# Requiere que REDIS_PASSWORD y POSTGRES_PASSWORD estén disponibles para compose
+# (en un archivo `.env` junto a este compose o exportadas en el entorno). Ejemplo:
 #   echo "REDIS_PASSWORD=$(openssl rand -hex 32)" >> .env
+#   echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" >> .env
 #
 # Uso: docker compose -f docker-compose.prod.yml up -d --build
 services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    # Postgres NO expone puertos al host: solo es accesible desde la red interna
+    # de compose (servicio `api`). Protegido con contraseña.
+    environment:
+      POSTGRES_USER: elineas
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para producción}
+      POSTGRES_DB: elineas_auth
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U elineas -d elineas_auth"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -44,12 +63,18 @@ services:
       - .env.production
     environment:
       APP_ENV: production
+      # DATABASE_URL apunta al contenedor interno de Postgres, sobreescribiendo
+      # el valor de .env.production (que no debe usarse dentro de compose).
+      DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
     ports:
       - "8080:8080"
     depends_on:
+      postgres:
+        condition: service_healthy
       redis:
         condition: service_healthy
 
 volumes:
+  pgdata:
   redisdata:

@@ -1,25 +1,22 @@
-import { drizzle as drizzleNeon } from "drizzle-orm/neon-serverless";
-import { drizzle as drizzlePg } from "drizzle-orm/node-postgres";
-import { Pool as NeonPool } from "@neondatabase/serverless";
-import { Pool as PgPool } from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { Pool } from "pg";
 import { env } from "@/config/env";
 import { relations } from "@/db/relations";
 
-// Neon requiere su driver serverless (WebSocket/HTTP); cualquier otro Postgres
-// (p. ej. el contenedor local de docker-compose) usa el driver TCP estándar.
-const isNeon = env.DATABASE_URL.includes("neon.tech");
-
+// Un único driver de Postgres (TCP estándar, `pg`) para todos los entornos
+// —local, staging y producción—, de modo que el comportamiento sea idéntico en
+// todas partes. Producción usa su propio contenedor de Postgres (ver
+// docker-compose.prod.yml), no un Postgres serverless externo.
+//
 // Parámetros del pool explícitos (en vez de los valores por defecto implícitos)
 // para que el comportamiento bajo carga sea deliberado: como máximo 20
 // conexiones, con timeouts acotados para no acumular conexiones colgadas ni
 // esperar indefinidamente a que haya una libre.
-const poolConfig = {
+const pool = new Pool({
   connectionString: env.DATABASE_URL,
   max: 20,
   idleTimeoutMillis: 30_000,
   connectionTimeoutMillis: 10_000,
-};
+});
 
-export const db = isNeon
-  ? drizzleNeon({ client: new NeonPool(poolConfig), relations })
-  : drizzlePg({ client: new PgPool(poolConfig), relations });
+export const db = drizzle({ client: pool, relations });
