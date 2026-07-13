@@ -11,6 +11,7 @@
     "db:seed:local": "APP_ENV=local bun --env-file=/dev/null src/db/seed.ts",
     "db:seed:staging": "APP_ENV=staging bun --env-file=/dev/null src/db/seed.ts",
     "build": "tsc --noEmit",
+    "build:prod": "bun build src/index.ts --target=bun --outdir=dist --minify",
     "openapi:generate": "APP_ENV=local bun --env-file=/dev/null scripts/generate-openapi.ts",
     "start": "bun --env-file=/dev/null src/index.ts"
   },
@@ -20,7 +21,6 @@
   "dependencies": {
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.4.0",
-    "@neondatabase/serverless": "^1.1.0",
     "better-auth": "^1.6.23",
     "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4",

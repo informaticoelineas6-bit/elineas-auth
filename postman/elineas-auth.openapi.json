@@ -158,6 +158,8 @@
         "properties": {
           "name": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "example": "Ada Lovelace"
           },
           "email": {
@@ -167,11 +169,14 @@
           },
           "password": {
             "type": "string",
-            "minLength": 1,
-            "example": "super-secreta"
+            "minLength": 12,
+            "maxLength": 128,
+            "example": "super-secreta1"
           },
           "image": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https?:\\/\\//i"
           },
           "callbackURL": {
             "type": "string"
@@ -195,11 +200,14 @@
         "properties": {
           "email": {
             "type": "string",
+            "format": "email",
             "example": "ada@mercadoelineas.com"
           },
           "password": {
             "type": "string",
-            "example": "super-secreta"
+            "minLength": 1,
+            "maxLength": 128,
+            "example": "super-secreta1"
           },
           "callbackURL": {
             "type": "string"
@@ -311,10 +319,14 @@
         "type": "object",
         "properties": {
           "name": {
-            "type": "string"
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
           },
           "image": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https?:\\/\\//i"
           }
         }
       },
@@ -383,13 +395,10 @@
           "newEmail"
         ]
       },
-      "Session": {
+      "SafeSession": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
-          },
-          "token": {
             "type": "string"
           },
           "userId": {
@@ -426,7 +435,6 @@
         },
         "required": [
           "id",
-          "token",
           "userId",
           "expiresAt",
           "createdAt",
@@ -534,21 +542,25 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 100
           },
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "Ada"
           },
           "lastName": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "Lovelace"
           },
           "ci": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
             "example": "12345678"
           },
           "birthday": {
@@ -557,10 +569,12 @@
             "format": "date-time"
           },
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 30
           },
           "address": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 300
           },
           "inDate": {
             "type": "string",
@@ -586,21 +600,25 @@
         "type": "object",
         "properties": {
           "userId": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 100
           },
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "Ada"
           },
           "lastName": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "Lovelace"
           },
           "ci": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
             "example": "12345678"
           },
           "birthday": {
@@ -609,10 +627,12 @@
             "format": "date-time"
           },
           "phoneNumber": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 30
           },
           "address": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 300
           },
           "inDate": {
             "type": "string",
@@ -635,16 +655,19 @@
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "Punto de Venta"
           },
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
             "pattern": "^[a-z0-9-]+$",
             "example": "pos"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500
           },
           "active": {
             "type": "boolean"
@@ -661,16 +684,19 @@
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "Punto de Venta"
           },
           "slug": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 50,
             "pattern": "^[a-z0-9-]+$",
             "example": "pos"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500
           },
           "active": {
             "type": "boolean"
@@ -716,15 +742,18 @@
         "properties": {
           "systemId": {
             "type": "string",
+            "maxLength": 100,
             "example": "sys_9f8a2b"
           },
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "example": "admin"
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500
           }
         },
         "required": [
@@ -737,10 +766,12 @@
         "properties": {
           "name": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 100
           },
           "description": {
-            "type": "string"
+            "type": "string",
+            "maxLength": 500
           }
         }
       },
@@ -813,10 +844,14 @@
         "properties": {
           "userId": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "example": "usr_9f8a2b"
           },
           "roleId": {
             "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
             "example": "role_9f8a2b"
           }
         },
@@ -923,6 +958,16 @@
           },
           "400": {
             "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
             "content": {
               "application/json": {
                 "schema": {
@@ -1258,7 +1303,7 @@
                       "$ref": "#/components/schemas/User"
                     },
                     "session": {
-                      "$ref": "#/components/schemas/Session"
+                      "$ref": "#/components/schemas/SafeSession"
                     },
                     "system": {
                       "$ref": "#/components/schemas/System"
@@ -1309,7 +1354,7 @@
                     "sessions": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/Session"
+                        "$ref": "#/components/schemas/SafeSession"
                       }
                     }
                   },
@@ -1409,7 +1454,7 @@
         "tags": [
           "Sessions"
         ],
-        "summary": "Revocar una sesión específica por su token",
+        "summary": "Revocar una sesión específica por su id",
         "security": [
           {
             "bearerAuth": []
@@ -1421,13 +1466,13 @@
               "schema": {
                 "type": "object",
                 "properties": {
-                  "token": {
+                  "sessionId": {
                     "type": "string",
                     "example": "sess_abc123"
                   }
                 },
                 "required": [
-                  "token"
+                  "sessionId"
                 ]
               }
             }
@@ -1455,7 +1500,7 @@
             }
           },
           "404": {
-            "description": "Solicitud inválida",
+            "description": "Recurso no encontrado",
             "content": {
               "application/json": {
                 "schema": {
@@ -1518,6 +1563,7 @@
           {
             "schema": {
               "type": "string",
+              "maxLength": 100,
               "example": "Ada"
             },
             "required": false,
@@ -1948,6 +1994,7 @@
           {
             "schema": {
               "type": "string",
+              "maxLength": 100,
               "example": "pos"
             },
             "required": false,
@@ -2374,6 +2421,7 @@
           {
             "schema": {
               "type": "string",
+              "maxLength": 100,
               "example": "admin"
             },
             "required": false,

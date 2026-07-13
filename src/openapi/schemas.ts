@@ -1,12 +1,26 @@
 import { z } from "@hono/zod-openapi";
 import { SystemSchema } from "@/openapi/business.schemas";
 
+// URL de imagen (avatar): acotada en longitud y restringida a http(s) para
+// evitar que se almacene un `javascript:`/`data:` que dispare XSS al renderizar
+// <img src=...> en cualquier frontend consumidor.
+const ImageUrl = z
+  .string()
+  .max(2048)
+  .regex(/^https?:\/\//i, "Debe ser una URL http(s)");
+
+// Nombre visible de persona: con tope de longitud para no aceptar cadenas
+// arbitrariamente grandes que acaben renderizadas sin escapar en un cliente.
+const DisplayName = z.string().min(1).max(100);
+
 export const SignUpBodySchema = z
   .object({
-    name: z.string().openapi({ example: "Ada Lovelace" }),
+    name: DisplayName.openapi({ example: "Ada Lovelace" }),
     email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
-    password: z.string().min(1).openapi({ example: "super-secreta" }),
-    image: z.string().optional(),
+    // Debe cumplir la política de better-auth (min 12, max 128); se valida aquí
+    // también para dar un error claro antes de llegar a la capa de auth.
+    password: z.string().min(12).max(128).openapi({ example: "super-secreta1" }),
+    image: ImageUrl.optional(),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
     // Opcional en el registro: si se indica, enlaza la sesión al sistema.
@@ -16,8 +30,8 @@ export const SignUpBodySchema = z
 
 export const SignInBodySchema = z
   .object({
-    email: z.string().openapi({ example: "ada@mercadoelineas.com" }),
-    password: z.string().openapi({ example: "super-secreta" }),
+    email: z.email().openapi({ example: "ada@mercadoelineas.com" }),
+    password: z.string().min(1).max(128).openapi({ example: "super-secreta1" }),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
     // Obligatorio: cada login pertenece a un sistema concreto.
@@ -55,6 +69,14 @@ export const SessionSchema = z
     activeOrganizationId: z.string().nullable().optional(),
   })
   .openapi("Session");
+
+// Sesión SIN el token, para exponerla a los clientes. El token es un secreto de
+// portador (quien lo tiene, es la sesión): devolverlo en un listado convierte
+// cualquier XSS en el cliente en el secuestro de TODAS las sesiones del usuario.
+// La revocación de una sesión concreta se hace por `id` (ver /sessions/revoke).
+export const SafeSessionSchema = SessionSchema.omit({ token: true }).openapi(
+  "SafeSession",
+);
 
 export const ErrorResponseSchema = z
   .object({
@@ -104,8 +126,8 @@ export const JwksResponseSchema = z
 
 export const UpdateUserBodySchema = z
   .object({
-    name: z.string().optional(),
-    image: z.string().optional(),
+    name: DisplayName.optional(),
+    image: ImageUrl.optional(),
   })
   .openapi("UpdateUserBody");
 

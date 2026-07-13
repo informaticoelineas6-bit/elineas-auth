@@ -56,10 +56,19 @@ export async function bindSessionToSystem(params: {
       ),
   );
 
+  // Si dos logins del mismo usuario al mismo sistema corren a la vez, ninguno ve
+  // aún la sesión del otro en la consulta anterior, así que ambos intentan
+  // insertar con distinto sessionId pero el mismo (userId, systemId) —único—.
+  // Con onConflictDoNothing el segundo se descartaba y su sesión quedaba sin
+  // sistema (system: null). En su lugar reapuntamos el enlace a la sesión más
+  // reciente, de modo que el enlace siempre exista y sea coherente.
   await db
     .insert(sessionSystem)
     .values({ sessionId: current.id, userId, systemId })
-    .onConflictDoNothing();
+    .onConflictDoUpdate({
+      target: [sessionSystem.userId, sessionSystem.systemId],
+      set: { sessionId: current.id },
+    });
 
   return current.id;
 }

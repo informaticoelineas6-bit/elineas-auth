@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
-import { forwardAuthHeaders, handleError, issueJwt } from "@/lib/http";
+import { forwardAuthHeaders, handleError, HttpError, issueJwt } from "@/lib/http";
 import {
   bindSessionToSystem,
   resolveActiveSystem,
 } from "@/services/session-system.service";
+import { userHasRoleInSystem } from "@/services/user-role.service";
 import type { z } from "@hono/zod-openapi";
 import type { SignInBodySchema, SignUpBodySchema } from "@/openapi/schemas";
 import { Context } from "hono";
@@ -52,6 +53,23 @@ export const signInFn = async (c: Context<any, string, SignInInput>) => {
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
+
+    // La autenticación es correcta, pero el acceso a ESTE sistema exige tener al
+    // menos un rol en él. Si no lo tiene, se revoca la sesión recién creada y NO
+    // se reenvían las cabeceras de sesión (el navegador no llega a quedar
+    // logueado), devolviendo 403.
+    if (!(await userHasRoleInSystem(response.user.id, sys.id))) {
+      await auth.api.revokeSession({
+        body: { token: response.token },
+        headers: new Headers({ authorization: `Bearer ${response.token}` }),
+      });
+      throw new HttpError(
+        403,
+        `El usuario no tiene ningún rol en el sistema "${sys.slug}"`,
+        "NO_ROLES_IN_SYSTEM",
+      );
+    }
+
     forwardAuthHeaders(c, headers);
     await bindSessionToSystem({
       sessionToken: response.token,

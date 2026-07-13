@@ -2,11 +2,11 @@ import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { requireSession } from "@/middleware/session";
 import type { AppEnv } from "@/types/hono-env";
 import {
-  SessionSchema,
+  SafeSessionSchema,
   StatusResponseSchema,
   UserSchema,
-  badRequestResponse,
   bearerAuthSecurity,
+  notFoundResponse,
   unauthorizedResponse,
 } from "@/openapi/schemas";
 import { SystemSchema } from "@/openapi/business.schemas";
@@ -36,7 +36,7 @@ const getSessionRoute = createRoute({
         "application/json": {
           schema: z.object({
             user: UserSchema,
-            session: SessionSchema,
+            session: SafeSessionSchema,
             system: SystemSchema.nullable(),
           }),
         },
@@ -60,7 +60,7 @@ const listSessionsRoute = createRoute({
       description: "Sesiones activas",
       content: {
         "application/json": {
-          schema: z.object({ sessions: z.array(SessionSchema) }),
+          schema: z.object({ sessions: z.array(SafeSessionSchema) }),
         },
       },
     },
@@ -111,16 +111,18 @@ const revokeOneRoute = createRoute({
   path: "/revoke",
   operationId: "revokeSession",
   tags: ["Sessions"],
-  summary: "Revocar una sesión específica por su token",
-  // El token va en el CUERPO, no en la URL: un token de sesión en el path
-  // acabaría en los logs de acceso (app.use(logger())) y en proxies intermedios.
+  summary: "Revocar una sesión específica por su id",
+  // Se revoca por `id` (no por token): el listado de sesiones ya no expone el
+  // token (secreto de portador), así que el cliente identifica la sesión a
+  // revocar por su id. El propio better-auth solo permite revocar sesiones del
+  // usuario autenticado, de modo que no se puede revocar la de otro.
   security: bearerAuthSecurity,
   request: {
     body: {
       content: {
         "application/json": {
           schema: z.object({
-            token: z.string().openapi({ example: "sess_abc123" }),
+            sessionId: z.string().openapi({ example: "sess_abc123" }),
           }),
         },
       },
@@ -132,7 +134,7 @@ const revokeOneRoute = createRoute({
       content: { "application/json": { schema: StatusResponseSchema } },
     },
     401: unauthorizedResponse,
-    404: badRequestResponse,
+    404: notFoundResponse,
   },
 });
 

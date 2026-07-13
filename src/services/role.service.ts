@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { role } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { escapeLike } from "@/lib/search";
 import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
   CreateRoleBodySchema,
@@ -18,7 +19,7 @@ export async function listRoles(
 ) {
   const conditions = [
     filters.systemId ? eq(role.systemId, filters.systemId) : undefined,
-    filters.search ? ilike(role.name, `%${filters.search}%`) : undefined,
+    filters.search ? ilike(role.name, `%${escapeLike(filters.search)}%`) : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;
 

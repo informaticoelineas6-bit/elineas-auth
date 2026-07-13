@@ -3,6 +3,7 @@ import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { system } from "@/db/business-schema";
 import { HttpError } from "@/lib/http";
+import { escapeLike } from "@/lib/search";
 import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
   CreateSystemBodySchema,
@@ -19,10 +20,10 @@ export async function listSystems(
   const conditions = [
     filters.active === undefined ? undefined : eq(system.active, filters.active),
     filters.search
-      ? or(
-          ilike(system.name, `%${filters.search}%`),
-          ilike(system.slug, `%${filters.search}%`),
-        )
+      ? (() => {
+          const term = `%${escapeLike(filters.search)}%`;
+          return or(ilike(system.name, term), ilike(system.slug, term));
+        })()
       : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;

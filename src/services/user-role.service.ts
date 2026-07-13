@@ -50,6 +50,22 @@ export async function deleteUserRole(id: string) {
   if (!row) throw new HttpError(404, "Asignación no encontrada", "NOT_FOUND");
 }
 
+// ¿Tiene el usuario al menos un rol dentro del sistema indicado? Se usa en el
+// login para rechazar el acceso a un sistema en el que el usuario no tiene
+// ningún rol asignado (autenticación válida pero sin autorización en destino).
+export async function userHasRoleInSystem(
+  userId: string,
+  systemId: string,
+): Promise<boolean> {
+  const [row] = await db
+    .select({ id: userRole.id })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
+    .where(and(eq(userRole.userId, userId), eq(role.systemId, systemId)))
+    .limit(1);
+  return Boolean(row);
+}
+
 // Roles del propio usuario autenticado, con el sistema al que pertenece cada
 // uno. A diferencia de listUserRoles, no requiere admin: solo puede filtrar
 // por el userId de quien llama.
