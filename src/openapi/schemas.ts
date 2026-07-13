@@ -172,7 +172,7 @@ export const ChangePasswordBodySchema = z
     // sin esta validación se aceptaba cualquier cadena y la política mínima la
     // ponía better-auth (más laxa), permitiendo bajar a una contraseña débil.
     newPassword: Password.openapi({ example: "tu-nueva-contraseña" }),
-    currentPassword: z.string().openapi({ example: "tu-contraseña-segura" }),
+    currentPassword: z.string().openapi({ example: "tu-contraseña-actual" }),
     revokeOtherSessions: z.boolean().optional(),
   })
   .openapi("ChangePasswordBody");

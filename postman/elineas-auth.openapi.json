@@ -356,7 +356,7 @@
           },
           "currentPassword": {
             "type": "string",
-            "example": "tu-contraseña-segura"
+            "example": "tu-contraseña-actual"
           },
           "revokeOtherSessions": {
             "type": "boolean"
