@@ -389,12 +389,17 @@
             "format": "email",
             "example": "nueva@example.com"
           },
+          "currentPassword": {
+            "type": "string",
+            "example": "tu-contraseña-segura"
+          },
           "callbackURL": {
             "type": "string"
           }
         },
         "required": [
-          "newEmail"
+          "newEmail",
+          "currentPassword"
         ]
       },
       "SafeSession": {

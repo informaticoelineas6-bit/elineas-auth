@@ -187,6 +187,11 @@ export const ChangePasswordResponseSchema = z
 export const ChangeEmailBodySchema = z
   .object({
     newEmail: z.email().openapi({ example: "nueva@example.com" }),
+    // Re-autenticación: el cambio de email se aplica sin verificación por correo
+    // (updateEmailWithoutVerification), así que una sesión robada podría
+    // consumar el robo de la cuenta. Exigir la contraseña actual lo evita sin
+    // depender de envío de correos.
+    currentPassword: z.string().openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
   })
   .openapi("ChangeEmailBody");
