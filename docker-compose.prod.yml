@@ -7,7 +7,11 @@
 #   echo "REDIS_PASSWORD=$(openssl rand -hex 32)" >> .env
 #   echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" >> .env
 #
-# Uso: docker compose -f docker-compose.prod.yml up -d --build
+# Uso:
+#   # 1) Aplica migraciones pendientes (one-shot; levanta Postgres si hace falta)
+#   docker compose -f docker-compose.prod.yml run --rm migrate
+#   # 2) Levanta la API + servicios
+#   docker compose -f docker-compose.prod.yml up -d --build
 services:
   postgres:
     image: postgres:16-alpine
@@ -73,6 +77,29 @@ services:
       postgres:
         condition: service_healthy
       redis:
+        condition: service_healthy
+
+  # Migraciones de BD (one-shot). NO arranca con `up`: está en el perfil
+  # "migrate", así que solo se ejecuta explícitamente:
+  #   docker compose -f docker-compose.prod.yml run --rm migrate
+  # Usa el target `dev` de la imagen porque incluye drizzle-kit y la carpeta de
+  # migraciones (ninguno está en la imagen `prod`, que solo lleva el bundle).
+  # Aplica los .sql pendientes contra el Postgres interno; ejecútalo antes de
+  # `up` (o tras cada despliegue con migraciones nuevas).
+  migrate:
+    build:
+      context: .
+      target: dev
+    profiles: ["migrate"]
+    env_file:
+      - .env.production
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
+    command: ["bunx", "--env-file=/dev/null", "drizzle-kit", "migrate"]
+    restart: "no"
+    depends_on:
+      postgres:
         condition: service_healthy
 
 volumes:
