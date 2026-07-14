@@ -1,23 +1,7 @@
-# Despliegue de producción: Postgres y Redis se despliegan como contenedores
-# internos (no se usa ningún Postgres serverless externo como Neon). El backend
-# se conecta a ambos por la red interna de compose.
-#
-# Requiere que REDIS_PASSWORD y POSTGRES_PASSWORD estén disponibles para compose
-# (en un archivo `.env` junto a este compose o exportadas en el entorno). Ejemplo:
-#   echo "REDIS_PASSWORD=$(openssl rand -hex 32)" >> .env
-#   echo "POSTGRES_PASSWORD=$(openssl rand -hex 32)" >> .env
-#
-# Uso:
-#   # 1) Aplica migraciones pendientes (one-shot; levanta Postgres si hace falta)
-#   docker compose -f docker-compose.prod.yml run --rm migrate
-#   # 2) Levanta el backend + frontend + servicios
-#   docker compose -f docker-compose.prod.yml up -d --build
 services:
   postgres:
     image: postgres:16-alpine
     restart: unless-stopped
-    # Postgres NO expone puertos al host: solo es accesible desde la red interna
-    # de compose (servicio `backend`). Protegido con contraseña.
     environment:
       POSTGRES_USER: elineas
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para producción}
@@ -33,8 +17,6 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
-    # Redis NO expone puertos al host: solo es accesible desde la red interna
-    # de compose (servicio `backend`). Protegido además con contraseña.
     command:
       [
         "redis-server",
@@ -44,9 +26,6 @@ services:
         "--requirepass",
         "${REDIS_PASSWORD:?Define REDIS_PASSWORD para producción}",
       ]
-    # redis-cli lee la contraseña de REDISCLI_AUTH, así no aparece en la línea de
-    # comandos del healthcheck (visible en `docker inspect` / la lista de
-    # procesos, a diferencia de pasarla con `-a`).
     environment:
       REDISCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
@@ -68,19 +47,14 @@ services:
       - apps/backend/.env.production
     environment:
       APP_ENV: production
-      # DATABASE_URL apunta al contenedor interno de Postgres, sobreescribiendo
-      # el valor de .env.production (que no debe usarse dentro de compose).
       DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-    ports:
-      - "8080:8080"
-    # `restart: unless-stopped` solo actúa si el proceso MUERE. Un proceso vivo
-    # pero colgado (p. ej. pool de BD agotado) no se reiniciaría nunca. Con el
-    # healthcheck, Docker marca el contenedor como unhealthy y —según la política
-    # del orquestador— lo reinicia. Usa /health (liveness, sin tocar BD): si no
-    # responde, el problema es el propio proceso. `wget` viene con busybox (alpine).
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8080/health || exit 1"]
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://localhost:8080/health || exit 1",
+        ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -91,13 +65,6 @@ services:
       redis:
         condition: service_healthy
 
-  # Migraciones de BD (one-shot). NO arranca con `up`: está en el perfil
-  # "migrate", así que solo se ejecuta explícitamente:
-  #   docker compose -f docker-compose.prod.yml run --rm migrate
-  # Usa el target `dev` de la imagen porque incluye drizzle-kit y la carpeta de
-  # migraciones (ninguno está en la imagen `prod`, que solo lleva el bundle).
-  # Aplica los .sql pendientes contra el Postgres interno; ejecútalo antes de
-  # `up` (o tras cada despliegue con migraciones nuevas).
   migrate:
     build:
       context: .
@@ -116,29 +83,21 @@ services:
       postgres:
         condition: service_healthy
 
-  # Frontend de administración (TanStack Start), servicio SEPARADO que consume
-  # el backend por red. Requiere PUBLIC_BACKEND_URL (la URL pública del backend,
-  # la que usa el NAVEGADOR; se hornea en el bundle en tiempo de build). El SSR
-  # usa la red interna (http://backend:8080). Además, apps/backend/.env.production
-  # debe incluir el origen público del frontend en ALLOWED_ORIGIN para que el
-  # CORS lo permita.
   frontend:
     build:
       context: .
       dockerfile: apps/frontend/Dockerfile
       target: prod
       args:
-        VITE_BACKEND_URL: ${PUBLIC_BACKEND_URL:?Define PUBLIC_BACKEND_URL (URL pública del backend para el navegador)}
+        VITE_BACKEND_URL: ${PUBLIC_BACKEND_URL:?Define PUBLIC_BACKEND_URL (URL pública del backend)}
     image: elineas-frontend:latest
     restart: unless-stopped
     environment:
-      # SSR/loaders → backend por la red interna de compose.
       BACKEND_INTERNAL_URL: http://backend:8080
       PORT: 3000
-    ports:
-      - "3000:3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/ || exit 1"]
+      test:
+        ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3000/ || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -147,6 +106,24 @@ services:
       backend:
         condition: service_healthy
 
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+
 volumes:
   pgdata:
   redisdata:
+  caddy_data:
+  caddy_config:
