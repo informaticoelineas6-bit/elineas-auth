@@ -47,7 +47,7 @@ RUN bun run generate-routes && bun run typecheck && bun run build
 # ---- prod: imagen final mínima con solo el servidor Nitro (preset node-server) ----
 # El `.output` de Nitro es autocontenido (empaqueta sus dependencias), por lo que
 # la imagen final solo necesita el runtime de Node y esa carpeta.
-FROM node:${NODE_VERSION} AS prod
+FROM oven/bun:1 AS prod
 ENV NODE_ENV=production
 # Nitro node-server escucha en PORT (por defecto 3000).
 ENV PORT=3000
@@ -56,4 +56,4 @@ COPY --from=build /app/apps/frontend/.output ./.output
 EXPOSE 3000
 HEALTHCHECK --interval=10s --timeout=5s --retries=3 --start-period=15s \
   CMD wget -q -O /dev/null http://localhost:3000/ || exit 1
-CMD ["node", ".output/server/index.mjs"]
+CMD ["bun", ".output/server/index.mjs"]
