@@ -10,7 +10,6 @@
 # más abajo.
 
 ARG BUN_VERSION=1-alpine
-ARG NODE_VERSION=22-alpine
 
 # ---- deps: instala dependencias del frontend (+ sus workspaces) con bun ----
 FROM oven/bun:${BUN_VERSION} AS deps
