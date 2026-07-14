@@ -4,7 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: elineas
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD para producción}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: elineas_auth
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -24,7 +24,7 @@ services:
         "60",
         "1",
         "--requirepass",
-        "${REDIS_PASSWORD:?Define REDIS_PASSWORD para producción}",
+        "${REDIS_PASSWORD}",
       ]
     environment:
       REDISCLI_AUTH: ${REDIS_PASSWORD}
@@ -41,7 +41,6 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: prod
-    image: elineas-backend:latest
     restart: unless-stopped
     env_file:
       - apps/backend/.env.production
@@ -64,24 +63,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-
-  migrate:
-    build:
-      context: .
-      dockerfile: apps/backend/Dockerfile
-      target: dev
-    profiles: ["migrate"]
-    env_file:
-      - apps/backend/.env.production
-    working_dir: /app/apps/backend
-    environment:
-      APP_ENV: production
-      DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
-    command: ["bunx", "--env-file=/dev/null", "drizzle-kit", "migrate"]
-    restart: "no"
-    depends_on:
-      postgres:
-        condition: service_healthy
+    # Coolify detecta el puerto expuesto por el healthcheck/labels y te deja
+    # asignar el dominio desde la UI (ver paso 6) — no necesitas "ports:" aquí.
 
   frontend:
     build:
@@ -89,8 +72,7 @@ services:
       dockerfile: apps/frontend/Dockerfile
       target: prod
       args:
-        VITE_BACKEND_URL: ${PUBLIC_BACKEND_URL:?Define PUBLIC_BACKEND_URL (URL pública del backend)}
-    image: elineas-frontend:latest
+        VITE_BACKEND_URL: ${PUBLIC_BACKEND_URL}
     restart: unless-stopped
     environment:
       BACKEND_INTERNAL_URL: http://backend:8080
@@ -106,24 +88,6 @@ services:
       backend:
         condition: service_healthy
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      backend:
-        condition: service_healthy
-      frontend:
-        condition: service_healthy
-
 volumes:
   pgdata:
   redisdata:
-  caddy_data:
-  caddy_config:
