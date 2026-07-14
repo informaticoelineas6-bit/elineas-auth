@@ -1,7 +1,0 @@
-auth.mercadoelineas.com {
-    reverse_proxy backend:8080
-}
-
-admin.mercadoelineas.com {
-    reverse_proxy frontend:3000
-}

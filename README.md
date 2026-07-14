@@ -5,141 +5,61 @@ integrarse con este Identity Server (en adelante **IS**) para autenticar y
 autorizar usuarios de forma segura. Está basada en el comportamiento real
 implementado en este repositorio (Hono + better-auth + Drizzle + Redis).
 
-> **Estructura del repositorio (monorepo Bun).** El código está organizado como
-> un monorepo con workspaces de Bun. La API que documenta esta guía vive ahora en
-> `[apps/backend](apps/backend)`; las rutas relativas que aparecen más abajo
-> (`src/…`, `docker-compose`, scripts) se ejecutan desde ahí.
->
-> ```
-> apps/backend         API Hono + better-auth (este IS)          ·  @elineas/backend
-> apps/frontend        Panel de administración (TanStack Start)  ·  @elineas/frontend
-> packages/api-client  Cliente RPC tipado (hc<AppType>)           ·  @elineas/api-client
-> ```
->
-> Comandos desde la raíz: `bun run dev:backend`, `bun run dev:frontend`,
-> `bun run typecheck`. El resto de scripts de BD/OpenAPI siguen disponibles con
-> `bun run --filter @elineas/backend <script>`. El backend expone su contrato de
-> tipos en `@elineas/backend/rpc` (`AppType`), que el frontend consume vía
-> `@elineas/api-client` para type safety extremo a extremo sin duplicar contratos.
+Este repositorio contiene **únicamente la API** (`@elineas/auth`). Cualquier
+frontend/backend consumidor vive en su propio repositorio e integra contra
+este IS por red, siguiendo esta guía.
 
-## 0. Cómo levantar (backend y frontend)
-
-El backend (`@elineas/backend`, puerto **8080**) y el frontend (`@elineas/frontend`,
-puerto **3000**) son **servicios separados**: el frontend consume el backend por
-red. El navegador llama al backend por su URL pública; el SSR del frontend lo
-llama por la red interna (en Docker). Puedes levantar cada uno por separado o
-los dos juntos.
+## 0. Cómo levantar la API
 
 ### Requisitos de configuración
 
-- **Backend** — copia `apps/backend/.env.example` a `apps/backend/.env.local` y
-  rellena los secretos. `ALLOWED_ORIGIN` **debe** incluir el origen del frontend
-  (`http://localhost:3000` en local) o el navegador bloqueará las llamadas.
-- **Frontend** — opcional en local; si el backend no está en
-  `http://localhost:8080`, crea `apps/frontend/.env.local` con
-  `VITE_BACKEND_URL=<url pública del backend>`.
+Copia `.env.example` a `.env.local` y rellena los secretos. `ALLOWED_ORIGIN`
+**debe** incluir el/los orígenes de los frontends/backends que consumirán
+este IS (lista separada por comas si son varios).
 
 ### A) Local (sin Docker, con Bun)
 
 Necesitas Postgres y Redis accesibles (o levántalos con
-`docker compose up -d postgres redis`). Luego, en la raíz del monorepo:
+`docker compose up -d postgres redis`):
 
 ```bash
 bun install
-
-# Solo el backend (puerto 8080)
-bun run dev:backend
-
-# Solo el frontend (puerto 3000) — en otra terminal
-bun run dev:frontend
-
-# Los dos a la vez (una terminal): usa el filtro de workspaces de Bun
-bun run --filter '*' dev
+bun run dev
 ```
 
-Abre el frontend en [http://localhost:3000](http://localhost:3000). La página de inicio llama al
-backend vía RPC tipado y muestra su estado (sin sesión responde 401 → "Backend
-alcanzable").
+La API queda disponible en [http://localhost:8080](http://localhost:8080).
 
 ### B) Docker — desarrollo (hot reload)
 
-`docker-compose.yml` define `postgres`, `redis`, `backend` y `frontend`.
-`depends_on` encadena el arranque, así que puedes elegir qué levantar:
+`docker-compose.yml` define `postgres`, `redis` y `api`, con las credenciales
+locales ya resueltas (no requiere secretos de infraestructura para levantarse):
 
 ```bash
-# Regenerar imágenes (tras cambiar Dockerfile o dependencias)
-docker compose build              # todas
-docker compose build frontend     # solo el frontend
-docker compose build backend      # solo el backend
-
-# Solo el backend (+ postgres + redis)
-docker compose up backend
-
-# Solo el frontend (arrastra backend + postgres + redis vía depends_on)
-docker compose up frontend
-
-# Todo junto
-docker compose up
-
-# Levantar el frontend SIN sus dependencias (si ya corren o usas un backend externo)
-docker compose up --no-deps frontend
+docker compose up --build
 ```
 
-- Backend: [http://localhost:8080](http://localhost:8080) · Frontend: [http://localhost:3000](http://localhost:3000)
-- El frontend usa `VITE_BACKEND_URL=http://localhost:8080` (navegador) y
-  `BACKEND_INTERNAL_URL=http://backend:8080` (SSR), ya configurados en el compose.
+- API: [http://localhost:8080](http://localhost:8080)
+- El código fuente está montado como bind mount, así que los cambios recargan
+  en caliente (`bun --watch`).
 
 ### C) Docker — producción
 
-`docker-compose.prod.yml` construye imágenes optimizadas (backend: bundle de
-Bun; frontend: servidor Nitro `node-server`). Requiere variables para compose:
+`docker-compose.prod.yml` construye la imagen optimizada (bundle de Bun) y
+requiere los secretos de infraestructura como variables de entorno:
 
 ```bash
-# Secretos de infraestructura + URL pública del backend (la que verá el navegador)
 export POSTGRES_PASSWORD=$(openssl rand -hex 32)
 export REDIS_PASSWORD=$(openssl rand -hex 32)
-export PUBLIC_BACKEND_URL=https://api.midominio.com   # se hornea en el bundle del frontend
 
-# 1) Migraciones (one-shot)
-docker compose -f docker-compose.prod.yml run --rm migrate
-
-# 2) Regenerar y levantar (backend + frontend + datos)
 docker compose -f docker-compose.prod.yml up -d --build
-
-# Regenerar solo una imagen
-docker compose -f docker-compose.prod.yml build frontend
-docker compose -f docker-compose.prod.yml up -d frontend
 ```
 
-> **Importante (CORS en prod):** `PUBLIC_BACKEND_URL` se hornea en el bundle del
-> navegador en tiempo de build, así que hay que reconstruir el frontend si
-> cambia. Y `apps/backend/.env.production` debe incluir el origen público del
-> frontend en `ALLOWED_ORIGIN` (p. ej. `https://admin.midominio.com`).
-
-### Regenerar la imagen de Docker (resumen)
-
-| Objetivo                            | Comando                                                  |
-| ----------------------------------- | -------------------------------------------------------- |
-| Rebuild dev de todo                 | `docker compose build`                                   |
-| Rebuild dev solo backend / frontend | `docker compose build backend` / `... frontend`          |
-| Rebuild prod de todo                | `docker compose -f docker-compose.prod.yml build`        |
-| Rebuild forzado sin caché           | añade `--no-cache`                                       |
-| Levantar tras rebuild               | `docker compose up -d` (añade `--build` para rebuild+up) |
-
-> **Nota sobre** `docker compose build` **y errores de tipos.** El build de
-> producción del frontend usa `vite build`, que solo **transpila** (strip de
-> tipos vía esbuild/rolldown) y no falla si el código tiene errores de
-> TypeScript — a diferencia del backend, cuyo build ejecuta `tsc --noEmit`
-> explícitamente. Por eso el [Dockerfile del frontend](apps/frontend/Dockerfile)
-> ejecuta `bun run typecheck` como paso explícito **antes** de `vite build`: sin
-> ese paso, una imagen con errores de tipos se construiría igual "en verde".
-
-### D) Despliegue en producción con Coolify 4
-
-Si vas a desplegar en un servidor propio con [Coolify](https://coolify.io), sigue
-la guía dedicada: **[docs/coolify-deployment.md](docs/coolify-deployment.md)**.
-Cubre backend, frontend, Postgres y Redis como recursos separados, variables de
-entorno, dominios/SSL, migraciones y el flujo de redeploy.
+> En **Coolify**, en cambio, no usarás `docker-compose.prod.yml` directamente:
+> cada recurso (Postgres, Redis, API) se crea por separado en la UI y las
+> variables de entorno (`DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`,
+> `ALLOWED_ORIGIN`, etc.) se configuran ahí, como recursos/variables de
+> Coolify — no desde archivos `.env` del repo. Ver la guía dedicada:
+> **[docs/coolify-deployment.md](docs/coolify-deployment.md)**.
 
 ## 1. Modelo mental
 
@@ -150,10 +70,10 @@ El IS es un servidor de identidad **multi-sistema**:
   `ecommerce`, `backoffice`).
 - Cada inicio de sesión pertenece a **un sistema concreto**: no existe SSO
   compartido entre todos los sistemas. Un mismo usuario puede tener una sesión
-  activa por sistema (`apps/backend/src/db/business-schema.ts:112` — `sessionSystem`, único
+  activa por sistema (`src/db/business-schema.ts:112` — `sessionSystem`, único
   por `userId + systemId`).
 - Los **roles** (`role`) pertenecen a un sistema, no son globales
-  (`apps/backend/src/db/business-schema.ts:60-77`).
+  (`src/db/business-schema.ts:60-77`).
 - El IS resuelve **quién** es el usuario (autenticación). **Qué puede hacer**
   ese usuario dentro de tu sistema (autorización fina) es responsabilidad de
   cada sistema consumidor — ver [sección 7](#7-autenticación-vs-autorización-qué-hace-el-is-y-qué-no).
@@ -174,7 +94,7 @@ El IS es un servidor de identidad **multi-sistema**:
 
 ## 2. Conceptos clave de autenticación
 
-El IS usa [better-auth](https://www.better-auth.com/) (`apps/backend/src/lib/auth.ts:8-24`)
+El IS usa [better-auth](https://www.better-auth.com/) (`src/lib/auth.ts:8-24`)
 con los plugins `jwt()` y `bearer()`. Esto da **dos credenciales** por sesión:
 
 1. **Cookie de sesión** (`Set-Cookie`, httpOnly): la usa el propio navegador
@@ -202,7 +122,7 @@ Antes de que un frontend/API nuevo pueda usar el IS, un administrador del IS
 
 1. **Registrar el origen en CORS** — añadir el dominio del frontend a
    `ALLOWED_ORIGIN` en el entorno del IS (lista separada por comas,
-   `apps/backend/src/config/env.ts:29-38`). Sin esto, el navegador bloquea toda petición
+   `src/config/env.ts:29-38`). Sin esto, el navegador bloquea toda petición
    cross-origin, incluida la de login.
 2. **Crear el** `system` correspondiente:
 
@@ -219,7 +139,7 @@ Antes de que un frontend/API nuevo pueda usar el IS, un administrador del IS
 
 Todos estos endpoints (`/api/systems`, `/api/roles`, `/api/user-roles`,
 `/api/employees`) exigen sesión **y** rol `admin` en el sistema `auth`
-(`requireAdmin`, `apps/backend/src/middleware/admin.ts:11-36`). Son para gestión
+(`requireAdmin`, `src/middleware/admin.ts:11-36`). Son para gestión
 administrativa centralizada, no para que cada backend los consulte por
 petición — ver sección 7.
 
@@ -279,8 +199,8 @@ export const identityClient = {
 ```
 
 > El `systemSlug` es obligatorio en `sign-in` (`SignInBodySchema`,
-> `apps/backend/src/openapi/schemas.ts:17-26`). El alta de usuarios (`sign-up`) **no** es
-> autoservicio: requiere que quien llama ya sea admin (`apps/backend/src/routes/auth.routes.ts:27-52`),
+> `src/openapi/schemas.ts:17-26`). El alta de usuarios (`sign-up`) **no** es
+> autoservicio: requiere que quien llama ya sea admin (`src/routes/auth.routes.ts:27-52`),
 > así que un frontend normal nunca debe exponer un formulario de registro
 > público contra este IS — los usuarios los crea un admin o el seed inicial.
 
@@ -539,7 +459,7 @@ necesites, no como middleware global.
 ## 6. CORS
 
 El IS refleja el `Origin` solo si está en `ALLOWED_ORIGIN`
-(`apps/backend/src/app.ts:34-48`). Si tu frontend recibe errores de CORS:
+(`src/app.ts:34-48`). Si tu frontend recibe errores de CORS:
 
 - Confirma que tu dominio exacto (esquema + host + puerto) está en
   `ALLOWED_ORIGIN` del entorno del IS.
@@ -629,7 +549,7 @@ deben vivir en tu propio backend, indexados por `identity.sub` (el
 
 ## 8. Rate limiting
 
-Endpoints con límite (`apps/backend/src/middleware/auth-rate-limits.ts`, `apps/backend/src/middleware/rate-limit.ts`):
+Endpoints con límite (`src/middleware/auth-rate-limits.ts`, `src/middleware/rate-limit.ts`):
 
 | Endpoint                             | Límite            | Dimensión           |
 | ------------------------------------ | ----------------- | ------------------- |
@@ -653,7 +573,7 @@ Al superar el límite reciben `429` con cabecera `Retry-After` (segundos) y cuer
 ## 9. Formato de errores
 
 Todas las respuestas de error siguen `{ error: string, code?: string }`
-(`ErrorResponseSchema`, `apps/backend/src/openapi/schemas.ts:59-64`). Códigos relevantes
+(`ErrorResponseSchema`, `src/openapi/schemas.ts:59-64`). Códigos relevantes
 para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 `RATE_LIMITED` (429), `CONFLICT` (409, violación de unicidad),
 `SYSTEM_NOT_FOUND` / `SYSTEM_REQUIRED` (400, `systemSlug` inválido o
@@ -752,7 +672,7 @@ se paginan: devuelven el conjunto completo del propio usuario.
 
 En entornos no productivos (`APP_ENV !== "production"`), el esquema completo
 está disponible en `GET /api/openapi.json` y Swagger UI en `GET /api/docs`
-(`apps/backend/src/app.ts`) — en producción se deshabilita intencionalmente. El fichero
+(`src/app.ts`) — en producción se deshabilita intencionalmente. El fichero
 `postman/elineas-auth.openapi.json` se regenera con `bun run openapi:generate`
 tras cambiar rutas o esquemas.
 

@@ -1,25 +1,41 @@
 {
-  "name": "elineas-monorepo",
-  "private": true,
+  "name": "@elineas/auth",
   "type": "module",
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
+  "exports": {
+    "./rpc": "./src/rpc.ts"
+  },
   "scripts": {
-    "dev:backend": "bun run --filter @elineas/backend dev",
-    "dev:frontend": "bun run --filter @elineas/frontend dev",
-    "build": "bun run --filter '*' build",
-    "typecheck": "bun run --filter '*' typecheck",
-    "db:generate:migrations": "bun run --filter @elineas/backend db:generate:migrations",
-    "db:migrate:local": "bun run --filter @elineas/backend db:migrate:local",
-    "db:seed:local": "bun run --filter @elineas/backend db:seed:local",
-    "openapi:generate": "bun run --filter @elineas/backend openapi:generate"
+    "dev": "APP_ENV=local bun --env-file=/dev/null --watch src/index.ts",
+    "dev:staging": "APP_ENV=staging bun --env-file=/dev/null --watch src/index.ts",
+    "db:generate:auth:schemas": "bunx --env-file=/dev/null @better-auth/cli@latest generate --output ./src/db/auth-schema.ts",
+    "db:generate:migrations": "bunx --env-file=/dev/null drizzle-kit generate",
+    "db:migrate:local": "APP_ENV=local bunx --env-file=/dev/null drizzle-kit migrate",
+    "db:migrate:staging": "APP_ENV=staging bunx --env-file=/dev/null drizzle-kit migrate",
+    "db:seed:local": "APP_ENV=local bun --env-file=/dev/null src/db/seed.ts",
+    "db:seed:staging": "APP_ENV=staging bun --env-file=/dev/null src/db/seed.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "build:prod": "bun build src/index.ts --target=bun --outdir=dist --minify",
+    "openapi:generate": "APP_ENV=local bun --env-file=/dev/null scripts/generate-openapi.ts",
+    "start": "bun --env-file=/dev/null src/index.ts"
   },
   "trustedDependencies": [
     "esbuild"
   ],
+  "dependencies": {
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.4.0",
+    "better-auth": "^1.6.23",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "1.0.0-rc.4",
+    "hono": "^4.12.29",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
   "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "1.0.0-rc.4",
     "typescript": "^7.0.2"
   }
 }

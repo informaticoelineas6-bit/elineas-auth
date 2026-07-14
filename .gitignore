@@ -12,12 +12,6 @@
 node_modules/
 dist/
 
-# build output (TanStack Start / vinxi)
-.output/
-.vinxi/
-.tanstack/
-.nitro/
-
 # env
 # Ignora TODOS los .env.* (incluye .env.staging y cualquier entorno futuro) para
 # no filtrar credenciales por accidente. La única excepción es la plantilla.
