@@ -1,0 +1,22 @@
+services:
+  frontend:
+    build:
+      context: .
+      target: dev
+    container_name: elineas-auth-frontend
+    restart: unless-stopped
+    command: ["pnpm", "dev", "--host", "0.0.0.0"]
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - elineas-auth
+
+networks:
+  elineas-auth:
+    name: elineas-auth_default
+    external: true
