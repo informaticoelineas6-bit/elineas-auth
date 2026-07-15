@@ -1,15 +1,6 @@
 import { createRemoteJWKSet, jwtVerify } from "jose";
+import type { AccessTokenPayload } from "#/shared/types.ts";
 import { env } from "@/lib/auth/env";
-
-export type AccessTokenPayload = {
-	sub: string;
-	email?: string;
-	name?: string;
-	image?: string | null;
-	role?: string | null;
-	exp: number;
-	iat: number;
-};
 
 // createRemoteJWKSet cachea el JWKS en memoria y solo vuelve a pedirlo cuando
 // aparece un `kid` desconocido (con cooldown), así que no hace falta una capa

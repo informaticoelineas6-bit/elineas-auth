@@ -4,8 +4,8 @@ import {
 	setCookie,
 } from "@tanstack/react-start/server";
 
-const SESSION_COOKIE = "es_session";
-const ACCESS_TOKEN_COOKIE = "es_jwt";
+const SESSION_COOKIE = "is_session";
+const ACCESS_TOKEN_COOKIE = "is_jwt";
 
 const baseOptions = {
 	httpOnly: true,

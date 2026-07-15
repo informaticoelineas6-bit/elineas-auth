@@ -1,18 +1,12 @@
-import { apiRefreshAccessToken } from "@/lib/auth/api";
+import { refreshAccessToken } from "#/services/auth.ts";
+import type { AccessTokenPayload, AuthSession } from "#/shared/types.ts";
 import {
 	clearAuthCookies,
 	readAccessToken,
 	readSessionToken,
 	writeAccessToken,
 } from "@/lib/auth/cookies";
-import { type AccessTokenPayload, verifyAccessToken } from "@/lib/auth/jwt";
-
-export type AuthSession = {
-	userId: string;
-	email?: string;
-	name?: string;
-	role?: string | null;
-};
+import { verifyAccessToken } from "@/lib/auth/jwt";
 
 // Refresca el JWT un poco antes de que expire de verdad, para no arriesgarse a
 // que caduque a mitad de la petición que lo está usando.
@@ -43,7 +37,7 @@ export async function getAuthSession(): Promise<AuthSession | null> {
 	const sessionToken = readSessionToken();
 	if (!sessionToken) return null;
 
-	const freshToken = await apiRefreshAccessToken(sessionToken);
+	const freshToken = await refreshAccessToken(sessionToken);
 	if (!freshToken) {
 		clearAuthCookies();
 		return null;

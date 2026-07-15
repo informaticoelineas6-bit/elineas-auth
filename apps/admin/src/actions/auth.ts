@@ -1,30 +1,23 @@
+import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
-import { z } from "zod";
-import { AuthApiError, apiSignIn, apiSignOut } from "@/lib/auth/api";
-import { env } from "@/lib/auth/env";
+import { authMiddleware } from "#/middlewares/auth.ts";
+import { signIn, signOut } from "#/services/auth.ts";
+import { signInSchema } from "#/shared/validation.ts";
+import { AuthApiError } from "@/lib/auth/api";
 import {
 	clearAuthCookies,
 	readSessionToken,
 	writeAccessToken,
 	writeSessionToken,
 } from "@/lib/auth/cookies";
+import { env } from "@/lib/auth/env";
 import { verifyAccessToken } from "@/lib/auth/jwt";
-import { authMiddleware } from "@/lib/auth/middleware";
 
-const SignInSchema = z.object({
-	email: z.email(),
-	password: z.string().min(1),
-	rememberMe: z.boolean().optional(),
-});
-
-// Devuelve { error } en vez de lanzar para los fallos esperables (credenciales
-// incorrectas, sin rol en el sistema, ...): así el formulario de login puede
-// mostrar el mensaje sin tratar cada mutación como una excepción.
-export const loginFn = createServerFn({ method: "POST" })
-	.validator(SignInSchema)
+export const signInFn = createServerFn({ method: "POST" })
+	.validator(signInSchema)
 	.handler(async ({ data }) => {
 		try {
-			const result = await apiSignIn({
+			const result = await signIn({
 				...data,
 				systemSlug: env.AUTH_SYSTEM_SLUG,
 			});
@@ -49,14 +42,19 @@ export const loginFn = createServerFn({ method: "POST" })
 		}
 	});
 
-export const logoutFn = createServerFn({ method: "POST" }).handler(async () => {
-	const sessionToken = readSessionToken();
-	if (sessionToken) {
-		await apiSignOut(sessionToken).catch(() => {});
-	}
-	clearAuthCookies();
-	return { success: true } as const;
-});
+export const signOutFn = createServerFn({ method: "POST" }).handler(
+	async () => {
+		const sessionToken = readSessionToken();
+		if (sessionToken) {
+			await signOut().catch(() => {});
+		}
+		clearAuthCookies();
+		redirect({
+			to: "/",
+		});
+		return { success: true } as const;
+	},
+);
 
 export const getSessionFn = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
