@@ -9,3 +9,5 @@ dist-ssr
 .vscode
 *.local
 .env
+.env.*
+!.env.example

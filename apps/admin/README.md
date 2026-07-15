@@ -63,6 +63,44 @@ To deploy, push the `.output/` directory to your host (Render, Fly.io, your own 
 
 For host-specific presets (Vercel, Netlify, Cloudflare, AWS Lambda, etc.) and tuning, see https://v3.nitro.build/deploy.
 
+## Docker
+
+Two separate Compose files: `docker-compose.yml` for development (bind-mounted source, hot reload) and `docker-compose.prod.yml` for production (immutable image built from the `prod` stage).
+
+### Development
+
+The dev container joins the external network `elineas-auth_default`, created by the sibling `../elineas-auth` (API) project. That network only exists once the API stack has been started at least once, so raw `docker compose up` will fail on a machine where the API was never started. Use the helper script instead — it checks whether the API is running and starts it first if not:
+
+```bash
+./scripts/dev-up.sh -d
+```
+
+This is equivalent to (but safer than) running:
+
+```bash
+docker compose up -d
+```
+
+To stop:
+
+```bash
+docker compose down
+```
+
+### Production
+
+Requires a `.env.production` file (copy `.env.example` and fill in real values — at minimum `AUTH_API_URL` pointing at the production API and `AUTH_SYSTEM_SLUG`).
+
+```bash
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+To stop:
+
+```bash
+docker compose -f docker-compose.prod.yml down
+```
+
 ## Shadcn
 
 Add components using the latest version of [Shadcn](https://ui.shadcn.com/).
