@@ -41,6 +41,8 @@ services:
       context: .
       target: prod
     restart: unless-stopped
+    ports:
+      - "3001:8080"
     env_file:
       - .env.production
     environment:
@@ -62,8 +64,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    # Coolify detecta el puerto expuesto por el healthcheck/labels y te deja
-    # asignar el dominio desde la UI — no necesitas "ports:" aquí.
 
 volumes:
   pgdata:

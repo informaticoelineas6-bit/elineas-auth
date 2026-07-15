@@ -1,3 +1,6 @@
+postgres://postgres:mgkTxZAQPfYXY9Ni4x9nAmgMVIVa1e0jDs0YdkMNwIH7yxWF3fYkKXqhi0WexRmH@bkmvpswwmipwxpyngmt8zhlv:5432/auth
+redis://default:we8QgzsFfajf4X1xlzaO9ePtPMw09jcjp4mWq8CulRz7UrAgE0PQAjiZdm8LBlsv@y3wa4fiax9ra9rrdubp9l2tm:6379/0
+
 # Guía de integración con el Identity Server (Elineas Auth)
 
 Esta guía explica cómo otras APIs (backends) y frontends de la organización deben
