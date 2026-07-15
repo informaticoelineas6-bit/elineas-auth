@@ -1,5 +1,7 @@
 import z from "zod";
 
+export const themeSchema = z.enum(["light", "dark", "system"]);
+
 export const signInSchema = z.object({
 	email: z.email("Correo electrónico inválido"),
 	password: z

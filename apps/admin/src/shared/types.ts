@@ -1,3 +1,6 @@
+import type { z } from "zod";
+import type { themeSchema } from "./validation";
+
 export type AuthApiUser = {
 	id: string;
 	name: string;
@@ -25,3 +28,5 @@ export type AuthSession = {
 	name?: string;
 	role?: string | null;
 };
+
+export type Theme = z.infer<typeof themeSchema>;

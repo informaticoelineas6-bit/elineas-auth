@@ -6,6 +6,8 @@ import {
 	Scripts,
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { useEffect } from "react";
+import { getThemeFn } from "#/actions/theme.ts";
 import { Toaster } from "#/components/ui/sonner.tsx";
 import { TooltipProvider } from "#/components/ui/tooltip.tsx";
 import TanStackQueryDevtools from "@/components/integrations/tanstack-query/devtools";
@@ -16,6 +18,7 @@ interface MyRouterContext {
 }
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
+	loader: () => getThemeFn(),
 	head: () => ({
 		meta: [
 			{
@@ -45,9 +48,33 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 });
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const theme = Route.useLoaderData();
+	useEffect(() => {
+		if (theme !== "system") return;
+		const media = window.matchMedia("(prefers-color-scheme: dark)");
+		const apply = () =>
+			document.documentElement.classList.toggle("dark", media.matches);
+		apply();
+		media.addEventListener("change", apply);
+		return () => media.removeEventListener("change", apply);
+	}, [theme]);
+
 	return (
-		<html lang="en" className="dark">
+		<html
+			lang="en"
+			className={theme === "light" ? undefined : "dark"}
+			suppressHydrationWarning
+		>
 			<head>
+				{theme === "system" && (
+					<script
+						// biome-ignore lint/security/noDangerouslySetInnerHtml: script estático sin datos de usuario
+						dangerouslySetInnerHTML={{
+							__html:
+								'document.documentElement.classList.toggle("dark",matchMedia("(prefers-color-scheme: dark)").matches)',
+						}}
+					/>
+				)}
 				<HeadContent />
 			</head>
 			<body>
