@@ -5,7 +5,6 @@ services:
       target: dev
     container_name: elineas-auth-frontend
     restart: unless-stopped
-    command: ["pnpm", "dev", "--host", "0.0.0.0"]
     ports:
       - "3000:3000"
     environment:
