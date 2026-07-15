@@ -3,6 +3,7 @@ services:
     build:
       context: .
       target: prod
+    image: elineas-auth-frontend
     container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:
