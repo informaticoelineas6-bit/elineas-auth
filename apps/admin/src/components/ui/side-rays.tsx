@@ -1,5 +1,15 @@
-import { Mesh, Program, Renderer, Triangle } from "ogl";
+// `ogl` es una dependencia pesada y solo se usa en cliente (WebGL). Importamos
+// únicamente sus tipos de forma estática (se borran al compilar, no entran al
+// bundle) y cargamos el runtime con `import("ogl")` cuando el efecto arranca,
+// así se parte en su propio chunk y no lastra el bundle inicial del login.
+import type { Mesh, Renderer } from "ogl";
 import { useEffect, useRef, useState } from "react";
+
+// Fondo puramente decorativo: DPR 1 basta (DPR 2 = 4× píxeles a sombrear) y
+// 30fps es imperceptible en una animación ambiental lenta, con ~½ de coste.
+const RENDER_DPR = 1;
+const TARGET_FPS = 30;
+const FRAME_INTERVAL_MS = 1000 / TARGET_FPS;
 
 type Origin =
 	| "top-right"
@@ -108,6 +118,10 @@ const SideRays = ({
 		};
 	}, []);
 
+	// Solo (re)inicializamos el contexto WebGL al cambiar la visibilidad. Las
+	// props se leen al arrancar y luego se actualizan en caliente en el efecto de
+	// más abajo, sin destruir ni recrear el contexto GL en cada cambio de prop.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: init depende solo de isVisible; las props se sincronizan vía el efecto de uniforms.
 	useEffect(() => {
 		if (!isVisible || !containerRef.current) return;
 
@@ -123,8 +137,14 @@ const SideRays = ({
 
 			if (!containerRef.current) return;
 
+			// Carga diferida: el chunk de `ogl` solo se descarga al llegar aquí
+			// (componente visible, en cliente), no en el bundle inicial.
+			const { Mesh, Program, Renderer, Triangle } = await import("ogl");
+
+			if (!containerRef.current) return;
+
 			const renderer = new Renderer({
-				dpr: Math.min(window.devicePixelRatio, 2),
+				dpr: RENDER_DPR,
 				alpha: true,
 			});
 			rendererRef.current = renderer;
@@ -233,27 +253,45 @@ void main() {
 
 			const updateSize = () => {
 				if (!containerRef.current || !renderer) return;
-				renderer.dpr = Math.min(window.devicePixelRatio, 2);
+				renderer.dpr = RENDER_DPR;
 				const { clientWidth: w, clientHeight: h } = containerRef.current;
 				renderer.setSize(w, h);
 				uniforms.iResolution.value = [w * renderer.dpr, h * renderer.dpr];
 			};
 
+			const renderFrame = (timeSeconds: number) => {
+				uniforms.iTime.value = timeSeconds;
+				renderer.render({ scene: mesh });
+			};
+
+			// Respeta prefers-reduced-motion: un solo frame estático, sin bucle.
+			const prefersReducedMotion =
+				typeof window.matchMedia === "function" &&
+				window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+			let lastFrameMs = -Infinity;
 			const loop = (t: number) => {
 				if (!rendererRef.current || !uniformsRef.current || !meshRef.current)
 					return;
-				uniforms.iTime.value = t * 0.001;
-				try {
-					renderer.render({ scene: mesh });
-					animationIdRef.current = requestAnimationFrame(loop);
-				} catch {
-					return;
+				// Throttle a TARGET_FPS: solo renderizamos cuando pasó el intervalo.
+				if (t - lastFrameMs >= FRAME_INTERVAL_MS) {
+					lastFrameMs = t;
+					try {
+						renderFrame(t * 0.001);
+					} catch {
+						return;
+					}
 				}
+				animationIdRef.current = requestAnimationFrame(loop);
 			};
 
 			window.addEventListener("resize", updateSize);
 			updateSize();
-			animationIdRef.current = requestAnimationFrame(loop);
+			if (prefersReducedMotion) {
+				renderFrame(0);
+			} else {
+				animationIdRef.current = requestAnimationFrame(loop);
+			}
 
 			cleanupFunctionRef.current = () => {
 				if (animationIdRef.current) {
@@ -283,20 +321,7 @@ void main() {
 				cleanupFunctionRef.current = null;
 			}
 		};
-	}, [
-		isVisible,
-		speed,
-		rayColor1,
-		rayColor2,
-		intensity,
-		spread,
-		origin,
-		tilt,
-		saturation,
-		blend,
-		falloff,
-		opacity,
-	]);
+	}, [isVisible]);
 
 	useEffect(() => {
 		if (!uniformsRef.current) return;
