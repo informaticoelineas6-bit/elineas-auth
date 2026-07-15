@@ -70,6 +70,21 @@ function LoginPage() {
 					opacity={0.75}
 				/>
 			</div>
+			<div className="absolute inset-0">
+				<SideRays
+					speed={2.5}
+					rayColor1="#1b08ea"
+					rayColor2="#578bc5"
+					intensity={2.5}
+					spread={2}
+					origin="top-right"
+					tilt={-14}
+					saturation={1.15}
+					blend={0.75}
+					falloff={1.6}
+					opacity={0.75}
+				/>
+			</div>
 			<div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-6 p-8">
 				<h1 className="text-5xl font-semibold shimmer text-muted-foreground">
 					Elineas Identity Server
@@ -140,9 +155,13 @@ function LoginPage() {
 						})}
 					>
 						{({ canSubmit, isSubmitting }) => (
-							<Button disabled={!canSubmit} type="submit">
-								<LoadingSwap isLoading={isSubmitting}>Autenticarse</LoadingSwap>
-							</Button>
+							<div className="flex gap-2">
+								<Button disabled={!canSubmit} type="submit" className="flex-1">
+									<LoadingSwap isLoading={isSubmitting}>
+										Autenticarse
+									</LoadingSwap>
+								</Button>
+							</div>
 						)}
 					</form.Subscribe>
 				</form>

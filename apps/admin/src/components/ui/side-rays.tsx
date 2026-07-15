@@ -1,7 +1,13 @@
 import { Mesh, Program, Renderer, Triangle } from "ogl";
 import { useEffect, useRef, useState } from "react";
 
-type Origin = "top-right" | "top-left" | "bottom-right" | "bottom-left";
+type Origin =
+	| "top-right"
+	| "top-left"
+	| "bottom-right"
+	| "bottom-left"
+	| "top-center"
+	| "bottom-center";
 
 interface SideRaysProps {
 	speed?: number;
@@ -29,16 +35,29 @@ const hexToRgb = (hex: string): [number, number, number] => {
 		: [1, 1, 1];
 };
 
-const originToFlip = (origin: Origin): [number, number] => {
+const QUARTER_PI = Math.PI / 4;
+const HALF_PI = Math.PI / 2;
+
+// Posición de la fuente (fracción de la resolución, en el espacio `coord` del
+// shader donde y=0 es arriba) y ángulo base del abanico de rayos, en radianes.
+// Las cuatro esquinas reproducen exactamente el comportamiento anterior basado
+// en volteo (reflejar la escena top-right equivale a reflejar fuente y ángulo).
+type OriginParams = { sourcePos: [number, number]; baseAngle: number };
+
+const originToParams = (origin: Origin): OriginParams => {
 	switch (origin) {
 		case "top-left":
-			return [1, 0];
+			return { sourcePos: [-0.1, -0.5], baseAngle: Math.PI - QUARTER_PI };
 		case "bottom-right":
-			return [0, 1];
+			return { sourcePos: [1.1, 1.5], baseAngle: -QUARTER_PI };
 		case "bottom-left":
-			return [1, 1];
+			return { sourcePos: [-0.1, 1.5], baseAngle: Math.PI + QUARTER_PI };
+		case "top-center":
+			return { sourcePos: [0.5, -0.5], baseAngle: HALF_PI };
+		case "bottom-center":
+			return { sourcePos: [0.5, 1.5], baseAngle: -HALF_PI };
 		default:
-			return [0, 0];
+			return { sourcePos: [1.1, -0.5], baseAngle: QUARTER_PI };
 	}
 };
 
@@ -134,8 +153,8 @@ uniform vec3 iRayColor1;
 uniform vec3 iRayColor2;
 uniform float iIntensity;
 uniform float iSpread;
-uniform float iFlipX;
-uniform float iFlipY;
+uniform vec2 iSourcePos;
+uniform float iBaseAngle;
 uniform float iTilt;
 uniform float iSaturation;
 uniform float iBlend;
@@ -154,11 +173,9 @@ float rayStrength(vec2 raySource, vec2 rayRefDirection, vec2 coord, float seedA,
 
 void main() {
   vec2 fragCoord = gl_FragCoord.xy;
-  if (iFlipX > 0.5) fragCoord.x = iResolution.x - fragCoord.x;
-  if (iFlipY > 0.5) fragCoord.y = iResolution.y - fragCoord.y;
 
   vec2 coord = vec2(fragCoord.x, iResolution.y - fragCoord.y);
-  vec2 rayPos = vec2(iResolution.x * 1.1, -0.5 * iResolution.y);
+  vec2 rayPos = iSourcePos * iResolution;
 
   float tiltRad = iTilt * 3.14159265 / 180.0;
   float cs = cos(tiltRad);
@@ -167,8 +184,8 @@ void main() {
   vec2 tiltedCoord = vec2(rel.x * cs - rel.y * sn, rel.x * sn + rel.y * cs) + rayPos;
 
   float halfSpread = iSpread * 0.275;
-  vec2 rayRefDir1 = normalize(vec2(cos(0.785398 + halfSpread), sin(0.785398 + halfSpread)));
-  vec2 rayRefDir2 = normalize(vec2(cos(0.785398 - halfSpread), sin(0.785398 - halfSpread)));
+  vec2 rayRefDir1 = normalize(vec2(cos(iBaseAngle + halfSpread), sin(iBaseAngle + halfSpread)));
+  vec2 rayRefDir2 = normalize(vec2(cos(iBaseAngle - halfSpread), sin(iBaseAngle - halfSpread)));
 
   vec4 rays1 = vec4(iRayColor1, 1.0) * rayStrength(rayPos, rayRefDir1, tiltedCoord, 36.2214, 21.11349, iSpeed);
   vec4 rays2 = vec4(iRayColor2, 1.0) * rayStrength(rayPos, rayRefDir2, tiltedCoord, 22.3991, 18.0234, iSpeed * 0.2);
@@ -186,7 +203,7 @@ void main() {
   gl_FragColor = color;
 }`;
 
-			const [flipX, flipY] = originToFlip(origin);
+			const { sourcePos, baseAngle } = originToParams(origin);
 			const uniforms = {
 				iTime: { value: 0 },
 				iResolution: { value: [1, 1] as number[] },
@@ -195,8 +212,8 @@ void main() {
 				iRayColor2: { value: hexToRgb(rayColor2) as number[] },
 				iIntensity: { value: intensity },
 				iSpread: { value: spread },
-				iFlipX: { value: flipX },
-				iFlipY: { value: flipY },
+				iSourcePos: { value: sourcePos as number[] },
+				iBaseAngle: { value: baseAngle },
 				iTilt: { value: tilt },
 				iSaturation: { value: saturation },
 				iBlend: { value: blend },
@@ -289,9 +306,9 @@ void main() {
 		u.iRayColor2.value = hexToRgb(rayColor2);
 		u.iIntensity.value = intensity;
 		u.iSpread.value = spread;
-		const [flipX, flipY] = originToFlip(origin);
-		u.iFlipX.value = flipX;
-		u.iFlipY.value = flipY;
+		const { sourcePos, baseAngle } = originToParams(origin);
+		u.iSourcePos.value = sourcePos;
+		u.iBaseAngle.value = baseAngle;
 		u.iTilt.value = tilt;
 		u.iSaturation.value = saturation;
 		u.iBlend.value = blend;
