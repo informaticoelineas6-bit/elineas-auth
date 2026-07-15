@@ -1,5 +1,5 @@
-import { Outlet, createFileRoute, redirect } from "@tanstack/react-router";
-import { getSessionFn } from "@/lib/auth/functions";
+import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { getSessionFn } from "#/actions/auth.ts";
 
 // Layout sin path propio: toda ruta bajo routes/_authed/* pasa primero por
 // este beforeLoad. Se ejecuta tanto en SSR como en navegaciones client-side
@@ -7,7 +7,7 @@ import { getSessionFn } from "@/lib/auth/functions";
 export const Route = createFileRoute("/_authed")({
 	beforeLoad: async () => {
 		const session = await getSessionFn();
-		if (!session) throw redirect({ to: "/login" });
+		if (!session) throw redirect({ to: "/" });
 		return { session };
 	},
 	component: Outlet,

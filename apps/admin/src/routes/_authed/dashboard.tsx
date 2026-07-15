@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { logoutFn } from "@/lib/auth/functions";
+import { signOutFn } from "#/actions/auth.ts";
+import { reportError } from "#/lib/errors.ts";
 
 export const Route = createFileRoute("/_authed/dashboard")({
 	component: Dashboard,
@@ -10,11 +11,13 @@ export const Route = createFileRoute("/_authed/dashboard")({
 function Dashboard() {
 	const { session } = Route.useRouteContext();
 	const navigate = useNavigate();
-	const logout = useServerFn(logoutFn);
+	const logout = useServerFn(signOutFn);
 
 	const mutation = useMutation({
 		mutationFn: () => logout(),
-		onSuccess: () => navigate({ to: "/login" }),
+		onSuccess: () => navigate({ to: "/" }),
+		onError: (error) =>
+			reportError(error, "No se pudo cerrar sesión. Intenta nuevamente."),
 	});
 
 	return (
