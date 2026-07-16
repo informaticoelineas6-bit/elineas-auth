@@ -8,6 +8,8 @@ services:
       POSTGRES_DB: elineas_auth
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks:
+      - elineas-auth-net
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U elineas -d elineas_auth"]
       interval: 10s
@@ -30,6 +32,8 @@ services:
       REDISCLI_AUTH: ${REDIS_PASSWORD}
     volumes:
       - redisdata:/data
+    networks:
+      - elineas-auth-net
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
       interval: 10s
@@ -40,6 +44,7 @@ services:
     build:
       context: .
       target: prod
+    container_name: elineas-auth-api
     restart: unless-stopped
     ports:
       - "3001:8080"
@@ -49,6 +54,8 @@ services:
       APP_ENV: production
       DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    networks:
+      - elineas-auth-net
     healthcheck:
       test:
         [
@@ -68,3 +75,7 @@ services:
 volumes:
   pgdata:
   redisdata:
+
+networks:
+  elineas-auth-net:
+    external: true
