@@ -11,12 +11,11 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
+	// Envoltorio mínimo y consciente del tema; cada layout hijo (p. ej. _admin)
+	// aporta su propia decoración de fondo y cabecera.
 	return (
-		<div className="relative min-h-screen w-full bg-slate-950">
-			<div className="absolute inset-0 bg-[linear-gradient(to_right,#4f4f4f2e_1px,transparent_1px),linear-gradient(to_bottom,#4f4f4f2e_1px,transparent_1px)] bg-size-[14px_24px]" />
-			<div className="relative text-slate-50">
-				<Outlet />
-			</div>
+		<div className="min-h-screen bg-background text-foreground">
+			<Outlet />
 		</div>
 	);
 }
