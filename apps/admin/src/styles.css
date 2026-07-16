@@ -183,3 +183,22 @@
     @apply font-heading;
   }
 }
+
+/* View transition sencilla entre páginas (defaultViewTransition del router).
+   Crossfade de opacidad de root: la cabecera es prácticamente idéntica entre
+   vistas, así que el fundido solo se percibe en el contenido. Se evita cualquier
+   desplazamiento para no mover la cabecera fija en cada navegación. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-fade 120ms ease both reverse;
+  }
+  ::view-transition-new(root) {
+    animation: vt-fade 220ms ease both;
+  }
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+}
