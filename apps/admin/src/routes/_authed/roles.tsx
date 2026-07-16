@@ -3,19 +3,19 @@ import { SectionPlaceholder } from "@/modules/admin/components/section-placehold
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 
-export const Route = createFileRoute("/_authed/_admin/profile")({
-	component: ProfilePage,
+export const Route = createFileRoute("/_authed/roles")({
+	component: RolesPage,
 });
 
-function ProfilePage() {
+function RolesPage() {
 	return (
 		<div className="space-y-6">
-			<PageBreadcrumb items={[{ label: "Mi perfil" }]} />
+			<PageBreadcrumb items={[{ label: "Roles" }]} />
 			<PageHeader
-				title="Mi perfil"
-				description="Edita tus datos, cambia tu contraseña y tu correo."
+				title="Roles"
+				description="Define los roles disponibles por sistema."
 			/>
-			<SectionPlaceholder issue="issue #10" />
+			<SectionPlaceholder issue="issue #8" />
 		</div>
 	);
 }

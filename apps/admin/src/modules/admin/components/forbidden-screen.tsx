@@ -1,14 +1,13 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { ShieldAlert } from "lucide-react";
 import { signOutFn } from "@/modules/auth/actions/auth.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 
-export const Route = createFileRoute("/_authed/forbidden")({
-	component: ForbiddenPage,
-});
-
-function ForbiddenPage() {
+// Pantalla "sin permisos" que se muestra dentro de _authed cuando el usuario
+// autenticado no tiene rol admin. Se renderiza en línea (no es una ruta) para
+// no depender de una redirección que provocaría un bucle con el guard.
+export function ForbiddenScreen() {
 	const router = useRouter();
 	const logout = useServerFn(signOutFn);
 

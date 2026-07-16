@@ -3,7 +3,7 @@ import { SectionPlaceholder } from "@/modules/admin/components/section-placehold
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 
-export const Route = createFileRoute("/_authed/_admin/systems")({
+export const Route = createFileRoute("/_authed/systems")({
 	component: SystemsPage,
 });
 

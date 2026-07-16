@@ -3,19 +3,19 @@ import { SectionPlaceholder } from "@/modules/admin/components/section-placehold
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 
-export const Route = createFileRoute("/_authed/_admin/employees")({
-	component: EmployeesPage,
+export const Route = createFileRoute("/_authed/user-roles")({
+	component: UserRolesPage,
 });
 
-function EmployeesPage() {
+function UserRolesPage() {
 	return (
 		<div className="space-y-6">
-			<PageBreadcrumb items={[{ label: "Empleados" }]} />
+			<PageBreadcrumb items={[{ label: "Asignaciones" }]} />
 			<PageHeader
-				title="Empleados"
-				description="Listado, alta, edición y baja de empleados."
+				title="Asignaciones"
+				description="Asigna y revoca roles a los usuarios."
 			/>
-			<SectionPlaceholder issue="issue #4" />
+			<SectionPlaceholder issue="issue #9" />
 		</div>
 	);
 }

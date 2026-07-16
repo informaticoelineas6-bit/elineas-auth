@@ -11,15 +11,13 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthedForbiddenRouteImport } from './routes/_authed/forbidden'
-import { Route as AuthedAdminRouteImport } from './routes/_authed/_admin'
-import { Route as AuthedAdminUserRolesRouteImport } from './routes/_authed/_admin/user-roles'
-import { Route as AuthedAdminSystemsRouteImport } from './routes/_authed/_admin/systems'
-import { Route as AuthedAdminSessionsRouteImport } from './routes/_authed/_admin/sessions'
-import { Route as AuthedAdminRolesRouteImport } from './routes/_authed/_admin/roles'
-import { Route as AuthedAdminProfileRouteImport } from './routes/_authed/_admin/profile'
-import { Route as AuthedAdminEmployeesRouteImport } from './routes/_authed/_admin/employees'
-import { Route as AuthedAdminDashboardRouteImport } from './routes/_authed/_admin/dashboard'
+import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
+import { Route as AuthedSystemsRouteImport } from './routes/_authed/systems'
+import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
+import { Route as AuthedRolesRouteImport } from './routes/_authed/roles'
+import { Route as AuthedProfileRouteImport } from './routes/_authed/profile'
+import { Route as AuthedEmployeesRouteImport } from './routes/_authed/employees'
+import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
@@ -30,92 +28,78 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedForbiddenRoute = AuthedForbiddenRouteImport.update({
-  id: '/forbidden',
-  path: '/forbidden',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedAdminRoute = AuthedAdminRouteImport.update({
-  id: '/_admin',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedAdminUserRolesRoute = AuthedAdminUserRolesRouteImport.update({
+const AuthedUserRolesRoute = AuthedUserRolesRouteImport.update({
   id: '/user-roles',
   path: '/user-roles',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedAdminSystemsRoute = AuthedAdminSystemsRouteImport.update({
+const AuthedSystemsRoute = AuthedSystemsRouteImport.update({
   id: '/systems',
   path: '/systems',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedAdminSessionsRoute = AuthedAdminSessionsRouteImport.update({
+const AuthedSessionsRoute = AuthedSessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedAdminRolesRoute = AuthedAdminRolesRouteImport.update({
+const AuthedRolesRoute = AuthedRolesRouteImport.update({
   id: '/roles',
   path: '/roles',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedAdminProfileRoute = AuthedAdminProfileRouteImport.update({
+const AuthedProfileRoute = AuthedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedAdminEmployeesRoute = AuthedAdminEmployeesRouteImport.update({
+const AuthedEmployeesRoute = AuthedEmployeesRouteImport.update({
   id: '/employees',
   path: '/employees',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedAdminDashboardRoute = AuthedAdminDashboardRouteImport.update({
+const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
-  getParentRoute: () => AuthedAdminRoute,
+  getParentRoute: () => AuthedRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/forbidden': typeof AuthedForbiddenRoute
-  '/dashboard': typeof AuthedAdminDashboardRoute
-  '/employees': typeof AuthedAdminEmployeesRoute
-  '/profile': typeof AuthedAdminProfileRoute
-  '/roles': typeof AuthedAdminRolesRoute
-  '/sessions': typeof AuthedAdminSessionsRoute
-  '/systems': typeof AuthedAdminSystemsRoute
-  '/user-roles': typeof AuthedAdminUserRolesRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/employees': typeof AuthedEmployeesRoute
+  '/profile': typeof AuthedProfileRoute
+  '/roles': typeof AuthedRolesRoute
+  '/sessions': typeof AuthedSessionsRoute
+  '/systems': typeof AuthedSystemsRoute
+  '/user-roles': typeof AuthedUserRolesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/forbidden': typeof AuthedForbiddenRoute
-  '/dashboard': typeof AuthedAdminDashboardRoute
-  '/employees': typeof AuthedAdminEmployeesRoute
-  '/profile': typeof AuthedAdminProfileRoute
-  '/roles': typeof AuthedAdminRolesRoute
-  '/sessions': typeof AuthedAdminSessionsRoute
-  '/systems': typeof AuthedAdminSystemsRoute
-  '/user-roles': typeof AuthedAdminUserRolesRoute
+  '/dashboard': typeof AuthedDashboardRoute
+  '/employees': typeof AuthedEmployeesRoute
+  '/profile': typeof AuthedProfileRoute
+  '/roles': typeof AuthedRolesRoute
+  '/sessions': typeof AuthedSessionsRoute
+  '/systems': typeof AuthedSystemsRoute
+  '/user-roles': typeof AuthedUserRolesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
-  '/_authed/_admin': typeof AuthedAdminRouteWithChildren
-  '/_authed/forbidden': typeof AuthedForbiddenRoute
-  '/_authed/_admin/dashboard': typeof AuthedAdminDashboardRoute
-  '/_authed/_admin/employees': typeof AuthedAdminEmployeesRoute
-  '/_authed/_admin/profile': typeof AuthedAdminProfileRoute
-  '/_authed/_admin/roles': typeof AuthedAdminRolesRoute
-  '/_authed/_admin/sessions': typeof AuthedAdminSessionsRoute
-  '/_authed/_admin/systems': typeof AuthedAdminSystemsRoute
-  '/_authed/_admin/user-roles': typeof AuthedAdminUserRolesRoute
+  '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/_authed/employees': typeof AuthedEmployeesRoute
+  '/_authed/profile': typeof AuthedProfileRoute
+  '/_authed/roles': typeof AuthedRolesRoute
+  '/_authed/sessions': typeof AuthedSessionsRoute
+  '/_authed/systems': typeof AuthedSystemsRoute
+  '/_authed/user-roles': typeof AuthedUserRolesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
-    | '/forbidden'
     | '/dashboard'
     | '/employees'
     | '/profile'
@@ -126,7 +110,6 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/forbidden'
     | '/dashboard'
     | '/employees'
     | '/profile'
@@ -138,15 +121,13 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authed'
-    | '/_authed/_admin'
-    | '/_authed/forbidden'
-    | '/_authed/_admin/dashboard'
-    | '/_authed/_admin/employees'
-    | '/_authed/_admin/profile'
-    | '/_authed/_admin/roles'
-    | '/_authed/_admin/sessions'
-    | '/_authed/_admin/systems'
-    | '/_authed/_admin/user-roles'
+    | '/_authed/dashboard'
+    | '/_authed/employees'
+    | '/_authed/profile'
+    | '/_authed/roles'
+    | '/_authed/sessions'
+    | '/_authed/systems'
+    | '/_authed/user-roles'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -170,104 +151,76 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed/forbidden': {
-      id: '/_authed/forbidden'
-      path: '/forbidden'
-      fullPath: '/forbidden'
-      preLoaderRoute: typeof AuthedForbiddenRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/_admin': {
-      id: '/_authed/_admin'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthedAdminRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/_admin/user-roles': {
-      id: '/_authed/_admin/user-roles'
+    '/_authed/user-roles': {
+      id: '/_authed/user-roles'
       path: '/user-roles'
       fullPath: '/user-roles'
-      preLoaderRoute: typeof AuthedAdminUserRolesRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedUserRolesRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/_admin/systems': {
-      id: '/_authed/_admin/systems'
+    '/_authed/systems': {
+      id: '/_authed/systems'
       path: '/systems'
       fullPath: '/systems'
-      preLoaderRoute: typeof AuthedAdminSystemsRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedSystemsRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/_admin/sessions': {
-      id: '/_authed/_admin/sessions'
+    '/_authed/sessions': {
+      id: '/_authed/sessions'
       path: '/sessions'
       fullPath: '/sessions'
-      preLoaderRoute: typeof AuthedAdminSessionsRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedSessionsRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/_admin/roles': {
-      id: '/_authed/_admin/roles'
+    '/_authed/roles': {
+      id: '/_authed/roles'
       path: '/roles'
       fullPath: '/roles'
-      preLoaderRoute: typeof AuthedAdminRolesRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedRolesRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/_admin/profile': {
-      id: '/_authed/_admin/profile'
+    '/_authed/profile': {
+      id: '/_authed/profile'
       path: '/profile'
       fullPath: '/profile'
-      preLoaderRoute: typeof AuthedAdminProfileRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedProfileRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/_admin/employees': {
-      id: '/_authed/_admin/employees'
+    '/_authed/employees': {
+      id: '/_authed/employees'
       path: '/employees'
       fullPath: '/employees'
-      preLoaderRoute: typeof AuthedAdminEmployeesRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedEmployeesRouteImport
+      parentRoute: typeof AuthedRoute
     }
-    '/_authed/_admin/dashboard': {
-      id: '/_authed/_admin/dashboard'
+    '/_authed/dashboard': {
+      id: '/_authed/dashboard'
       path: '/dashboard'
       fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthedAdminDashboardRouteImport
-      parentRoute: typeof AuthedAdminRoute
+      preLoaderRoute: typeof AuthedDashboardRouteImport
+      parentRoute: typeof AuthedRoute
     }
   }
 }
 
-interface AuthedAdminRouteChildren {
-  AuthedAdminDashboardRoute: typeof AuthedAdminDashboardRoute
-  AuthedAdminEmployeesRoute: typeof AuthedAdminEmployeesRoute
-  AuthedAdminProfileRoute: typeof AuthedAdminProfileRoute
-  AuthedAdminRolesRoute: typeof AuthedAdminRolesRoute
-  AuthedAdminSessionsRoute: typeof AuthedAdminSessionsRoute
-  AuthedAdminSystemsRoute: typeof AuthedAdminSystemsRoute
-  AuthedAdminUserRolesRoute: typeof AuthedAdminUserRolesRoute
-}
-
-const AuthedAdminRouteChildren: AuthedAdminRouteChildren = {
-  AuthedAdminDashboardRoute: AuthedAdminDashboardRoute,
-  AuthedAdminEmployeesRoute: AuthedAdminEmployeesRoute,
-  AuthedAdminProfileRoute: AuthedAdminProfileRoute,
-  AuthedAdminRolesRoute: AuthedAdminRolesRoute,
-  AuthedAdminSessionsRoute: AuthedAdminSessionsRoute,
-  AuthedAdminSystemsRoute: AuthedAdminSystemsRoute,
-  AuthedAdminUserRolesRoute: AuthedAdminUserRolesRoute,
-}
-
-const AuthedAdminRouteWithChildren = AuthedAdminRoute._addFileChildren(
-  AuthedAdminRouteChildren,
-)
-
 interface AuthedRouteChildren {
-  AuthedAdminRoute: typeof AuthedAdminRouteWithChildren
-  AuthedForbiddenRoute: typeof AuthedForbiddenRoute
+  AuthedDashboardRoute: typeof AuthedDashboardRoute
+  AuthedEmployeesRoute: typeof AuthedEmployeesRoute
+  AuthedProfileRoute: typeof AuthedProfileRoute
+  AuthedRolesRoute: typeof AuthedRolesRoute
+  AuthedSessionsRoute: typeof AuthedSessionsRoute
+  AuthedSystemsRoute: typeof AuthedSystemsRoute
+  AuthedUserRolesRoute: typeof AuthedUserRolesRoute
 }
 
 const AuthedRouteChildren: AuthedRouteChildren = {
-  AuthedAdminRoute: AuthedAdminRouteWithChildren,
-  AuthedForbiddenRoute: AuthedForbiddenRoute,
+  AuthedDashboardRoute: AuthedDashboardRoute,
+  AuthedEmployeesRoute: AuthedEmployeesRoute,
+  AuthedProfileRoute: AuthedProfileRoute,
+  AuthedRolesRoute: AuthedRolesRoute,
+  AuthedSessionsRoute: AuthedSessionsRoute,
+  AuthedSystemsRoute: AuthedSystemsRoute,
+  AuthedUserRolesRoute: AuthedUserRolesRoute,
 }
 
 const AuthedRouteWithChildren =

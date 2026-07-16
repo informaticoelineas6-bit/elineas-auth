@@ -16,7 +16,7 @@ import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import { userRolesQueries } from "@/modules/user-roles/queries/user-roles.ts";
 
-export const Route = createFileRoute("/_authed/_admin/dashboard")({
+export const Route = createFileRoute("/_authed/dashboard")({
 	component: Dashboard,
 });
 
