@@ -4,6 +4,7 @@ import { useServerFn } from "@tanstack/react-start";
 import { CircleUser, LogOut, MonitorSmartphone } from "lucide-react";
 import { signOutFn } from "@/modules/auth/actions/auth.ts";
 import type { AuthSession } from "@/modules/auth/shared/types.ts";
+import { ThemeToggle } from "@/modules/common/components/partials/theme-toggle.tsx";
 import {
 	Avatar,
 	AvatarFallback,
@@ -45,9 +46,9 @@ export function UserMenu({ session }: { session: AuthSession }) {
 					</Avatar>
 				</button>
 			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-60">
-				<DropdownMenuLabel>
-					<div className="flex flex-col gap-0.5">
+			<DropdownMenuContent align="end" className="w-64 p-2">
+				<DropdownMenuLabel className="px-2 py-2.5">
+					<div className="flex flex-col gap-1">
 						<span className="truncate font-medium">{displayName}</span>
 						{session.email && (
 							<span className="truncate text-xs font-normal text-muted-foreground">
@@ -56,22 +57,29 @@ export function UserMenu({ session }: { session: AuthSession }) {
 						)}
 					</div>
 				</DropdownMenuLabel>
-				<DropdownMenuSeparator />
-				<DropdownMenuItem asChild>
+				<DropdownMenuSeparator className="my-2" />
+				<DropdownMenuItem asChild className="px-2 py-2.5">
 					<Link to="/profile">
 						<CircleUser />
 						Mi perfil
 					</Link>
 				</DropdownMenuItem>
-				<DropdownMenuItem asChild>
+				<DropdownMenuItem asChild className="px-2 py-2.5">
 					<Link to="/sessions">
 						<MonitorSmartphone />
 						Sesiones
 					</Link>
 				</DropdownMenuItem>
-				<DropdownMenuSeparator />
+				<DropdownMenuSeparator className="my-2" />
+				{/* Selector de tema, movido aquí desde la cabecera. */}
+				<div className="flex items-center justify-between gap-2 px-2 py-1.5">
+					<span className="text-sm text-muted-foreground">Tema</span>
+					<ThemeToggle />
+				</div>
+				<DropdownMenuSeparator className="my-2" />
 				<DropdownMenuItem
 					variant="destructive"
+					className="px-2 py-2.5"
 					disabled={logoutMutation.isPending}
 					onSelect={(event) => {
 						// Evita que el menú se cierre antes de disparar la mutación.

@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldCheck } from "lucide-react";
 import type { AuthSession } from "@/modules/auth/shared/types.ts";
-import { ThemeToggle } from "@/modules/common/components/partials/theme-toggle.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
 import { useScrolled } from "../lib/use-scrolled.ts";
 import { NavLinks } from "./nav-links.tsx";
@@ -40,7 +39,6 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 				</nav>
 
 				<div className="ml-auto flex items-center gap-2">
-					<ThemeToggle />
 					<UserMenu session={session} />
 				</div>
 			</div>

@@ -11,8 +11,6 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
-	// Envoltorio mínimo y consciente del tema; cada layout hijo (p. ej. _admin)
-	// aporta su propia decoración de fondo y cabecera.
 	return (
 		<div className="min-h-screen bg-background text-foreground">
 			<Outlet />

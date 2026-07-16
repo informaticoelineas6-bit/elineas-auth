@@ -9,7 +9,6 @@ import {
 	UserCog,
 	Users,
 } from "lucide-react";
-import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
@@ -74,8 +73,6 @@ function Dashboard() {
 
 	return (
 		<div className="space-y-8">
-			<PageBreadcrumb home={false} items={[{ label: "Inicio" }]} />
-
 			<PageHeader
 				title={firstName ? `Hola, ${firstName}` : "Consola de administración"}
 				description="Gestiona empleados, sistemas, roles y accesos del Identity Server."
