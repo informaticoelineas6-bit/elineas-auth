@@ -7,10 +7,10 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
-import { getThemeFn } from "#/actions/theme.ts";
-import { Toaster } from "#/components/ui/sonner.tsx";
-import { TooltipProvider } from "#/components/ui/tooltip.tsx";
-import TanStackQueryDevtools from "@/components/integrations/tanstack-query/devtools";
+import { getThemeFn } from "@/modules/common/actions/theme.ts";
+import TanStackQueryDevtools from "@/modules/common/components/integrations/tanstack-query/devtools";
+import { Toaster } from "@/modules/common/components/ui/sonner.tsx";
+import { TooltipProvider } from "@/modules/common/components/ui/tooltip.tsx";
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {

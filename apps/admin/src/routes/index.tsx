@@ -1,20 +1,20 @@
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { getSessionFn, signInFn } from "#/actions/auth.ts";
-import { Button } from "#/components/ui/button.tsx";
+import { signInSchema } from "#/modules/auth/lib/validation.ts";
+import { getSessionFn, signInFn } from "@/modules/auth/actions/auth.ts";
+import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	Field,
 	FieldError,
 	FieldGroup,
 	FieldLabel,
-} from "#/components/ui/field.tsx";
-import { Input } from "#/components/ui/input.tsx";
-import { LoadingSwap } from "#/components/ui/loading-swap.tsx";
-import { PasswordInput } from "#/components/ui/password-input.tsx";
-import SideRays from "#/components/ui/side-rays.tsx";
-import { reportError } from "#/lib/errors.ts";
-import { signInSchema } from "#/shared/validation.ts";
+} from "@/modules/common/components/ui/field.tsx";
+import { Input } from "@/modules/common/components/ui/input.tsx";
+import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
+import { PasswordInput } from "@/modules/common/components/ui/password-input.tsx";
+import SideRays from "@/modules/common/components/ui/side-rays.tsx";
+import { reportError } from "@/modules/common/lib/errors.ts";
 
 export const Route = createFileRoute("/")({
 	beforeLoad: async () => {

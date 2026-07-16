@@ -1,8 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { signOutFn } from "#/actions/auth.ts";
-import { reportError } from "#/lib/errors.ts";
+import { signOutFn } from "@/modules/auth/actions/auth.ts";
+import { reportError } from "@/modules/common/lib/errors.ts";
 
 export const Route = createFileRoute("/_authed/dashboard")({
 	component: Dashboard,
