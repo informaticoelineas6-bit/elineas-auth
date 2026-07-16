@@ -3,13 +3,12 @@ import { useServerFn } from "@tanstack/react-start";
 import { Monitor, Moon, Sun } from "lucide-react";
 import { useState } from "react";
 import { setThemeFn } from "@/modules/common/actions/theme.ts";
-import { Button } from "@/modules/common/components/ui/button.tsx";
-import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
+import { DropdownMenuItem } from "@/modules/common/components/ui/dropdown-menu.tsx";
 import type { Theme } from "@/modules/common/shared/types.ts";
 
 const rootRoute = getRouteApi("__root__");
 
-// Orden del ciclo al pulsar el botón.
+// Ciclo de temas al seleccionar el ítem.
 const THEME_ORDER: Theme[] = ["dark", "light", "system"];
 
 const THEME_META: Record<Theme, { label: string; icon: typeof Sun }> = {
@@ -18,7 +17,9 @@ const THEME_META: Record<Theme, { label: string; icon: typeof Sun }> = {
 	system: { label: "Sistema", icon: Monitor },
 };
 
-export function ThemeToggle() {
+// Selector de tema como ítem del menú, con el mismo estilo que el resto de
+// opciones del dropdown. Cicla dark → light → system sin cerrar el menú.
+export function ThemeMenuItem() {
 	const theme = rootRoute.useLoaderData();
 	const router = useRouter();
 	const setTheme = useServerFn(setThemeFn);
@@ -39,20 +40,16 @@ export function ThemeToggle() {
 	}
 
 	return (
-		<Button
-			type="button"
-			variant="outline"
-			size={"icon"}
-			onClick={cycle}
+		<DropdownMenuItem
 			disabled={pending}
-			aria-label={`Tema: ${label}. Cambiar tema`}
-			title={`Tema: ${label}`}
+			onSelect={(event) => {
+				// Mantiene el menú abierto para poder seguir ciclando el tema.
+				event.preventDefault();
+				cycle();
+			}}
 		>
-			<LoadingSwap isLoading={pending}>
-				<span className="flex items-center gap-2">
-					<Icon className="size-4" />
-				</span>
-			</LoadingSwap>
-		</Button>
+			<Icon />
+			Tema: {label}
+		</DropdownMenuItem>
 	);
 }

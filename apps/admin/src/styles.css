@@ -45,7 +45,7 @@
   --font-heading: "Space Grotesk Variable", sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  --radius: 0.5rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 0px;
@@ -101,7 +101,7 @@
   --font-heading: "Space Grotesk Variable", sans-serif;
   --font-serif: Georgia, serif;
   --font-mono: Menlo, monospace;
-  --radius: 1.3rem;
+  --radius: 0.5rem;
   --shadow-x: 0px;
   --shadow-y: 2px;
   --shadow-blur: 0px;
@@ -181,5 +181,24 @@
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+  }
+}
+
+/* View transition sencilla entre páginas (defaultViewTransition del router).
+   Crossfade de opacidad de root: la cabecera es prácticamente idéntica entre
+   vistas, así que el fundido solo se percibe en el contenido. Se evita cualquier
+   desplazamiento para no mover la cabecera fija en cada navegación. */
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-old(root) {
+    animation: vt-fade 120ms ease both reverse;
+  }
+  ::view-transition-new(root) {
+    animation: vt-fade 220ms ease both;
+  }
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
   }
 }
