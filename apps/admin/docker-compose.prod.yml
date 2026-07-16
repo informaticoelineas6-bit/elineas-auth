@@ -21,8 +21,12 @@ services:
       start_period: 10s
     networks:
       - elineas-auth
+      - caddy
 
 networks:
   elineas-auth:
     name: elineas-auth-net
+    external: true
+  caddy:
+    name: caddy-net
     external: true
