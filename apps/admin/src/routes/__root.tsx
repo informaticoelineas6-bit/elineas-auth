@@ -9,6 +9,8 @@ import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import { useEffect } from "react";
 import { getThemeFn } from "@/modules/common/actions/theme.ts";
 import TanStackQueryDevtools from "@/modules/common/components/integrations/tanstack-query/devtools";
+import { AppError } from "@/modules/common/components/partials/app-error.tsx";
+import { NotFound } from "@/modules/common/components/partials/not-found.tsx";
 import { Toaster } from "@/modules/common/components/ui/sonner.tsx";
 import { TooltipProvider } from "@/modules/common/components/ui/tooltip.tsx";
 import appCss from "../styles.css?url";
@@ -44,6 +46,8 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 	}),
+	errorComponent: AppError,
+	notFoundComponent: NotFound,
 	shellComponent: RootDocument,
 });
 
