@@ -6,9 +6,6 @@ import { useScrolled } from "../lib/use-scrolled.ts";
 import { NavLinks } from "./nav-links.tsx";
 import { UserMenu } from "./user-menu.tsx";
 
-// Cabecera fija de la consola. Arranca transparente sobre el fondo y, al hacer
-// scroll, gana fondo semiopaco + blur + borde inferior mientras queda pegada al
-// tope (sticky). La transición anima el cambio de transparencia.
 export function AdminHeader({ session }: { session: AuthSession }) {
 	const scrolled = useScrolled();
 
@@ -17,7 +14,7 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 			className={cn(
 				"sticky top-0 z-50 w-full transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300",
 				scrolled
-					? "border-b border-border/60 bg-background/70 shadow-sm backdrop-blur-xl supports-[backdrop-filter]:bg-background/60"
+					? "border-b border-border/60 bg-background/70 shadow-sm backdrop-blur-xl supports-backdrop-filter:bg-background/60"
 					: "border-b border-transparent bg-transparent",
 			)}
 		>
@@ -30,7 +27,7 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 						<ShieldCheck className="size-5" />
 					</span>
 					<span className="hidden text-base font-semibold sm:block">
-						Consola
+						Elineas IS
 					</span>
 				</Link>
 
