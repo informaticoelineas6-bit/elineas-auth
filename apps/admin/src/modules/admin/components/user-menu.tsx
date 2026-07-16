@@ -4,7 +4,6 @@ import { useServerFn } from "@tanstack/react-start";
 import { CircleUser, LogOut, MonitorSmartphone } from "lucide-react";
 import { signOutFn } from "@/modules/auth/actions/auth.ts";
 import type { AuthSession } from "@/modules/auth/shared/types.ts";
-import { ThemeToggle } from "@/modules/common/components/partials/theme-toggle.tsx";
 import {
 	Avatar,
 	AvatarFallback,
@@ -19,6 +18,7 @@ import {
 } from "@/modules/common/components/ui/dropdown-menu.tsx";
 import { reportError } from "@/modules/common/lib/errors.ts";
 import { getInitials } from "../lib/initials.ts";
+import { ThemeMenuItem } from "./theme-menu-item.tsx";
 
 export function UserMenu({ session }: { session: AuthSession }) {
 	const navigate = useNavigate();
@@ -58,28 +58,22 @@ export function UserMenu({ session }: { session: AuthSession }) {
 					</div>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator className="my-2" />
-				<DropdownMenuItem asChild className="px-2 py-2.5">
+				<DropdownMenuItem asChild>
 					<Link to="/profile">
 						<CircleUser />
 						Mi perfil
 					</Link>
 				</DropdownMenuItem>
-				<DropdownMenuItem asChild className="px-2 py-2.5">
+				<DropdownMenuItem asChild>
 					<Link to="/sessions">
 						<MonitorSmartphone />
 						Sesiones
 					</Link>
 				</DropdownMenuItem>
-				<DropdownMenuSeparator className="my-2" />
-				{/* Selector de tema, movido aquí desde la cabecera. */}
-				<div className="flex items-center justify-between gap-2 px-2 py-1.5">
-					<span className="text-sm text-muted-foreground">Tema</span>
-					<ThemeToggle />
-				</div>
+				<ThemeMenuItem />
 				<DropdownMenuSeparator className="my-2" />
 				<DropdownMenuItem
 					variant="destructive"
-					className="px-2 py-2.5"
 					disabled={logoutMutation.isPending}
 					onSelect={(event) => {
 						// Evita que el menú se cierre antes de disparar la mutación.
