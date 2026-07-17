@@ -30,25 +30,55 @@ export async function listEmployees(
             ilike(employee.name, term),
             ilike(employee.lastName, term),
             ilike(employee.ci, term),
+            ilike(user.email, term),
           );
         })()
       : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;
 
-  // Filas de la página y total (para los metadatos) en paralelo: comparten el
-  // mismo `where` para que el total refleje los filtros aplicados.
+  // LEFT JOIN con user para embeber la cuenta enlazada (y permitir buscar por
+  // email). Filas de la página y total en paralelo: comparten `where` y el
+  // mismo join para que el total refleje los filtros aplicados.
   const [rows, [{ total }]] = await Promise.all([
     db
-      .select()
+      .select({
+        id: employee.id,
+        userId: employee.userId,
+        name: employee.name,
+        lastName: employee.lastName,
+        ci: employee.ci,
+        birthday: employee.birthday,
+        phoneNumber: employee.phoneNumber,
+        address: employee.address,
+        inDate: employee.inDate,
+        outDate: employee.outDate,
+        active: employee.active,
+        createdAt: employee.createdAt,
+        updatedAt: employee.updatedAt,
+        user: { id: user.id, name: user.name, email: user.email },
+      })
       .from(employee)
+      .leftJoin(user, eq(employee.userId, user.id))
       .where(where)
       .orderBy(desc(employee.createdAt))
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
-    db.select({ total: count() }).from(employee).where(where),
+    db
+      .select({ total: count() })
+      .from(employee)
+      .leftJoin(user, eq(employee.userId, user.id))
+      .where(where),
   ]);
-  return { rows, total };
+
+  // El LEFT JOIN devuelve el objeto `user` con campos null cuando el empleado
+  // no tiene cuenta; lo normalizamos a `null` para respetar el contrato user | null.
+  const normalized = rows.map((row) => ({
+    ...row,
+    user: row.user?.id ? row.user : null,
+  }));
+
+  return { rows: normalized, total };
 }
 
 export async function getEmployee(id: string) {

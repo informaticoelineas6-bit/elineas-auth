@@ -53,6 +53,17 @@ export const EmployeeSchema = z
     active: z.boolean(),
     createdAt: z.date(),
     updatedAt: z.date(),
+    // Cuenta de usuario enlazada. Solo la embebe el listado (para mostrar/buscar
+    // por email en una sola vista); las respuestas de un empleado individual la
+    // omiten, por eso es opcional. `null` cuando el empleado no tiene usuario.
+    user: z
+      .object({
+        id: z.string(),
+        name: z.string(),
+        email: z.string(),
+      })
+      .nullable()
+      .optional(),
   })
   .openapi("Employee");
 
@@ -79,8 +90,8 @@ export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
   active: z.enum(["true", "false"]).optional().openapi({
     param: { name: "active", in: "query", required: false },
   }),
-  // Búsqueda libre por nombre, apellido o CI (coincidencia parcial, sin
-  // distinguir mayúsculas).
+  // Búsqueda libre por nombre, apellido, CI o email del usuario enlazado
+  // (coincidencia parcial, sin distinguir mayúsculas).
   search: z.string().max(100).optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "Ada",
