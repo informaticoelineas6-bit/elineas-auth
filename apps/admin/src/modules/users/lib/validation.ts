@@ -14,7 +14,7 @@ export const updateProfileSchema = z.object({
 // exige la contraseña actual (re-autenticación) en el IS.
 export const changePasswordSchema = z.object({
 	newPassword: passwordSchema,
-	currentPassword: passwordSchema,
+	currentPassword: z.string().min(1, "Este campo es obligatorio"),
 	revokeOtherSessions: z.boolean().optional(),
 });
 
@@ -22,6 +22,6 @@ export const changePasswordSchema = z.object({
 // verificación por correo, así que es la única barrera ante una sesión robada.
 export const changeEmailSchema = z.object({
 	newEmail: z.email("Debe ser un correo electrónico válido"),
-	currentPassword: passwordSchema,
+	currentPassword: z.string().min(1, "Este campo es obligatorio"),
 	callbackURL: z.string().optional(),
 });
