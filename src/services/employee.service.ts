@@ -5,6 +5,7 @@ import { employee } from "@/db/business-schema";
 import { user } from "@/db/auth-schema";
 import { auth } from "@/lib/auth";
 import { HttpError } from "@/lib/http";
+import { sendWelcomeEmail } from "@/lib/mail";
 import { escapeLike } from "@/lib/search";
 import { toOffset, type PaginationInput } from "@/lib/pagination";
 import type {
@@ -129,6 +130,15 @@ export async function createEmployeeWithUser(
       .insert(employee)
       .values({ ...input.employee, userId: response.user.id })
       .returning();
+    // El correo de credenciales se envía solo cuando el alta completa (usuario
+    // + empleado) tuvo éxito: si el insert falla, el usuario se compensa/borra
+    // y no debe recibir aviso. Sin await: un fallo del correo no aborta el alta
+    // (sendWelcomeEmail captura y loguea sus propios errores, nunca lanza).
+    void sendWelcomeEmail({
+      to: input.user.email,
+      name: input.user.name,
+      password: input.user.password,
+    });
     return { user: response.user, employee: row };
   } catch (error) {
     // Compensación: borra el usuario recién creado para no dejar una cuenta

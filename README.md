@@ -32,16 +32,26 @@ bun run dev
 
 La API queda disponible en [http://localhost:8080](http://localhost:8080).
 
+Para probar el envío de correos en local, levanta también maildev
+(`docker compose up -d maildev`) y define `SMTP_HOST=localhost` en
+`.env.local`; los correos capturados se ven en
+[http://localhost:8025](http://localhost:8025). Ver las variables de correo
+(`RESEND_API_KEY`, `SMTP_HOST`, `SMTP_PORT`, `EMAIL_FROM`) en `.env.example`:
+en producción se usa Resend con `RESEND_API_KEY` y sin ellas el mailer queda
+deshabilitado.
+
 ### B) Docker — desarrollo (hot reload)
 
-`docker-compose.yml` define `postgres`, `redis` y `api`, con las credenciales
-locales ya resueltas (no requiere secretos de infraestructura para levantarse):
+`docker-compose.yml` define `postgres`, `redis`, `maildev` y `api`, con las
+credenciales locales ya resueltas (no requiere secretos de infraestructura
+para levantarse):
 
 ```bash
 docker compose up --build
 ```
 
 - API: [http://localhost:8080](http://localhost:8080)
+- Correos capturados por maildev: [http://localhost:8025](http://localhost:8025)
 - El código fuente está montado como bind mount, así que los cambios recargan
   en caliente (`bun --watch`).
 
@@ -691,6 +701,7 @@ tras cambiar rutas o esquemas.
 - [ ] Tu cliente maneja `401` (token vencido → renovar o cerrar sesión) y `429` (backoff, sin reintento en bucle).
 - [ ] Si el IS va detrás de un reverse proxy, `TRUST_PROXY_HOPS` = nº de proxies de confianza (por defecto `0`). Dejarlo en `0` con un proxy delante hace que todas las peticiones compartan la IP del proxy y los usuarios legítimos se rate-limiten entre sí.
 - [ ] La monitorización sondea `GET /health` (liveness) y `GET /health/ready` (readiness) y reinicia/reprograma el contenedor si fallan.
+- [ ] `RESEND_API_KEY` definida (como secreto) y el dominio de `EMAIL_FROM` verificado en Resend; sin ella no se envían los correos de credenciales. No definas `SMTP_HOST` en producción (apuntaría los correos a un SMTP sin autenticar).
 
 ## 12. Resiliencia y operación
 

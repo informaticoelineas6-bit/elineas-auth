@@ -48,13 +48,23 @@ export const env = {
   REDIS_URL: process.env.REDIS_URL,
   // Días de retención de los logs de peticiones (tabla request_log). El worker
   // de drenado purga a diario las filas más antiguas. 0 = no purgar nunca.
-  REQUEST_LOG_RETENTION_DAYS: Math.max(
-    0,
-    Number(process.env.REQUEST_LOG_RETENTION_DAYS ?? "90"),
-  ) || 0,
+  REQUEST_LOG_RETENTION_DAYS:
+    Math.max(0, Number(process.env.REQUEST_LOG_RETENTION_DAYS ?? "90")) || 0,
+  // Envío de correos transaccionales. Opcional: si hay RESEND_API_KEY se usa
+  // Resend (producción); si no, y hay SMTP_HOST, se usa SMTP (maildev en
+  // desarrollo). Sin ninguna de las dos, el mailer queda deshabilitado y solo
+  // se avisa por log (mismo patrón de degradación que REDIS_URL).
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  SMTP_HOST: process.env.SMTP_HOST,
+  SMTP_PORT: Math.max(0, Number(process.env.SMTP_PORT ?? "1025")) || 1025,
+  // Remitente de los correos ("Nombre <correo@dominio>"). Con Resend, el
+  // dominio del remitente debe estar verificado en su panel.
+  EMAIL_FROM:
+    process.env.EMAIL_FROM ?? "Mercado Elineas <no-reply@mercadoelineas.com>",
   // Nº de proxies de confianza por delante de la API. Determina cuántos saltos
   // de X-Forwarded-For son fiables al calcular la IP del cliente para el rate
   // limiting. 0 (por defecto) = ignorar XFF y usar solo la IP del socket, que
   // no es falsificable. Ponlo a 1 si hay un reverse proxy propio delante, etc.
-  TRUST_PROXY_HOPS: Math.max(0, Number(process.env.TRUST_PROXY_HOPS ?? "0")) || 0,
+  TRUST_PROXY_HOPS:
+    Math.max(0, Number(process.env.TRUST_PROXY_HOPS ?? "0")) || 0,
 };

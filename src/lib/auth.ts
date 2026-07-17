@@ -33,7 +33,8 @@ export const auth = betterAuth({
     // admin (no el propio usuario). Ver DELETE en los flujos administrativos.
     deleteUser: { enabled: false },
     // Cambio de email habilitado. Como este IS no verifica emails
-    // (emailVerified arranca en false y no hay envío de correos configurado),
+    // (emailVerified arranca en false; hay envío de correos transaccionales
+    // —bienvenida con credenciales, ver lib/mail.ts— pero NO verificación),
     // el cambio se aplica directamente para cuentas no verificadas. Si en el
     // futuro se añade verificación por correo, endurecer este flujo.
     changeEmail: {

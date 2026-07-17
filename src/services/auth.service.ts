@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { forwardAuthHeaders, handleError, HttpError, issueJwt } from "@/lib/http";
+import { sendWelcomeEmail } from "@/lib/mail";
 import {
   bindSessionToSystem,
   resolveActiveSystem,
@@ -36,6 +37,14 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
       });
     }
     const token = await issueJwt(response.token);
+    // Envío de credenciales sin await: un fallo del correo no debe hacer
+    // fallar un alta que ya se completó (sendWelcomeEmail captura y loguea
+    // sus propios errores, nunca lanza).
+    void sendWelcomeEmail({
+      to: credentials.email,
+      name: credentials.name,
+      password: credentials.password,
+    });
     return c.json({ user: response.user, token, system: sys }, 200);
   } catch (error) {
     return handleError(error, c);
