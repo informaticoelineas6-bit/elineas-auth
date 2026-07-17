@@ -1,21 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import type { ColumnDef } from "@tanstack/react-table";
-import { Pencil, Trash2 } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
 	DataTable,
 	DataTableFilterSelect,
-	DataTableRowActions,
 	useListControls,
 } from "@/modules/common/components/data-table";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
-import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import { reportError } from "@/modules/common/lib/errors.ts";
+import { getSystemColumns } from "@/modules/systems/lib/columns.tsx";
 import { systemFiltersSchema } from "@/modules/systems/lib/validation.ts";
 import {
 	systemsQueries,
@@ -42,48 +40,11 @@ function SystemsPage() {
 	const total = query.data?.pagination.total ?? 0;
 	const canDelete = total > 1;
 
-	const columns: ColumnDef<System, unknown>[] = [
-		{ accessorKey: "name", header: "Nombre" },
-		{
-			accessorKey: "slug",
-			header: "Slug",
-			cell: ({ row }) => (
-				<span className="text-muted-foreground">{row.original.slug}</span>
-			),
-		},
-		{
-			accessorKey: "active",
-			header: "Estado",
-			cell: ({ row }) => (
-				<Badge variant={row.original.active ? "default" : "secondary"}>
-					{row.original.active ? "Activo" : "Inactivo"}
-				</Badge>
-			),
-		},
-		{
-			id: "actions",
-			header: "Acciones",
-			meta: { className: "text-right", headerClassName: "text-right" },
-			cell: ({ row }) => (
-				<DataTableRowActions
-					actions={[
-						{
-							label: "Editar",
-							icon: Pencil,
-							onSelect: () => toast.info("Edición disponible en #7"),
-						},
-						{
-							label: "Eliminar",
-							icon: Trash2,
-							destructive: true,
-							disabled: !canDelete,
-							onSelect: () => setTarget(row.original),
-						},
-					]}
-				/>
-			),
-		},
-	];
+	const columns = getSystemColumns({
+		canDelete,
+		onEdit: () => toast.info("Edición disponible en #7"),
+		onDelete: (system) => setTarget(system),
+	});
 
 	function confirmDelete() {
 		if (!target) return;
