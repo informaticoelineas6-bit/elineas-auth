@@ -103,7 +103,7 @@ function LoginPage() {
 									field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
-										<FieldLabel htmlFor={field.name}>
+										<FieldLabel htmlFor={field.name} required>
 											Correo electrónico
 										</FieldLabel>
 										<Input
@@ -129,7 +129,9 @@ function LoginPage() {
 									field.state.meta.isTouched && !field.state.meta.isValid;
 								return (
 									<Field data-invalid={isInvalid}>
-										<FieldLabel htmlFor={field.name}>Contraseña</FieldLabel>
+										<FieldLabel htmlFor={field.name} required>
+											Contraseña
+										</FieldLabel>
 										<PasswordInput
 											id={field.name}
 											name={field.name}

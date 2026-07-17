@@ -1,0 +1,248 @@
+import {
+	Field,
+	FieldContent,
+	FieldDescription,
+	FieldError,
+	FieldGroup,
+	FieldLabel,
+	FieldLegend,
+	FieldSet,
+} from "@/modules/common/components/ui/field.tsx";
+import { Input } from "@/modules/common/components/ui/input.tsx";
+import { PhoneInput } from "@/modules/common/components/ui/phone-input.tsx";
+import { Switch } from "@/modules/common/components/ui/switch.tsx";
+import { Textarea } from "@/modules/common/components/ui/textarea.tsx";
+import { todayIsoDate } from "@/modules/common/lib/validation.ts";
+import type { EmployeeWithUserFormApi } from "../lib/form.ts";
+
+// Sección "Empleado" del alta combinada. Solo nombre, apellidos y CI son
+// obligatorios; el resto es opcional. `ciError` recibe el 409 de CI duplicado.
+export function EmployeeFields({
+	form,
+	ciError,
+}: {
+	form: EmployeeWithUserFormApi;
+	ciError?: string;
+}) {
+	return (
+		<FieldSet>
+			<FieldLegend>Datos del empleado</FieldLegend>
+			<FieldDescription>
+				Ficha de la persona. Solo nombre, apellidos y CI son obligatorios.
+			</FieldDescription>
+			<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+				<form.Field name="employee.name">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name} required>
+									Nombre
+								</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+									placeholder="Ada"
+									autoComplete="off"
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Field name="employee.lastName">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name} required>
+									Apellidos
+								</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+									placeholder="Lovelace"
+									autoComplete="off"
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Field name="employee.ci">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid || Boolean(ciError)}>
+								<FieldLabel htmlFor={field.name} required>
+									CI
+								</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid || Boolean(ciError)}
+									placeholder="12345678"
+									autoComplete="off"
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								{ciError && <FieldError>{ciError}</FieldError>}
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Field name="employee.phoneNumber">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name}>Teléfono</FieldLabel>
+								<PhoneInput
+									id={field.name}
+									name={field.name}
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={field.handleChange}
+									aria-invalid={isInvalid}
+									placeholder="+53 5 1234567"
+									autoComplete="off"
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Field name="employee.birthday">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name}>
+									Fecha de nacimiento
+								</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="date"
+									max={todayIsoDate()}
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Field name="employee.inDate">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid}>
+								<FieldLabel htmlFor={field.name}>Fecha de alta</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="date"
+									max={todayIsoDate()}
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+								/>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+
+				<form.Subscribe selector={(state) => state.values.employee.inDate}>
+					{(inDate) => (
+						<form.Field name="employee.outDate">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>Fecha de baja</FieldLabel>
+										<Input
+											id={field.name}
+											name={field.name}
+											type="date"
+											max={todayIsoDate()}
+											min={inDate || undefined}
+											value={field.state.value ?? ""}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+											aria-invalid={isInvalid}
+										/>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					)}
+				</form.Subscribe>
+
+				<form.Field name="employee.address">
+					{(field) => (
+						<Field>
+							<FieldLabel htmlFor={field.name}>Dirección</FieldLabel>
+							<Textarea
+								id={field.name}
+								name={field.name}
+								value={field.state.value ?? ""}
+								onBlur={field.handleBlur}
+								onChange={(e) => field.handleChange(e.target.value)}
+								placeholder="Calle, número, municipio…"
+								rows={2}
+							/>
+						</Field>
+					)}
+				</form.Field>
+
+				<form.Field name="employee.active">
+					{(field) => (
+						<Field orientation="horizontal">
+							<FieldContent>
+								<FieldLabel htmlFor={field.name}>Activo</FieldLabel>
+								<FieldDescription>
+									Un empleado inactivo no puede iniciar sesión en los sistemas.
+								</FieldDescription>
+							</FieldContent>
+							<Switch
+								id={field.name}
+								checked={field.state.value ?? false}
+								onCheckedChange={(checked) => field.handleChange(checked)}
+							/>
+						</Field>
+					)}
+				</form.Field>
+			</FieldGroup>
+		</FieldSet>
+	);
+}
