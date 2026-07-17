@@ -11,3 +11,16 @@ export type Pagination = {
 	total: number;
 	totalPages: number;
 };
+
+export type ListSearch = {
+	search?: string;
+	[key: string]: unknown;
+};
+
+export type ListControls = {
+	search: string;
+	onSearchChange: (value: string) => void;
+	onPageChange: (page: number) => void;
+	onLimitChange: (limit: number) => void;
+	isFiltered: boolean;
+};

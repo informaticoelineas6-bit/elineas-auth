@@ -10,4 +10,12 @@ export const paginationQuerySchema = z.object({
 	limit: z.coerce.number().int().min(1).max(100).default(20),
 });
 
+// Base de search params para cualquier listado administrativo: paginación +
+// búsqueda libre. Cada recurso la extiende con sus filtros por columna (p. ej.
+// `active`) y la usa tanto en `validateSearch` de la ruta como en el validator
+// del server fn. Ver useListControls / DataTable.
+export const listSearchSchema = paginationQuerySchema.extend({
+	search: z.string().max(100).optional(),
+});
+
 export const idSchema = z.object({ id: z.string().min(1) });

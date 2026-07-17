@@ -1,9 +1,8 @@
 import { z } from "zod";
-import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
+import { listSearchSchema } from "#/modules/common/lib/validation.ts";
 
 // Filtros: paginación + búsqueda libre (nombre/slug) y estado activo.
-export const systemFiltersSchema = paginationQuerySchema.extend({
-	search: z.string().max(100).optional(),
+export const systemFiltersSchema = listSearchSchema.extend({
 	active: z.boolean().optional(),
 });
 
