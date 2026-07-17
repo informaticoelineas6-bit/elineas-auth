@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -26,13 +26,14 @@ import type {
 	EmployeeFilters,
 } from "@/modules/employees/shared/types.ts";
 
-export const Route = createFileRoute("/_authed/employees")({
+export const Route = createFileRoute("/_authed/employees/")({
 	// Búsqueda/filtro/página viajan en la URL con el mismo schema que el server fn.
 	validateSearch: employeeFiltersSchema,
 	component: EmployeesPage,
 });
 
 function EmployeesPage() {
+	const navigate = useNavigate();
 	const { filters, controls, setFilter } = useListControls<EmployeeFilters>();
 	const query = useQuery(employeesQueries.list(filters));
 	const updateEmployee = useUpdateEmployee();
@@ -99,9 +100,7 @@ function EmployeesPage() {
 				title="Empleados"
 				description="Listado, alta, edición y baja de empleados."
 				actions={
-					<Button
-						onClick={() => toast.info("Alta de empleado disponible en #5")}
-					>
+					<Button onClick={() => navigate({ to: "/employees/new" })}>
 						<UserPlus />
 						Nuevo empleado
 					</Button>
@@ -121,7 +120,7 @@ function EmployeesPage() {
 					onRetry={() => query.refetch()}
 					{...controls}
 					getRowId={(employee) => employee.id}
-					searchPlaceholder="Buscar por nombre, apellido o CI…"
+					searchPlaceholder="Buscar por nombre, apellido, CI o email…"
 					emptyTitle="Sin empleados"
 					emptyDescription="Aún no hay empleados registrados."
 					filters={
