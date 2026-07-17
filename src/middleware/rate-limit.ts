@@ -40,14 +40,36 @@ end
 return {count, redis.call('PTTL', KEYS[1])}
 `;
 
+// SHA1 del script para invocarlo con EVALSHA: evita reenviar el script completo
+// en cada petición de esta ruta caliente (Redis lo cachea por su hash). Si Redis
+// aún no lo conoce (arranque, SCRIPT FLUSH, failover), responde NOSCRIPT y se
+// reenvía una única vez con EVAL, que además lo deja cacheado para las
+// siguientes.
+const RATE_LIMIT_LUA_SHA = new Bun.CryptoHasher("sha1")
+  .update(RATE_LIMIT_LUA)
+  .digest("hex");
+
+type LuaReply = [number | string, number | string];
+
 async function redisAllowed(
   key: string,
   windowMs: number,
   max: number,
 ): Promise<{ limited: boolean; retryAfter: number }> {
-  const result = (await redisCommand(() =>
-    redis!.send("EVAL", [RATE_LIMIT_LUA, "1", key, String(windowMs)]),
-  )) as [number | string, number | string];
+  const args = ["1", key, String(windowMs)];
+  let result: LuaReply;
+  try {
+    result = (await redisCommand(() =>
+      redis!.send("EVALSHA", [RATE_LIMIT_LUA_SHA, ...args]),
+    )) as LuaReply;
+  } catch (error) {
+    if (!(error instanceof Error && error.message.includes("NOSCRIPT"))) {
+      throw error;
+    }
+    result = (await redisCommand(() =>
+      redis!.send("EVAL", [RATE_LIMIT_LUA, ...args]),
+    )) as LuaReply;
+  }
 
   const count = Number(result[0]);
   if (count > max) {

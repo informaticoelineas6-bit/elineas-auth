@@ -69,5 +69,13 @@ export const requestLog = pgTable(
     index("request_log_request_id_idx").on(table.requestId),
     // "Errores recientes": filtra por status y ordena por fecha en un solo índice.
     index("request_log_status_ts_idx").on(table.status, table.ts),
+    // Filtro `path` del listado de administración (ILIKE '%…%'): un B-tree no
+    // sirve con comodín inicial; el GIN de trigramas (pg_trgm, la extensión se
+    // crea en la migración) sí. El coste de mantenerlo lo paga el worker de
+    // drenado en segundo plano, no el ciclo de la petición.
+    index("request_log_path_trgm_idx").using(
+      "gin",
+      table.path.op("gin_trgm_ops"),
+    ),
   ],
 );

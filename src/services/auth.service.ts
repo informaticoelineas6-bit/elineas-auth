@@ -121,13 +121,26 @@ export const getTokenFn = async (c: Context) => {
 // tarda como mucho este TTL en publicarse; los verificadores ya cachean el JWKS
 // por su cuenta, de modo que este margen es aceptable.
 const JWKS_CACHE_TTL_MS = 5 * 60_000;
-let jwksCache: { value: Awaited<ReturnType<typeof auth.api.getJwks>>; expiresAt: number } | null =
+// Se cachea la PROMESA (no el valor resuelto): cuando el caché expira bajo
+// tráfico concurrente, solo la primera petición dispara getJwks y las demás
+// esperan esa misma promesa (single-flight), en vez de lanzar N llamadas
+// simultáneas a better-auth durante el hueco entre expiración y resolución.
+let jwksCache: { value: ReturnType<typeof auth.api.getJwks>; expiresAt: number } | null =
   null;
 
 export const getJwksFn = async (c: Context) => {
   const now = Date.now();
-  if (!jwksCache || jwksCache.expiresAt <= now) {
-    jwksCache = { value: await auth.api.getJwks(), expiresAt: now + JWKS_CACHE_TTL_MS };
+  let entry = jwksCache;
+  if (!entry || entry.expiresAt <= now) {
+    const value = auth.api.getJwks();
+    entry = { value, expiresAt: now + JWKS_CACHE_TTL_MS };
+    jwksCache = entry;
+    // Si la llamada falla, se invalida la entrada para que la siguiente petición
+    // reintente, en lugar de servir el error cacheado durante todo el TTL. (El
+    // error de ESTA petición sigue propagándose a handleError vía el await.)
+    value.catch(() => {
+      if (jwksCache === entry) jwksCache = null;
+    });
   }
-  return c.json(jwksCache.value, 200);
+  return c.json(await entry.value, 200);
 };

@@ -1,4 +1,4 @@
-import { lt } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "@/db/index";
 import { requestLog } from "@/db/log-schema";
 import { redis, redisCommand } from "@/lib/redis";
@@ -125,12 +125,33 @@ async function insertBatch(entries: ParsedEntry[]): Promise<string[]> {
   }
 }
 
-// Purga las filas más antiguas que la retención configurada. Barato gracias al
-// índice sobre `ts`.
+// Filas borradas por cada DELETE de la purga. Acota cada sentencia para que
+// quepa de sobra en el statement_timeout del pool (10s): 10k borrados por PK
+// localizados por el índice de `ts` tardan una fracción de eso.
+const PURGE_BATCH_SIZE = 10_000;
+
+// Purga las filas más antiguas que la retención configurada, POR LOTES. Un
+// DELETE único de todo el backlog (primera purga con la tabla ya crecida, o
+// tras días con el worker parado) puede exceder el statement_timeout y fallar;
+// como la purga diaria reintentaría exactamente el mismo DELETE gigante,
+// fallaría para siempre y la tabla no dejaría de crecer. Troceado, cada lote
+// termina dentro del timeout y el bucle avanza hasta agotar las filas antiguas.
 async function purgeOldLogs(): Promise<void> {
   if (env.REQUEST_LOG_RETENTION_DAYS <= 0) return;
   const cutoff = new Date(Date.now() - env.REQUEST_LOG_RETENTION_DAYS * MS_PER_DAY);
-  await db.delete(requestLog).where(lt(requestLog.ts, cutoff));
+  // Postgres no admite LIMIT en DELETE: se limita vía subconsulta por PK.
+  while (true) {
+    const result = await db.execute(sql`
+      delete from ${requestLog}
+      where ${requestLog.id} in (
+        select ${requestLog.id}
+        from ${requestLog}
+        where ${requestLog.ts} < ${cutoff}
+        limit ${PURGE_BATCH_SIZE}
+      )
+    `);
+    if ((result.rowCount ?? 0) < PURGE_BATCH_SIZE) return;
+  }
 }
 
 // Arranca el worker de drenado. Devuelve un `stop()` que hace flush final y se

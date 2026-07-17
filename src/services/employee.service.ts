@@ -65,11 +65,17 @@ export async function listEmployees(
       .orderBy(desc(employee.createdAt))
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
-    db
-      .select({ total: count() })
-      .from(employee)
-      .leftJoin(user, eq(employee.userId, user.id))
-      .where(where),
+    // El conteo solo necesita el JOIN con user cuando hay búsqueda (el filtro
+    // puede referenciar user.email). Sin búsqueda, un LEFT JOIN contra una FK
+    // única no altera el total, así que se omite y el COUNT queda sobre una
+    // sola tabla.
+    filters.search
+      ? db
+          .select({ total: count() })
+          .from(employee)
+          .leftJoin(user, eq(employee.userId, user.id))
+          .where(where)
+      : db.select({ total: count() }).from(employee).where(where),
   ]);
 
   // El LEFT JOIN devuelve el objeto `user` con campos null cuando el empleado
