@@ -2,7 +2,6 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import { cors } from "hono/cors";
 import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
-import { logger } from "hono/logger";
 import { timeout } from "hono/timeout";
 import { HTTPException } from "hono/http-exception";
 import { env } from "@/config/env";
@@ -71,7 +70,8 @@ export function registerSecurityMiddleware(app: OpenAPIHono<AppEnv>) {
     }),
   );
 
-  app.use(logger());
+  // El logging de peticiones lo aporta evlog (ver middleware/request-log.ts),
+  // registrado antes que este middleware en createApp().
 
   // Límite de tamaño del cuerpo: los endpoints solo reciben JSON pequeño
   // (credenciales, actualizaciones de perfil). 64 KB es holgado y evita que un

@@ -1,5 +1,6 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
 import { handleError } from "@/lib/http";
+import { registerRequestLogging } from "@/middleware/request-log";
 import { registerSecurityMiddleware } from "@/middleware/security";
 import { registerAuthRateLimits } from "@/middleware/auth-rate-limits";
 import { registerHealthChecks } from "@/routes/health.routes";
@@ -23,6 +24,10 @@ export function createApp() {
   // Health checks primero: así no heredan logger (ruido en cada sondeo), CORS,
   // rate limiting ni el timeout, y no dependen de nada externo.
   registerHealthChecks(app);
+  // Request logging (evlog) justo después de health: envuelve al resto de la
+  // cadena (timeout, CORS, rate limit, rutas) para medir la duración completa y
+  // registrar también las respuestas de error de esos middlewares.
+  registerRequestLogging(app);
   registerSecurityMiddleware(app);
   registerAuthRateLimits(app);
   app.onError(handleError);

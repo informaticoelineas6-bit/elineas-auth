@@ -6,6 +6,7 @@ import { employeesRoutes } from "@/routes/employees.routes";
 import { systemsRoutes } from "@/routes/systems.routes";
 import { rolesRoutes } from "@/routes/roles.routes";
 import { userRolesRoutes } from "@/routes/user-roles.routes";
+import { requestLogsRoutes } from "@/routes/request-logs.routes";
 import type { AppEnv } from "@/types/hono-env";
 
 // Tabla de montaje de la API: cada familia de endpoints bajo su prefijo. Es el
@@ -24,5 +25,6 @@ export function registerRoutes(app: OpenAPIHono<AppEnv>) {
     .route("/api/employees", employeesRoutes)
     .route("/api/systems", systemsRoutes)
     .route("/api/roles", rolesRoutes)
-    .route("/api/user-roles", userRolesRoutes);
+    .route("/api/user-roles", userRolesRoutes)
+    .route("/api/request-logs", requestLogsRoutes);
 }

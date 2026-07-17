@@ -7,6 +7,7 @@ import {
   userRole,
   sessionSystem,
 } from "@/db/business-schema";
+import { requestLog } from "@/db/log-schema";
 
 export const schema = {
   user,
@@ -19,6 +20,9 @@ export const schema = {
   role,
   userRole,
   sessionSystem,
+  // Sin relaciones: no se declara en defineRelations más abajo. Se incluye aquí
+  // para que drizzle conozca la tabla (db.insert/select) y por consistencia.
+  requestLog,
 };
 
 export const relations = defineRelations(schema, (r) => ({

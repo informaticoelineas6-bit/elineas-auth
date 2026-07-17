@@ -64,6 +64,20 @@ function getPgCode(error: unknown): string | undefined {
 // Manejador de errores único para toda la API. Se registra con `app.onError`,
 // de modo que cualquier handler puede simplemente lanzar y aquí se traduce.
 export function handleError(error: unknown, c: Context) {
+  // Enriquece el wide event de logging (si la petición tiene uno) con el detalle
+  // del error. Hono enruta las excepciones a onError SIN propagarlas por los
+  // middlewares, así que este es el único punto donde el logger de la petición
+  // ve la excepción. El status ya lo captura evlog desde c.res.
+  const log = c.get("log") as
+    | { set: (context: Record<string, unknown>) => void }
+    | undefined;
+  log?.set({
+    error: {
+      name: error instanceof Error ? error.name : "Error",
+      message: error instanceof Error ? error.message : String(error),
+    },
+  });
+
   // El status se emite como `any` a propósito: estos errores se devuelven desde
   // handlers registrados con `.openapi()`, cuyo tipado no puede estrechar el
   // status en tiempo de ejecución a un literal concreto de la ruta.

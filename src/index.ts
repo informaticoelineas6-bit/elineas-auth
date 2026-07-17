@@ -2,6 +2,7 @@ import { createApp } from "@/app";
 import { env } from "@/config/env";
 import { pool } from "@/db/index";
 import { redis } from "@/lib/redis";
+import { startRequestLogWorker } from "@/workers/request-log-worker";
 
 // Red de seguridad de proceso. Cualquier rechazo o excepción que escape del
 // ciclo request/response (callbacks, timers, listeners de eventos) llega aquí.
@@ -37,6 +38,10 @@ const server = Bun.serve({
 // del puerto en el que efectivamente escucha el proceso.
 console.log(`Serving on ${env.BETTER_AUTH_URL} (puerto ${server.port})`);
 
+// Worker que drena el stream de logs de peticiones (Redis) a Postgres. No-op si
+// no hay REDIS_URL. Se detiene en el apagado ordenado, antes de cerrar la BD.
+const requestLogWorker = startRequestLogWorker();
+
 // Apagado ordenado. `docker stop` envía SIGTERM: sin esto, el proceso se corta
 // en seco, abortando peticiones en vuelo y dejando conexiones de BD/Redis sin
 // cerrar. Aquí se deja de aceptar conexiones nuevas, se drena el pool de
@@ -52,6 +57,10 @@ async function shutdown(signal: string) {
   console.log(`${signal} recibido, cerrando ordenadamente…`);
   try {
     await server.stop();
+    // Flush final del stream de logs a Postgres ANTES de cerrar el pool y Redis
+    // (los necesita para drenar). Si no termina, no se pierde nada: el stream es
+    // persistente y se drena al reiniciar.
+    await requestLogWorker.stop();
     await pool.end();
     if (redis) redis.close();
     console.log("Apagado completado.");

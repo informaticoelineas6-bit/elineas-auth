@@ -46,6 +46,12 @@ export const env = {
   // Opcional: si no se define, el rate limiter degrada a un contador en memoria
   // por instancia (útil en desarrollo local sin Redis).
   REDIS_URL: process.env.REDIS_URL,
+  // Días de retención de los logs de peticiones (tabla request_log). El worker
+  // de drenado purga a diario las filas más antiguas. 0 = no purgar nunca.
+  REQUEST_LOG_RETENTION_DAYS: Math.max(
+    0,
+    Number(process.env.REQUEST_LOG_RETENTION_DAYS ?? "90"),
+  ) || 0,
   // Nº de proxies de confianza por delante de la API. Determina cuántos saltos
   // de X-Forwarded-For son fiables al calcular la IP del cliente para el rate
   // limiting. 0 (por defecto) = ignorar XFF y usar solo la IP del socket, que
