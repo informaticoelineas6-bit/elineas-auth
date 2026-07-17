@@ -7,6 +7,7 @@ import type { AuthSession } from "@/modules/auth/shared/types.ts";
 import {
 	Avatar,
 	AvatarFallback,
+	AvatarImage,
 } from "@/modules/common/components/ui/avatar.tsx";
 import {
 	DropdownMenu,
@@ -42,6 +43,9 @@ export function UserMenu({ session }: { session: AuthSession }) {
 					className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
 				>
 					<Avatar>
+						<AvatarImage
+							src={`https://api.dicebear.com/9.x/glass/svg?seed=${session.name}`}
+						/>
 						<AvatarFallback>{getInitials(displayName)}</AvatarFallback>
 					</Avatar>
 				</button>
