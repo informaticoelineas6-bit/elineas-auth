@@ -29,6 +29,14 @@ export function getEmployeeColumns({
 				</span>
 			),
 		},
+		{
+			id: "email",
+			header: "Email",
+			cell: ({ row }) =>
+				row.original.user?.email ?? (
+					<span className="text-muted-foreground">—</span>
+				),
+		},
 		{ accessorKey: "ci", header: "CI" },
 		{
 			accessorKey: "phoneNumber",

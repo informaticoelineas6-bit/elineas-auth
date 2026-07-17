@@ -3,6 +3,7 @@ import type { Pagination } from "#/modules/common/shared/types.ts";
 import type { User } from "#/modules/users/shared/types.ts";
 import type {
 	createEmployeeSchema,
+	createEmployeeWithUserFormSchema,
 	createEmployeeWithUserSchema,
 	employeeFiltersSchema,
 	updateEmployeeSchema,
@@ -24,6 +25,16 @@ export type Employee = {
 	active: boolean;
 	createdAt: string;
 	updatedAt: string;
+	// Cuenta de usuario enlazada. El listado (GET /api/employees) la embebe para
+	// ver/filtrar por email en una sola vista; las respuestas de un empleado
+	// individual la omiten. `null` si el empleado no tiene usuario.
+	user?: EmployeeUser | null;
+};
+
+export type EmployeeUser = {
+	id: string;
+	name: string;
+	email: string;
 };
 
 export type EmployeeListResponse = {
@@ -41,4 +52,7 @@ export type CreateEmployeeInput = z.infer<typeof createEmployeeSchema>;
 export type UpdateEmployeeInput = z.infer<typeof updateEmployeeSchema>;
 export type CreateEmployeeWithUserInput = z.infer<
 	typeof createEmployeeWithUserSchema
+>;
+export type CreateEmployeeWithUserFormInput = z.infer<
+	typeof createEmployeeWithUserFormSchema
 >;
