@@ -94,6 +94,20 @@ export const updateEmployeeSchema = applyEmployeeDateRules(
 	employeeBaseSchema.partial(),
 );
 
+// Sección "empleado" de los formularios (alta combinada y edición): mismos
+// campos y reglas que el alta, sin `userId` (el enlace usuario-empleado no se
+// gestiona desde estos formularios).
+export const employeeSectionSchema = applyEmployeeDateRules(
+	employeeBaseSchema.omit({ userId: true }),
+);
+
+// Esquema del formulario de edición (solo cliente). Conserva la forma anidada
+// `{ employee: ... }` del alta para que EmployeeFields sirva a ambos formularios
+// con los mismos nombres de campo ("employee.name", …).
+export const editEmployeeFormSchema = z.object({
+	employee: employeeSectionSchema,
+});
+
 // Alta combinada usuario + empleado (POST /api/employees/with-user). El `userId`
 // del empleado lo fija el servidor con el id del usuario recién creado, por eso
 // se omite aquí.
@@ -107,7 +121,7 @@ export const createEmployeeWithUserSchema = z.object({
 		password: passwordSchema,
 		image: z.string().optional(),
 	}),
-	employee: applyEmployeeDateRules(employeeBaseSchema.omit({ userId: true })),
+	employee: employeeSectionSchema,
 });
 
 // Esquema del formulario de alta (solo cliente): espeja las reglas del servidor
