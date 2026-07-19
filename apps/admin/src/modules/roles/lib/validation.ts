@@ -35,3 +35,19 @@ export const updateRoleSchema = z.object({
 		.max(500, "Debe tener menos de 500 caracteres")
 		.optional(),
 });
+
+// Esquemas de formulario (solo cliente): mismos campos que el alta/edición pero
+// con `description` siempre presente (arranca en "") para que el tipo del form
+// case con el validador de TanStack Form. La descripción vacía se depura al
+// construir el payload.
+export const createRoleFormSchema = z.object({
+	systemId: z
+		.string()
+		.min(1, "Selecciona un sistema")
+		.max(100, "Debe tener menos de 100 caracteres"),
+	name: createRoleSchema.shape.name,
+	description: z.string().max(500, "Debe tener menos de 500 caracteres"),
+});
+
+// La edición no incluye `systemId` (el IS no permite cambiarlo).
+export const editRoleFormSchema = createRoleFormSchema.omit({ systemId: true });
