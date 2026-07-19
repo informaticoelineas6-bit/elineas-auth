@@ -19,6 +19,18 @@ export function getErrorStatus(error: unknown): number | undefined {
 	return undefined;
 }
 
+// Segundos hasta poder reintentar (cabecera Retry-After de los 429 del IS).
+// Sobrevive la serialización del server fn como propiedad del Error.
+export function getErrorRetryAfter(error: unknown): number | undefined {
+	if (error && typeof error === "object" && "retryAfter" in error) {
+		const { retryAfter } = error as { retryAfter: unknown };
+		if (typeof retryAfter === "number" && Number.isFinite(retryAfter)) {
+			return retryAfter;
+		}
+	}
+	return undefined;
+}
+
 // Código de error de negocio del IS (p. ej. "CONFLICT", "RATE_LIMITED").
 export function getErrorCode(error: unknown): string | undefined {
 	if (error && typeof error === "object" && "code" in error) {
