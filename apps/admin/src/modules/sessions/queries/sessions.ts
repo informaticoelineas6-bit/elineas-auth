@@ -4,6 +4,7 @@ import {
 	useQueryClient,
 } from "@tanstack/react-query";
 import {
+	getCurrentSessionFn,
 	listSessionsFn,
 	revokeAllSessionsFn,
 	revokeOtherSessionsFn,
@@ -13,6 +14,7 @@ import {
 export const sessionKeys = {
 	all: ["sessions"] as const,
 	list: () => [...sessionKeys.all, "list"] as const,
+	current: () => [...sessionKeys.all, "current"] as const,
 };
 
 export const sessionsQueries = {
@@ -20,6 +22,11 @@ export const sessionsQueries = {
 		queryOptions({
 			queryKey: sessionKeys.list(),
 			queryFn: () => listSessionsFn(),
+		}),
+	current: () =>
+		queryOptions({
+			queryKey: sessionKeys.current(),
+			queryFn: () => getCurrentSessionFn(),
 		}),
 };
 

@@ -11,6 +11,15 @@ export async function listSessions() {
 	return sessions;
 }
 
+// Sesión actual (la que respalda esta petición). Sirve para marcar cuál del
+// listado es la propia; el listado no lo indica y el token nunca se expone.
+export async function getCurrentSession() {
+	const { session } = await isApi.get<{ session: SafeSession }>(
+		"/api/sessions/session",
+	);
+	return session;
+}
+
 // Revoca TODAS las sesiones del usuario, incluida la actual (cierra la sesión).
 export function revokeAllSessions() {
 	return isApi.delete<StatusResponse>("/api/sessions");
