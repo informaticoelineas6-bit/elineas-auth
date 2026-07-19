@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { KeyRound } from "lucide-react";
+import { KeyRound, UserPlus } from "lucide-react";
+import { useState } from "react";
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
@@ -15,11 +16,21 @@ import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
 import { getErrorStatus } from "@/modules/common/lib/errors.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
+import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
 import { userRolesQueries } from "@/modules/user-roles/queries/user-roles.ts";
 
 // Card "Roles del usuario" de la ficha de empleado: asignaciones del usuario
-// enlazado (GET /api/user-roles?userId=…) con atajo para gestionarlas.
-export function EmployeeRolesCard({ userId }: { userId: string | null }) {
+// enlazado (GET /api/user-roles?userId=…), con asignación rápida embebida (el
+// usuario ya viene fijado) y atajo a la tabla de asignaciones prefiltrada.
+export function EmployeeRolesCard({
+	userId,
+	userLabel,
+}: {
+	userId: string | null;
+	userLabel: string;
+}) {
+	const [assignOpen, setAssignOpen] = useState(false);
+
 	return (
 		<Card>
 			<CardHeader>
@@ -30,11 +41,19 @@ export function EmployeeRolesCard({ userId }: { userId: string | null }) {
 						: "Este empleado no tiene una cuenta de usuario enlazada, por lo que no puede tener roles ni iniciar sesión."}
 				</CardDescription>
 				{userId && (
-					<CardAction>
-						<Button asChild variant="outline" size="sm">
+					<CardAction className="flex gap-2">
+						<Button
+							variant="outline"
+							size="sm"
+							onClick={() => setAssignOpen(true)}
+						>
+							<UserPlus />
+							Asignar rol
+						</Button>
+						<Button asChild variant="ghost" size="sm">
 							<Link to="/user-roles" search={{ userId }}>
 								<KeyRound />
-								Gestionar roles
+								Gestionar
 							</Link>
 						</Button>
 					</CardAction>
@@ -44,6 +63,14 @@ export function EmployeeRolesCard({ userId }: { userId: string | null }) {
 				<CardContent>
 					<EmployeeRolesList userId={userId} />
 				</CardContent>
+			)}
+
+			{userId && (
+				<AssignRoleDialog
+					open={assignOpen}
+					onOpenChange={setAssignOpen}
+					lockedUser={{ userId, label: userLabel }}
+				/>
 			)}
 		</Card>
 	);

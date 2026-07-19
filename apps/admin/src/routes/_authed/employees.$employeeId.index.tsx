@@ -231,7 +231,10 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 					</CardContent>
 				</Card>
 
-				<EmployeeRolesCard userId={employee.userId} />
+				<EmployeeRolesCard
+					userId={employee.userId}
+					userLabel={`${employee.name} ${employee.lastName}`}
+				/>
 			</div>
 
 			<ConfirmDialog
