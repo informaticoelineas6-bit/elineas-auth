@@ -87,8 +87,16 @@ function EmployeesPage() {
 	}
 
 	const columns = getEmployeeColumns({
-		onView: () => toast.info("Ficha de detalle disponible en #6"),
-		onEdit: () => toast.info("Edición disponible en #6"),
+		onView: (employee) =>
+			navigate({
+				to: "/employees/$employeeId",
+				params: { employeeId: employee.id },
+			}),
+		onEdit: (employee) =>
+			navigate({
+				to: "/employees/$employeeId/edit",
+				params: { employeeId: employee.id },
+			}),
 		onToggleActive: toggleActive,
 		onDelete: (employee) => setToDelete(employee),
 	});
