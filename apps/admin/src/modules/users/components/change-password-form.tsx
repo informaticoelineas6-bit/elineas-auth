@@ -21,9 +21,9 @@ import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
 import { PasswordInput } from "@/modules/common/components/ui/password-input.tsx";
 import {
 	getErrorMessage,
-	getErrorRetryAfter,
 	getErrorStatus,
 	reportError,
+	reportRateLimited,
 } from "@/modules/common/lib/errors.ts";
 import { useCountdown } from "@/modules/common/lib/use-countdown.ts";
 import { changePasswordFormSchema } from "../lib/validation.ts";
@@ -67,8 +67,7 @@ export function ChangePasswordForm() {
 						getErrorMessage(error, "La contraseña actual no es correcta."),
 					);
 				} else if (status === 429) {
-					rateLimit.start(getErrorRetryAfter(error) ?? 60);
-					toast.error("Demasiados intentos. Espera antes de reintentar.");
+					reportRateLimited(error, rateLimit.start);
 				} else {
 					reportError(error, "No se pudo cambiar la contraseña.");
 				}

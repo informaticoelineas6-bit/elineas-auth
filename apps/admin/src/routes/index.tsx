@@ -1,6 +1,7 @@
 import { useForm } from "@tanstack/react-form";
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { signInSchema } from "#/modules/auth/lib/validation.ts";
 import { getSessionFn, signInFn } from "@/modules/auth/actions/auth.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
@@ -15,18 +16,33 @@ import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
 import { PasswordInput } from "@/modules/common/components/ui/password-input.tsx";
 import SideRays from "@/modules/common/components/ui/side-rays.tsx";
 import { reportError } from "@/modules/common/lib/errors.ts";
+import { useCountdown } from "@/modules/common/lib/use-countdown.ts";
+
+// Solo se admiten rutas internas como destino de vuelta ("/algo"), nunca URLs
+// absolutas ("//host", "https://…"): evita un open redirect tras el login.
+function safeRedirect(target: string | undefined): string {
+	if (target?.startsWith("/") && !target.startsWith("//")) {
+		return target;
+	}
+	return "/dashboard";
+}
 
 export const Route = createFileRoute("/")({
-	beforeLoad: async () => {
+	// `redirect` (ruta de origen) lo añade el guard de _authed / el 401 global
+	// para volver aquí tras autenticarse.
+	validateSearch: z.object({ redirect: z.string().optional() }),
+	beforeLoad: async ({ search }) => {
 		const session = await getSessionFn();
-		if (session) throw redirect({ to: "/dashboard" });
+		if (session) throw redirect({ to: safeRedirect(search.redirect) });
 	},
 	component: LoginPage,
 });
 
 function LoginPage() {
 	const navigate = useNavigate();
+	const search = Route.useSearch();
 	const login = useServerFn(signInFn);
+	const rateLimit = useCountdown();
 
 	const form = useForm({
 		defaultValues: { email: "", password: "" },
@@ -43,10 +59,14 @@ function LoginPage() {
 					},
 				});
 				if (result.error) {
+					// 429: cuenta atrás con el Retry-After real, sin reintentar en bucle.
+					if (result.status === 429) {
+						rateLimit.start(result.retryAfter ?? 60);
+					}
 					reportError(result.error);
 					return;
 				}
-				navigate({ to: "/dashboard" });
+				navigate({ to: safeRedirect(search.redirect) });
 			} catch (error) {
 				reportError(error, "No se pudo iniciar sesión. Intenta nuevamente.");
 			}
@@ -158,9 +178,15 @@ function LoginPage() {
 					>
 						{({ canSubmit, isSubmitting }) => (
 							<div className="flex gap-2">
-								<Button disabled={!canSubmit} type="submit" className="flex-1">
+								<Button
+									disabled={!canSubmit || rateLimit.active}
+									type="submit"
+									className="flex-1"
+								>
 									<LoadingSwap isLoading={isSubmitting}>
-										Autenticarse
+										{rateLimit.active
+											? `Espera ${rateLimit.remaining}s`
+											: "Autenticarse"}
 									</LoadingSwap>
 								</Button>
 							</div>

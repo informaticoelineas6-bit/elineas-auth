@@ -36,7 +36,14 @@ export const signInFn = createServerFn({ method: "POST" })
 			return { user: result.user } as const;
 		} catch (error) {
 			if (error instanceof AuthApiError) {
-				return { error: error.message, code: error.code } as const;
+				// Se devuelve retryAfter para que el login muestre la cuenta atrás real
+				// del 429 (rate limit) en vez de un mensaje genérico.
+				return {
+					error: error.message,
+					code: error.code,
+					status: error.status,
+					retryAfter: error.retryAfter,
+				} as const;
 			}
 			throw error;
 		}
