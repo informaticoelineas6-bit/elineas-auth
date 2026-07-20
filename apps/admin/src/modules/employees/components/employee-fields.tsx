@@ -13,20 +13,30 @@ import { PhoneInput } from "@/modules/common/components/ui/phone-input.tsx";
 import { Switch } from "@/modules/common/components/ui/switch.tsx";
 import { Textarea } from "@/modules/common/components/ui/textarea.tsx";
 import { todayIsoDate } from "@/modules/common/lib/validation.ts";
-import type { EmployeeWithUserFormApi } from "../lib/form.ts";
+import type {
+	EditEmployeeFormApi,
+	EmployeeWithUserFormApi,
+} from "../lib/form.ts";
 
-// Sección "Empleado" del alta combinada. Solo nombre, apellidos y CI son
+// Sección "Empleado" compartida por el alta combinada y la edición: ambos
+// formularios anidan sus valores bajo `employee`, así que los nombres de campo
+// ("employee.name", …) valen para los dos. Solo nombre, apellidos y CI son
 // obligatorios; el resto es opcional. `ciError` recibe el 409 de CI duplicado.
 export function EmployeeFields({
-	form,
+	form: incomingForm,
 	ciError,
 }: {
-	form: EmployeeWithUserFormApi;
+	form: EmployeeWithUserFormApi | EditEmployeeFormApi;
 	ciError?: string;
 }) {
+	// TS no permite renderizar <form.Field> sobre una unión de form APIs
+	// (TS2604: los genéricos de cada form producen componentes incompatibles).
+	// Ambos forms comparten el subárbol `employee` —lo único que este componente
+	// usa—, así que se opera con el tipo del form de edición, el más estrecho.
+	const form = incomingForm as EditEmployeeFormApi;
 	return (
 		<FieldSet>
-			<FieldLegend>Datos del empleado</FieldLegend>
+			<FieldLegend>Datos personales</FieldLegend>
 			<FieldDescription>
 				Ficha de la persona. Solo nombre, apellidos y CI son obligatorios.
 			</FieldDescription>
@@ -231,7 +241,7 @@ export function EmployeeFields({
 							<FieldContent>
 								<FieldLabel htmlFor={field.name}>Activo</FieldLabel>
 								<FieldDescription>
-									Un empleado inactivo no puede iniciar sesión en los sistemas.
+									Un usuario inactivo no puede iniciar sesión en los sistemas.
 								</FieldDescription>
 							</FieldContent>
 							<Switch

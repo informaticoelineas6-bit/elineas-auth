@@ -1,4 +1,3 @@
-import { parsePhoneNumberFromString } from "libphonenumber-js";
 import { z } from "zod";
 
 export const themeSchema = z.enum(["light", "dark", "system"]);
@@ -32,6 +31,19 @@ export const idSchema = z.object({
 	id: z.string().min(1, "Este campo es obligatorio"),
 });
 
+// Dominio corporativo único admitido para cuentas del IS: el alta de usuarios
+// no es autoservicio (la crea un admin), así que restringir el dominio evita
+// cuentas con correos ajenos a la empresa. Se usa al CREAR una cuenta o
+// CAMBIAR el correo, no al iniciar sesión (una cuenta ya existente conserva el
+// correo que tenga, aunque fuera de un alta anterior a esta regla).
+const COMPANY_EMAIL_DOMAIN = "mercadoelineas.com";
+
+export const companyEmailSchema = z
+	.email("Debe ser un correo electrónico válido")
+	.refine((email) => email.toLowerCase().endsWith(`@${COMPANY_EMAIL_DOMAIN}`), {
+		message: `El correo debe ser del dominio @${COMPANY_EMAIL_DOMAIN}`,
+	});
+
 export const passwordSchema = z
 	.string()
 	.min(12, "La contraseña debe tener al menos 12 caracteres")
@@ -46,15 +58,8 @@ export const passwordSchema = z
 		message: "Debe contener al menos un carácter especial",
 	});
 
-export const phoneSchema = z.string().refine(
-	(val) => {
-		const phone = parsePhoneNumberFromString(val);
-		return phone?.isValid() ?? false;
-	},
-	{
-		message: "Número de teléfono no válido para ningún país conocido",
-	},
-);
+// `phoneSchema` vive en `common/lib/phone.ts` (importa libphonenumber-js, una
+// dependencia pesada); se separó para no cargarla en el chunk compartido.
 
 // Fecha de hoy en el calendario local, como string "YYYY-MM-DD" (mismo formato
 // que emite <input type="date">). Al ser ISO y zero-padded, se puede comparar

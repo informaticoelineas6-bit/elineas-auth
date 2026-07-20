@@ -1,4 +1,5 @@
 import {
+	BookOpen,
 	Boxes,
 	CircleUser,
 	LayoutDashboard,
@@ -12,11 +13,12 @@ import {
 // que TanStack Router valide cada ruta contra el route tree generado.
 export const NAV_ITEMS = [
 	{ to: "/dashboard", label: "Inicio", icon: LayoutDashboard },
-	{ to: "/employees", label: "Empleados", icon: Users },
+	{ to: "/employees", label: "Usuarios", icon: Users },
 	{ to: "/systems", label: "Sistemas", icon: Boxes },
 	{ to: "/roles", label: "Roles", icon: ShieldCheck },
 	{ to: "/user-roles", label: "Asignaciones", icon: UserCog },
 	{ to: "/sessions", label: "Sesiones", icon: MonitorSmartphone },
+	{ to: "/docs", label: "Documentación", icon: BookOpen },
 	{ to: "/profile", label: "Mi perfil", icon: CircleUser },
 ] as const;
 

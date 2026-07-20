@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
-import { Trash2 } from "lucide-react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -9,10 +9,11 @@ import {
 	useListControls,
 } from "@/modules/common/components/data-table";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
+import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
-import { reportError } from "@/modules/common/lib/errors.ts";
+import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
 import { getSystemColumns } from "@/modules/systems/lib/columns.tsx";
 import { systemFiltersSchema } from "@/modules/systems/lib/validation.ts";
 import {
@@ -21,12 +22,13 @@ import {
 } from "@/modules/systems/queries/systems.ts";
 import type { System, SystemFilters } from "@/modules/systems/shared/types.ts";
 
-export const Route = createFileRoute("/_authed/systems")({
+export const Route = createFileRoute("/_authed/systems/")({
 	validateSearch: systemFiltersSchema,
 	component: SystemsPage,
 });
 
 function SystemsPage() {
+	const navigate = useNavigate();
 	const { filters, controls, setFilter } = useListControls<SystemFilters>();
 	const query = useQuery(systemsQueries.list(filters));
 	const deleteSystem = useDeleteSystem();
@@ -37,12 +39,24 @@ function SystemsPage() {
 		clear: () => void;
 	} | null>(null);
 
+	// Un 403 del IS es "sin permisos", no un error genérico con reintentar.
+	const isForbidden = getErrorStatus(query.error) === 403;
+
 	const total = query.data?.pagination.total ?? 0;
 	const canDelete = total > 1;
 
 	const columns = getSystemColumns({
 		canDelete,
-		onEdit: () => toast.info("Edición disponible en #7"),
+		onView: (system) =>
+			navigate({
+				to: "/systems/$systemId",
+				params: { systemId: system.id },
+			}),
+		onEdit: (system) =>
+			navigate({
+				to: "/systems/$systemId/edit",
+				params: { systemId: system.id },
+			}),
 		onDelete: (system) => setTarget(system),
 	});
 
@@ -77,47 +91,57 @@ function SystemsPage() {
 			<PageHeader
 				title="Sistemas"
 				description="Administra los sistemas integrados con el Identity Server."
+				actions={
+					<Button onClick={() => navigate({ to: "/systems/new" })}>
+						<Plus />
+						Nuevo sistema
+					</Button>
+				}
 			/>
 
-			<DataTable
-				columns={columns}
-				data={query.data?.systems ?? []}
-				pagination={query.data?.pagination}
-				isLoading={query.isPending}
-				isFetching={query.isFetching}
-				isError={query.isError}
-				onRetry={() => query.refetch()}
-				{...controls}
-				getRowId={(system) => system.id}
-				searchPlaceholder="Buscar por nombre o slug…"
-				emptyTitle="Sin sistemas"
-				emptyDescription="Aún no hay sistemas registrados."
-				filters={
-					<DataTableFilterSelect
-						value={filters.active}
-						onChange={(value) => setFilter("active", value)}
-						placeholder="Estado"
-						options={[
-							{ label: "Activo", value: true },
-							{ label: "Inactivo", value: false },
-						]}
-					/>
-				}
-				enableRowSelection
-				renderSelectionActions={(rows, clear) => (
-					<Button
-						variant="destructive"
-						size="sm"
-						// Debe quedar al menos un sistema: no se permite borrar la
-						// selección si abarca todas las filas existentes.
-						disabled={!canDelete || rows.length >= total}
-						onClick={() => setBulk({ rows, clear })}
-					>
-						<Trash2 />
-						Eliminar
-					</Button>
-				)}
-			/>
+			{isForbidden ? (
+				<ForbiddenState description="No tienes permisos para ver el listado de sistemas." />
+			) : (
+				<DataTable
+					columns={columns}
+					data={query.data?.systems ?? []}
+					pagination={query.data?.pagination}
+					isLoading={query.isPending}
+					isFetching={query.isFetching}
+					isError={query.isError}
+					onRetry={() => query.refetch()}
+					{...controls}
+					getRowId={(system) => system.id}
+					searchPlaceholder="Buscar por nombre o slug…"
+					emptyTitle="Sin sistemas"
+					emptyDescription="Aún no hay sistemas registrados."
+					filters={
+						<DataTableFilterSelect
+							value={filters.active}
+							onChange={(value) => setFilter("active", value)}
+							placeholder="Estado"
+							options={[
+								{ label: "Activo", value: true },
+								{ label: "Inactivo", value: false },
+							]}
+						/>
+					}
+					enableRowSelection
+					renderSelectionActions={(rows, clear) => (
+						<Button
+							variant="destructive"
+							size="sm"
+							// Debe quedar al menos un sistema: no se permite borrar la
+							// selección si abarca todas las filas existentes.
+							disabled={!canDelete || rows.length >= total}
+							onClick={() => setBulk({ rows, clear })}
+						>
+							<Trash2 />
+							Eliminar
+						</Button>
+					)}
+				/>
+			)}
 
 			<ConfirmDialog
 				open={target !== null}
@@ -125,7 +149,7 @@ function SystemsPage() {
 				title="Eliminar sistema"
 				description={
 					target
-						? `¿Seguro que quieres eliminar "${target.name}"? Esta acción no se puede deshacer.`
+						? `¿Seguro que quieres eliminar "${target.name}"? Los roles y las asignaciones que dependan de él dejarán de funcionar. Esta acción no se puede deshacer.`
 						: undefined
 				}
 				confirmLabel="Eliminar"

@@ -1,16 +1,26 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import {
+	CatchBoundary,
+	createFileRoute,
+	Outlet,
+	redirect,
+	useRouterState,
+} from "@tanstack/react-router";
 import { resolveAdminContextFn } from "@/modules/admin/actions/admin.ts";
 import { AdminHeader } from "@/modules/admin/components/admin-header.tsx";
 import { AdminRolesError } from "@/modules/admin/components/admin-roles-error.tsx";
 import { AdminShellSkeleton } from "@/modules/admin/components/admin-shell-skeleton.tsx";
+import { ForbiddenScreen } from "@/modules/admin/components/forbidden-screen.tsx";
 import { getSessionFn } from "@/modules/auth/actions/auth.ts";
+import { SectionError } from "@/modules/common/components/partials/section-error.tsx";
 
 export const Route = createFileRoute("/_authed")({
-	beforeLoad: async () => {
+	beforeLoad: async ({ location }) => {
 		const session = await getSessionFn();
-		if (!session) throw redirect({ to: "/" });
+		// Sesión ausente/caducada: al login, conservando la ruta para volver.
+		if (!session) {
+			throw redirect({ to: "/", search: { redirect: location.href } });
+		}
 		const { roles, isAdmin } = await resolveAdminContextFn();
-		if (!isAdmin) throw redirect({ to: "/" });
 		return { session, roles, isAdmin };
 	},
 	pendingComponent: AdminShellSkeleton,
@@ -19,7 +29,14 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
-	const { session } = Route.useRouteContext();
+	const { session, isAdmin } = Route.useRouteContext();
+	// Clave para reiniciar el boundary de sección al navegar (un error de una
+	// sección no debe quedar "pegado" al cambiar de ruta).
+	const pathname = useRouterState({ select: (s) => s.location.pathname });
+
+	// Autenticado pero sin rol admin: "Sin permisos" reutilizable (no se redirige,
+	// para no entrar en bucle con el guard del login).
+	if (!isAdmin) return <ForbiddenScreen />;
 
 	return (
 		<div className="relative min-h-screen bg-background text-foreground">
@@ -29,7 +46,14 @@ function AuthedLayout() {
 			<AdminHeader session={session} />
 
 			<main className="relative z-10 mx-auto w-full md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 py-8">
-				<Outlet />
+				{/* Boundary por sección: un error de una página se contiene aquí sin
+				    tumbar la app ni perder la cabecera/navegación. */}
+				<CatchBoundary
+					getResetKey={() => pathname}
+					errorComponent={SectionError}
+				>
+					<Outlet />
+				</CatchBoundary>
 			</main>
 		</div>
 	);

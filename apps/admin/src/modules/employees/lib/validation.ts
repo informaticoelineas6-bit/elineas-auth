@@ -1,18 +1,15 @@
 import { z } from "zod";
+import { phoneSchema } from "#/modules/common/lib/phone.ts";
 import {
+	companyEmailSchema,
 	isNotFutureDate,
-	paginationQuerySchema,
 	passwordSchema,
-	phoneSchema,
 } from "#/modules/common/lib/validation.ts";
 
-// Filtros de listado: paginación + búsqueda libre (nombre/apellido/CI) y estado.
-// `active` se acepta como boolean y buildQuery lo serializa a "true"/"false",
-// que es lo que el IS espera en la query string.
-export const employeeFiltersSchema = paginationQuerySchema.extend({
-	search: z.string().max(100).optional(),
-	active: z.boolean().optional(),
-});
+// `employeeFiltersSchema` vive en `./filters.ts` (sin dependencias pesadas)
+// para que el `validateSearch` de la ruta no arrastre phoneSchema/libphonenumber.
+// Se reexporta aquí por compatibilidad con los imports existentes.
+export { employeeFiltersSchema } from "./filters.ts";
 
 // Forma base compartida por alta y edición. Las fechas viajan como string ISO
 // ("YYYY-MM-DD" del <input type="date">); el IS las coacciona con
@@ -94,6 +91,20 @@ export const updateEmployeeSchema = applyEmployeeDateRules(
 	employeeBaseSchema.partial(),
 );
 
+// Sección "empleado" de los formularios (alta combinada y edición): mismos
+// campos y reglas que el alta, sin `userId` (el enlace usuario-empleado no se
+// gestiona desde estos formularios).
+export const employeeSectionSchema = applyEmployeeDateRules(
+	employeeBaseSchema.omit({ userId: true }),
+);
+
+// Esquema del formulario de edición (solo cliente). Conserva la forma anidada
+// `{ employee: ... }` del alta para que EmployeeFields sirva a ambos formularios
+// con los mismos nombres de campo ("employee.name", …).
+export const editEmployeeFormSchema = z.object({
+	employee: employeeSectionSchema,
+});
+
 // Alta combinada usuario + empleado (POST /api/employees/with-user). El `userId`
 // del empleado lo fija el servidor con el id del usuario recién creado, por eso
 // se omite aquí.
@@ -103,11 +114,11 @@ export const createEmployeeWithUserSchema = z.object({
 			.string()
 			.min(1, "Debe tener al menos 1 caracter")
 			.max(100, "Debe tener menos de 100 caracteres"),
-		email: z.email("Debe ser un correo electrónico válido"),
+		email: companyEmailSchema,
 		password: passwordSchema,
 		image: z.string().optional(),
 	}),
-	employee: applyEmployeeDateRules(employeeBaseSchema.omit({ userId: true })),
+	employee: employeeSectionSchema,
 });
 
 // Esquema del formulario de alta (solo cliente): espeja las reglas del servidor

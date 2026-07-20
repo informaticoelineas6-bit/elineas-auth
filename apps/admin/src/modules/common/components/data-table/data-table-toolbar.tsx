@@ -44,7 +44,7 @@ export function DataTableToolbar({
 				{filters}
 			</div>
 			{selectionActions ? (
-				<div className="flex items-center gap-2">
+				<div className="flex flex-wrap items-center gap-2">
 					<span className="text-sm text-muted-foreground">
 						{selectedCount} seleccionada(s)
 					</span>
@@ -52,7 +52,9 @@ export function DataTableToolbar({
 				</div>
 			) : (
 				toolbarActions && (
-					<div className="flex items-center gap-2">{toolbarActions}</div>
+					<div className="flex flex-wrap items-center gap-2">
+						{toolbarActions}
+					</div>
 				)
 			)}
 		</div>

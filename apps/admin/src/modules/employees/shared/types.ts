@@ -5,6 +5,7 @@ import type {
 	createEmployeeSchema,
 	createEmployeeWithUserFormSchema,
 	createEmployeeWithUserSchema,
+	editEmployeeFormSchema,
 	employeeFiltersSchema,
 	updateEmployeeSchema,
 } from "../lib/validation.ts";
@@ -56,3 +57,4 @@ export type CreateEmployeeWithUserInput = z.infer<
 export type CreateEmployeeWithUserFormInput = z.infer<
 	typeof createEmployeeWithUserFormSchema
 >;
+export type EditEmployeeFormInput = z.infer<typeof editEmployeeFormSchema>;

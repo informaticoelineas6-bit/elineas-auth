@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { UserPlus } from "lucide-react";
+import { Upload, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,8 +14,10 @@ import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadc
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
+import { ExportMenu } from "@/modules/employees/components/export-menu.tsx";
+import { ImportDialog } from "@/modules/employees/components/import-dialog.tsx";
 import { getEmployeeColumns } from "@/modules/employees/lib/columns.tsx";
-import { employeeFiltersSchema } from "@/modules/employees/lib/validation.ts";
+import { employeeFiltersSchema } from "@/modules/employees/lib/filters.ts";
 import {
 	employeesQueries,
 	useDeleteEmployee,
@@ -42,6 +44,7 @@ function EmployeesPage() {
 	// Confirmaciones para las acciones destructivas/sensibles.
 	const [toDelete, setToDelete] = useState<Employee | null>(null);
 	const [toDeactivate, setToDeactivate] = useState<Employee | null>(null);
+	const [importOpen, setImportOpen] = useState(false);
 
 	// Un 403 del IS es "sin permisos", no un error genérico con reintentar.
 	const isForbidden = getErrorStatus(query.error) === 403;
@@ -79,7 +82,7 @@ function EmployeesPage() {
 		if (!toDelete) return;
 		deleteEmployee.mutate(toDelete.id, {
 			onSuccess: () => {
-				toast.success(`Empleado "${toDelete.name}" eliminado`);
+				toast.success(`Usuario "${toDelete.name}" eliminado`);
 				setToDelete(null);
 			},
 			onError: (error) => reportError(error),
@@ -87,28 +90,58 @@ function EmployeesPage() {
 	}
 
 	const columns = getEmployeeColumns({
-		onView: () => toast.info("Ficha de detalle disponible en #6"),
-		onEdit: () => toast.info("Edición disponible en #6"),
+		onView: (employee) =>
+			navigate({
+				to: "/employees/$employeeId",
+				params: { employeeId: employee.id },
+			}),
+		onEdit: (employee) =>
+			navigate({
+				to: "/employees/$employeeId/edit",
+				params: { employeeId: employee.id },
+			}),
+		// Acciones sobre la cuenta de usuario enlazada.
+		onManageRoles: (employee) => {
+			if (!employee.userId) return;
+			navigate({ to: "/user-roles", search: { userId: employee.userId } });
+		},
+		onCopyEmail: async (employee) => {
+			const email = employee.user?.email;
+			if (!email) return;
+			try {
+				await navigator.clipboard.writeText(email);
+				toast.success("Correo copiado");
+			} catch {
+				toast.error("No se pudo copiar el correo");
+			}
+		},
 		onToggleActive: toggleActive,
 		onDelete: (employee) => setToDelete(employee),
 	});
 
 	return (
 		<div className="space-y-6">
-			<PageBreadcrumb items={[{ label: "Empleados" }]} />
+			<PageBreadcrumb items={[{ label: "Usuarios" }]} />
 			<PageHeader
-				title="Empleados"
-				description="Listado, alta, edición y baja de empleados."
+				title="Usuarios"
+				description="Listado, alta, edición y baja de usuarios."
 				actions={
-					<Button onClick={() => navigate({ to: "/employees/new" })}>
-						<UserPlus />
-						Nuevo empleado
-					</Button>
+					<>
+						<ExportMenu filters={filters} />
+						<Button variant="outline" onClick={() => setImportOpen(true)}>
+							<Upload />
+							Importar
+						</Button>
+						<Button onClick={() => navigate({ to: "/employees/new" })}>
+							<UserPlus />
+							Nuevo usuario
+						</Button>
+					</>
 				}
 			/>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver el listado de empleados." />
+				<ForbiddenState description="No tienes permisos para ver el listado de usuarios." />
 			) : (
 				<DataTable
 					columns={columns}
@@ -121,8 +154,8 @@ function EmployeesPage() {
 					{...controls}
 					getRowId={(employee) => employee.id}
 					searchPlaceholder="Buscar por nombre, apellido, CI o email…"
-					emptyTitle="Sin empleados"
-					emptyDescription="Aún no hay empleados registrados."
+					emptyTitle="Sin usuarios"
+					emptyDescription="Aún no hay usuarios registrados."
 					filters={
 						<DataTableFilterSelect
 							value={filters.active}
@@ -140,7 +173,7 @@ function EmployeesPage() {
 			<ConfirmDialog
 				open={toDeactivate !== null}
 				onOpenChange={(open) => !open && setToDeactivate(null)}
-				title="Desactivar empleado"
+				title="Desactivar usuario"
 				description={
 					toDeactivate
 						? `¿Dar de baja a "${toDeactivate.name} ${toDeactivate.lastName}"? Podrás reactivarlo más tarde.`
@@ -155,7 +188,7 @@ function EmployeesPage() {
 			<ConfirmDialog
 				open={toDelete !== null}
 				onOpenChange={(open) => !open && setToDelete(null)}
-				title="Eliminar empleado"
+				title="Eliminar usuario"
 				description={
 					toDelete
 						? `¿Seguro que quieres eliminar a "${toDelete.name} ${toDelete.lastName}"? Esta acción no se puede deshacer.`
@@ -166,6 +199,8 @@ function EmployeesPage() {
 				loading={deleteEmployee.isPending}
 				onConfirm={confirmDelete}
 			/>
+
+			<ImportDialog open={importOpen} onOpenChange={setImportOpen} />
 		</div>
 	);
 }

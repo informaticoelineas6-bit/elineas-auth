@@ -25,3 +25,15 @@ export const createSystemSchema = z.object({
 });
 
 export const updateSystemSchema = createSystemSchema.partial();
+
+// Esquema del formulario (solo cliente): mismos campos que el alta pero con
+// `description` y `active` siempre presentes (el form arranca con "" y un
+// booleano), para que el tipo del form case con lo que espera el validador de
+// TanStack Form. La depuración de la descripción vacía se hace al construir el
+// payload, no aquí.
+export const systemFormSchema = z.object({
+	name: createSystemSchema.shape.name,
+	slug: createSystemSchema.shape.slug,
+	description: z.string().max(500, "Debe tener menos de 500 caracteres"),
+	active: z.boolean(),
+});

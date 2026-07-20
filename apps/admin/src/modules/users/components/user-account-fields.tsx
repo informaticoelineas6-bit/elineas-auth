@@ -51,7 +51,7 @@ export function UserAccountFields({
 								/>
 								<FieldDescription>
 									Nombre que identifica la cuenta (distinto del nombre de pila
-									del empleado).
+									de la persona).
 								</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
 							</Field>

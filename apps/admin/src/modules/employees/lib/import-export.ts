@@ -1,0 +1,291 @@
+import type {
+	CreateEmployeeInput,
+	Employee,
+	UpdateEmployeeInput,
+} from "../shared/types.ts";
+import { createEmployeeSchema, updateEmployeeSchema } from "./validation.ts";
+
+// `xlsx` (SheetJS) pesa ~450 KB y solo hace falta cuando el usuario elige el
+// formato Excel (o sube un .xlsx). Se carga con import() dinámico para que NO
+// entre en el bundle inicial de la ruta de usuarios; CSV y JSON se manejan con
+// código nativo (sin dependencias).
+const loadXlsx = () => import("xlsx");
+
+// Columnas del CSV/JSON/Excel de exportación e importación. `id` y `email`
+// son informativos: `email` es de solo lectura (viene de la cuenta de
+// usuario enlazada, si existe, y se ignora al importar — este flujo no crea
+// ni enlaza cuentas de usuario); `id`, si viene informado en la importación,
+// hace que la fila actualice ese usuario en vez de crear uno nuevo.
+export const EMPLOYEE_EXPORT_COLUMNS = [
+	"id",
+	"name",
+	"lastName",
+	"ci",
+	"birthday",
+	"phoneNumber",
+	"address",
+	"inDate",
+	"outDate",
+	"active",
+	"email",
+] as const;
+
+type EmployeeExportRow = Record<(typeof EMPLOYEE_EXPORT_COLUMNS)[number], string>;
+
+// El IS devuelve las fechas como datetime ISO completo; se recorta a
+// "YYYY-MM-DD" (mismo formato que <input type="date"> y que toDateInputValue
+// en lib/form.ts) para que la fila sea legible en una hoja de cálculo y
+// reimportable sin sorpresas.
+function toDateCell(value: string | null): string {
+	return value ? value.slice(0, 10) : "";
+}
+
+function employeeToRow(employee: Employee): EmployeeExportRow {
+	return {
+		id: employee.id,
+		name: employee.name,
+		lastName: employee.lastName,
+		ci: employee.ci,
+		birthday: toDateCell(employee.birthday),
+		phoneNumber: employee.phoneNumber ?? "",
+		address: employee.address ?? "",
+		inDate: toDateCell(employee.inDate),
+		outDate: toDateCell(employee.outDate),
+		active: String(employee.active),
+		email: employee.user?.email ?? "",
+	};
+}
+
+function triggerDownload(blob: Blob, filename: string) {
+	const url = URL.createObjectURL(blob);
+	const a = document.createElement("a");
+	a.href = url;
+	a.download = filename;
+	a.click();
+	URL.revokeObjectURL(url);
+}
+
+// --- CSV nativo (RFC 4180) -------------------------------------------------
+// Reemplaza a papaparse para nuestro caso acotado (una tabla plana de strings).
+
+// Entrecomilla una celda solo si lo necesita (contiene coma, comilla o salto
+// de línea) y duplica las comillas internas, según RFC 4180.
+function escapeCsvCell(value: string): string {
+	return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function toCsv(
+	rows: EmployeeExportRow[],
+	columns: readonly (keyof EmployeeExportRow)[],
+): string {
+	const header = columns.map(escapeCsvCell).join(",");
+	const body = rows.map((row) =>
+		columns.map((col) => escapeCsvCell(row[col] ?? "")).join(","),
+	);
+	return [header, ...body].join("\r\n");
+}
+
+// Parser CSV char-a-char: soporta campos entrecomillados con comas, saltos de
+// línea y comillas escapadas (""). Devuelve la matriz de celdas cruda.
+function parseCsvMatrix(text: string): string[][] {
+	const rows: string[][] = [];
+	let row: string[] = [];
+	let field = "";
+	let inQuotes = false;
+	let i = 0;
+
+	while (i < text.length) {
+		const char = text[i];
+
+		if (inQuotes) {
+			if (char === '"') {
+				if (text[i + 1] === '"') {
+					field += '"';
+					i += 2;
+				} else {
+					inQuotes = false;
+					i++;
+				}
+			} else {
+				field += char;
+				i++;
+			}
+			continue;
+		}
+
+		if (char === '"') {
+			inQuotes = true;
+			i++;
+		} else if (char === ",") {
+			row.push(field);
+			field = "";
+			i++;
+		} else if (char === "\r" || char === "\n") {
+			row.push(field);
+			field = "";
+			rows.push(row);
+			row = [];
+			// \r\n cuenta como un solo salto de línea.
+			i += char === "\r" && text[i + 1] === "\n" ? 2 : 1;
+		} else {
+			field += char;
+			i++;
+		}
+	}
+	// Última celda/fila si el texto no termina en salto de línea.
+	if (field !== "" || row.length > 0) {
+		row.push(field);
+		rows.push(row);
+	}
+	return rows;
+}
+
+// Matriz CSV → filas objeto con la primera fila como cabecera. Salta líneas
+// vacías (equivalente a `skipEmptyLines` de papaparse) y quita el BOM que
+// Excel suele anteponer.
+function csvToRows(text: string): RawImportRow[] {
+	const matrix = parseCsvMatrix(text.replace(/^\uFEFF/, "")).filter(
+		(cells) => !(cells.length === 1 && cells[0].trim() === ""),
+	);
+	if (matrix.length === 0) return [];
+	const header = matrix[0].map((key) => key.trim());
+	return matrix.slice(1).map((cells) => {
+		const obj: RawImportRow = {};
+		header.forEach((key, index) => {
+			obj[key] = cells[index] ?? "";
+		});
+		return obj;
+	});
+}
+
+export type ExportFormat = "csv" | "json" | "xlsx";
+
+// Convierte y dispara la descarga en el navegador. CSV y JSON son nativos;
+// Excel carga `xlsx` bajo demanda (import dinámico), así que solo quien elige
+// Excel paga ese peso. El servidor solo aporta el array completo de empleados
+// (ver listAllEmployeesFn). Es async por el import() de xlsx.
+export async function exportEmployees(
+	employees: Employee[],
+	format: ExportFormat,
+) {
+	const rows = employees.map(employeeToRow);
+	const columns = [...EMPLOYEE_EXPORT_COLUMNS];
+
+	if (format === "csv") {
+		triggerDownload(
+			new Blob([toCsv(rows, columns)], { type: "text/csv;charset=utf-8;" }),
+			"usuarios.csv",
+		);
+		return;
+	}
+
+	if (format === "json") {
+		triggerDownload(
+			new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" }),
+			"usuarios.json",
+		);
+		return;
+	}
+
+	const XLSX = await loadXlsx();
+	const sheet = XLSX.utils.json_to_sheet(rows, { header: columns });
+	const book = XLSX.utils.book_new();
+	XLSX.utils.book_append_sheet(book, sheet, "Usuarios");
+	const buffer = XLSX.write(book, { type: "array", bookType: "xlsx" });
+	triggerDownload(
+		new Blob([buffer], { type: "application/octet-stream" }),
+		"usuarios.xlsx",
+	);
+}
+
+// --- Importación -----------------------------------------------------------
+
+type RawImportRow = Record<string, unknown>;
+
+// Detecta el formato por extensión y devuelve filas "crudas" (claves y
+// valores tal cual vienen del archivo, sin validar todavía).
+export async function parseEmployeeFile(file: File): Promise<RawImportRow[]> {
+	const ext = file.name.split(".").pop()?.toLowerCase();
+
+	if (ext === "json") {
+		const data = JSON.parse(await file.text());
+		if (!Array.isArray(data)) {
+			throw new Error("El archivo JSON debe contener un array de filas.");
+		}
+		return data;
+	}
+
+	if (ext === "csv") {
+		return csvToRows(await file.text());
+	}
+
+	if (ext === "xlsx" || ext === "xls") {
+		const XLSX = await loadXlsx();
+		const book = XLSX.read(await file.arrayBuffer(), { type: "array" });
+		const sheet = book.Sheets[book.SheetNames[0]];
+		return XLSX.utils.sheet_to_json<RawImportRow>(sheet, { defval: "" });
+	}
+
+	throw new Error(
+		`Formato de archivo no soportado (${file.name}). Usa CSV, JSON o Excel (.xlsx).`,
+	);
+}
+
+function cleanString(value: unknown): string | undefined {
+	if (value === null || value === undefined) return undefined;
+	const str = String(value).trim();
+	return str === "" ? undefined : str;
+}
+
+const TRUTHY = new Set(["true", "1", "sí", "si", "activo", "yes"]);
+
+function cleanBoolean(value: unknown): boolean | undefined {
+	const str = cleanString(value);
+	return str === undefined ? undefined : TRUTHY.has(str.toLowerCase());
+}
+
+export type ImportRowResult =
+	| { kind: "create"; row: number; input: CreateEmployeeInput }
+	| { kind: "update"; row: number; id: string; input: UpdateEmployeeInput }
+	| { kind: "error"; row: number; message: string };
+
+// Valida y normaliza una fila "cruda" del archivo. Con `id` presente, la fila
+// actualiza ese usuario existente; sin `id`, crea uno nuevo. No toca la
+// cuenta de usuario (email/contraseña): ese enlace se gestiona aparte, desde
+// "Nuevo usuario" o la ficha del empleado.
+export function mapImportRow(row: RawImportRow, index: number): ImportRowResult {
+	const id = cleanString(row.id);
+	const payload = {
+		name: cleanString(row.name),
+		lastName: cleanString(row.lastName ?? row.lastname),
+		ci: cleanString(row.ci),
+		birthday: cleanString(row.birthday),
+		phoneNumber: cleanString(row.phoneNumber ?? row.phonenumber ?? row.phone),
+		address: cleanString(row.address),
+		inDate: cleanString(row.inDate ?? row.indate),
+		outDate: cleanString(row.outDate ?? row.outdate),
+		active: cleanBoolean(row.active),
+	};
+
+	if (id) {
+		const result = updateEmployeeSchema.safeParse(payload);
+		if (!result.success) {
+			return {
+				kind: "error",
+				row: index + 1,
+				message: result.error.issues[0]?.message ?? "Datos inválidos",
+			};
+		}
+		return { kind: "update", row: index + 1, id, input: result.data };
+	}
+
+	const result = createEmployeeSchema.safeParse(payload);
+	if (!result.success) {
+		return {
+			kind: "error",
+			row: index + 1,
+			message: result.error.issues[0]?.message ?? "Datos inválidos",
+		};
+	}
+	return { kind: "create", row: index + 1, input: result.data };
+}

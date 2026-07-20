@@ -31,7 +31,7 @@ export function DataTablePagination({
 	const canNext = page < totalPages;
 
 	return (
-		<div className="flex items-center justify-between gap-4 px-1 text-sm text-muted-foreground">
+		<div className="flex flex-wrap items-center justify-between gap-3 px-1 text-sm text-muted-foreground">
 			<div className="flex items-center gap-2">
 				{isFetching && <Spinner className="size-3.5" />}
 				<span className="tabular-nums">
