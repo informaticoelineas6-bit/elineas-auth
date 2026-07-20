@@ -33,6 +33,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			{
 				title: "Elineas Auth Identity Server",
 			},
+			{
+				name: "robots",
+				content: "noindex, nofollow",
+			},
 		],
 		links: [
 			{
