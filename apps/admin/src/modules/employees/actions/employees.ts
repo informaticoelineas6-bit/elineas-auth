@@ -55,15 +55,25 @@ export const listAllEmployeesFn = createServerFn({ method: "GET" })
 	.validator(employeeFiltersSchema.omit({ page: true, limit: true }))
 	.handler(async ({ data }) => {
 		const limit = 100;
-		const all = [];
-		for (let page = 1; ; page++) {
-			const { employees, pagination } = await listEmployees({
-				...data,
-				page,
-				limit,
-			});
-			all.push(...employees);
-			if (employees.length === 0 || page >= pagination.totalPages) break;
+		// La primera página revela `totalPages`; las páginas 2..N son
+		// independientes entre sí, así que se piden en paralelo en vez de una tras
+		// otra (antes O(N) round-trips en serie). La concurrencia se acota porque
+		// el IS tiene rate-limiting: una ráfaga sin límite dispararía 429.
+		const first = await listEmployees({ ...data, page: 1, limit });
+		const all = [...first.employees];
+		const totalPages = first.pagination.totalPages;
+		if (totalPages <= 1) return all;
+
+		const CONCURRENCY = 5;
+		const pages = Array.from({ length: totalPages - 1 }, (_, i) => i + 2);
+		for (let i = 0; i < pages.length; i += CONCURRENCY) {
+			const chunk = pages.slice(i, i + CONCURRENCY);
+			const results = await Promise.all(
+				chunk.map((page) => listEmployees({ ...data, page, limit })),
+			);
+			// El orden del chunk se preserva (Promise.all mantiene el orden de
+			// entrada), así que el array final queda ordenado por página.
+			for (const { employees } of results) all.push(...employees);
 		}
 		return all;
 	});
