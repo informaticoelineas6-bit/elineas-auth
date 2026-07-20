@@ -5,23 +5,23 @@ import {
 	redirect,
 	useRouterState,
 } from "@tanstack/react-router";
-import { resolveAdminContextFn } from "@/modules/admin/actions/admin.ts";
+import { resolveAuthedContextFn } from "@/modules/admin/actions/admin.ts";
 import { AdminHeader } from "@/modules/admin/components/admin-header.tsx";
 import { AdminRolesError } from "@/modules/admin/components/admin-roles-error.tsx";
 import { AdminShellSkeleton } from "@/modules/admin/components/admin-shell-skeleton.tsx";
 import { ForbiddenScreen } from "@/modules/admin/components/forbidden-screen.tsx";
-import { getSessionFn } from "@/modules/auth/actions/auth.ts";
 import { SectionError } from "@/modules/common/components/partials/section-error.tsx";
 
 export const Route = createFileRoute("/_authed")({
 	beforeLoad: async ({ location }) => {
-		const session = await getSessionFn();
+		// Una sola server fn resuelve sesión + roles + isAdmin (un round-trip, una
+		// verificación de JWT). Ver resolveAuthedContextFn.
+		const ctx = await resolveAuthedContextFn();
 		// Sesión ausente/caducada: al login, conservando la ruta para volver.
-		if (!session) {
+		if (!ctx.session) {
 			throw redirect({ to: "/", search: { redirect: location.href } });
 		}
-		const { roles, isAdmin } = await resolveAdminContextFn();
-		return { session, roles, isAdmin };
+		return { session: ctx.session, roles: ctx.roles, isAdmin: ctx.isAdmin };
 	},
 	pendingComponent: AdminShellSkeleton,
 	errorComponent: AdminRolesError,
