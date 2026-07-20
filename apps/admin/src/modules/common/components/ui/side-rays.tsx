@@ -2,7 +2,7 @@
 // únicamente sus tipos de forma estática (se borran al compilar, no entran al
 // bundle) y cargamos el runtime con `import("ogl")` cuando el efecto arranca,
 // así se parte en su propio chunk y no lastra el bundle inicial del login.
-import type { Mesh, Renderer } from "ogl";
+import type { Renderer } from "ogl";
 import { useEffect, useRef, useState } from "react";
 
 // Fondo puramente decorativo: DPR 1 basta (DPR 2 = 4× píxeles a sombrear) y
@@ -19,6 +19,12 @@ type Origin =
 	| "top-center"
 	| "bottom-center";
 
+// Cada "fuente" es un abanico de rayos (origen + inclinación). Varias fuentes se
+// dibujan en UN solo contexto WebGL (un mesh por fuente, compuestos con
+// alpha-blending), en vez de montar un <SideRays> —y por tanto un contexto GL y
+// un bucle rAF— por cada abanico.
+type RaySource = { origin?: Origin; tilt?: number };
+
 interface SideRaysProps {
 	speed?: number;
 	rayColor1?: string;
@@ -27,6 +33,9 @@ interface SideRaysProps {
 	spread?: number;
 	origin?: Origin;
 	tilt?: number;
+	// Varias fuentes en un único contexto. Si se omite, se usa una sola fuente a
+	// partir de `origin`/`tilt` (comportamiento retrocompatible).
+	sources?: RaySource[];
 	saturation?: number;
 	blend?: number;
 	falloff?: number;
@@ -71,6 +80,8 @@ const originToParams = (origin: Origin): OriginParams => {
 	}
 };
 
+type LayerUniforms = Record<string, { value: number | number[] }>;
+
 const SideRays = ({
 	speed = 2.5,
 	rayColor1 = "#EAB308",
@@ -79,6 +90,7 @@ const SideRays = ({
 	spread = 2,
 	origin = "top-right",
 	tilt = 0,
+	sources,
 	saturation = 1.5,
 	blend = 0.75,
 	falloff = 2.0,
@@ -86,16 +98,21 @@ const SideRays = ({
 	className = "",
 }: SideRaysProps) => {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const uniformsRef = useRef<Record<
-		string,
-		{ value: number | number[] }
-	> | null>(null);
+	// Una entrada de uniforms por fuente (abanico). Todas comparten contexto GL.
+	const uniformsListRef = useRef<LayerUniforms[] | null>(null);
 	const rendererRef = useRef<Renderer | null>(null);
 	const animationIdRef = useRef<number | null>(null);
-	const meshRef = useRef<Mesh | null>(null);
+	const sceneRef = useRef<{ setParent?: unknown } | null>(null);
 	const cleanupFunctionRef = useRef<(() => void) | null>(null);
 	const [isVisible, setIsVisible] = useState(false);
 	const observerRef = useRef<IntersectionObserver | null>(null);
+
+	// Lista efectiva de fuentes: la prop `sources`, o una única a partir de
+	// origin/tilt. Se normaliza aquí para que init y el efecto de uniforms usen
+	// la misma forma.
+	const raySources: Required<RaySource>[] = (
+		sources && sources.length > 0 ? sources : [{ origin, tilt }]
+	).map((s) => ({ origin: s.origin ?? origin, tilt: s.tilt ?? tilt }));
 
 	useEffect(() => {
 		if (!containerRef.current) return;
@@ -118,10 +135,11 @@ const SideRays = ({
 		};
 	}, []);
 
-	// Solo (re)inicializamos el contexto WebGL al cambiar la visibilidad. Las
-	// props se leen al arrancar y luego se actualizan en caliente en el efecto de
-	// más abajo, sin destruir ni recrear el contexto GL en cada cambio de prop.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: init depende solo de isVisible; las props se sincronizan vía el efecto de uniforms.
+	// Solo (re)inicializamos el contexto WebGL al cambiar la visibilidad o el
+	// número de fuentes (que define cuántos meshes crear). Las props numéricas se
+	// leen al arrancar y se actualizan en caliente en el efecto de más abajo, sin
+	// destruir ni recrear el contexto GL en cada cambio de prop.
+	// biome-ignore lint/correctness/useExhaustiveDependencies: init depende de isVisible y del nº de fuentes; el resto de props se sincroniza vía el efecto de uniforms.
 	useEffect(() => {
 		if (!isVisible || !containerRef.current) return;
 
@@ -139,7 +157,9 @@ const SideRays = ({
 
 			// Carga diferida: el chunk de `ogl` solo se descarga al llegar aquí
 			// (componente visible, en cliente), no en el bundle inicial.
-			const { Mesh, Program, Renderer, Triangle } = await import("ogl");
+			const { Mesh, Program, Renderer, Transform, Triangle } = await import(
+				"ogl"
+			);
 
 			if (!containerRef.current) return;
 
@@ -223,45 +243,71 @@ void main() {
   gl_FragColor = color;
 }`;
 
-			const { sourcePos, baseAngle } = originToParams(origin);
-			const uniforms = {
-				iTime: { value: 0 },
-				iResolution: { value: [1, 1] as number[] },
-				iSpeed: { value: speed },
-				iRayColor1: { value: hexToRgb(rayColor1) as number[] },
-				iRayColor2: { value: hexToRgb(rayColor2) as number[] },
-				iIntensity: { value: intensity },
-				iSpread: { value: spread },
-				iSourcePos: { value: sourcePos as number[] },
-				iBaseAngle: { value: baseAngle },
-				iTilt: { value: tilt },
-				iSaturation: { value: saturation },
-				iBlend: { value: blend },
-				iFalloff: { value: falloff },
-				iOpacity: { value: opacity },
-			};
-			uniformsRef.current = uniforms;
-
+			// Escena con un mesh por fuente. `transparent: true` activa el
+			// alpha-blending source-over de ogl, así que apilar los meshes en el
+			// mismo canvas equivale a apilar los canvas translúcidos de antes.
+			const scene = new Transform();
 			const geometry = new Triangle(gl);
-			const program = new Program(gl, {
-				vertex: vert,
-				fragment: frag,
-				uniforms,
-			});
-			const mesh = new Mesh(gl, { geometry, program });
-			meshRef.current = mesh;
+			const uniformsList: LayerUniforms[] = [];
+
+			for (const src of raySources) {
+				const { sourcePos, baseAngle } = originToParams(src.origin);
+				const uniforms: LayerUniforms = {
+					iTime: { value: 0 },
+					iResolution: { value: [1, 1] as number[] },
+					iSpeed: { value: speed },
+					iRayColor1: { value: hexToRgb(rayColor1) as number[] },
+					iRayColor2: { value: hexToRgb(rayColor2) as number[] },
+					iIntensity: { value: intensity },
+					iSpread: { value: spread },
+					iSourcePos: { value: sourcePos as number[] },
+					iBaseAngle: { value: baseAngle },
+					iTilt: { value: src.tilt },
+					iSaturation: { value: saturation },
+					iBlend: { value: blend },
+					iFalloff: { value: falloff },
+					iOpacity: { value: opacity },
+				};
+				uniformsList.push(uniforms);
+
+				const program = new Program(gl, {
+					vertex: vert,
+					fragment: frag,
+					uniforms,
+					transparent: true,
+				});
+				const mesh = new Mesh(gl, { geometry, program });
+				mesh.setParent(scene);
+			}
+
+			uniformsListRef.current = uniformsList;
+			sceneRef.current = scene as unknown as { setParent?: unknown };
 
 			const updateSize = () => {
 				if (!containerRef.current || !renderer) return;
 				renderer.dpr = RENDER_DPR;
 				const { clientWidth: w, clientHeight: h } = containerRef.current;
 				renderer.setSize(w, h);
-				uniforms.iResolution.value = [w * renderer.dpr, h * renderer.dpr];
+				const resolution = [w * renderer.dpr, h * renderer.dpr];
+				for (const u of uniformsList) u.iResolution.value = resolution;
+			};
+
+			// El resize llega en ráfagas al arrastrar la ventana; se coalesce en un
+			// único recálculo por frame con requestAnimationFrame.
+			let resizeRaf: number | null = null;
+			const onResize = () => {
+				if (resizeRaf !== null) return;
+				resizeRaf = requestAnimationFrame(() => {
+					resizeRaf = null;
+					updateSize();
+				});
 			};
 
 			const renderFrame = (timeSeconds: number) => {
-				uniforms.iTime.value = timeSeconds;
-				renderer.render({ scene: mesh });
+				for (const u of uniformsList) u.iTime.value = timeSeconds;
+				// sort: false → los meshes se dibujan en orden de inserción (la fuente
+				// 0 debajo, la última encima), reproduciendo el apilado de los canvas.
+				renderer.render({ scene, sort: false });
 			};
 
 			// Respeta prefers-reduced-motion: un solo frame estático, sin bucle.
@@ -271,8 +317,7 @@ void main() {
 
 			let lastFrameMs = -Infinity;
 			const loop = (t: number) => {
-				if (!rendererRef.current || !uniformsRef.current || !meshRef.current)
-					return;
+				if (!rendererRef.current || !uniformsListRef.current) return;
 				// Throttle a TARGET_FPS: solo renderizamos cuando pasó el intervalo.
 				if (t - lastFrameMs >= FRAME_INTERVAL_MS) {
 					lastFrameMs = t;
@@ -285,7 +330,7 @@ void main() {
 				animationIdRef.current = requestAnimationFrame(loop);
 			};
 
-			window.addEventListener("resize", updateSize);
+			window.addEventListener("resize", onResize);
 			updateSize();
 			if (prefersReducedMotion) {
 				renderFrame(0);
@@ -298,7 +343,11 @@ void main() {
 					cancelAnimationFrame(animationIdRef.current);
 					animationIdRef.current = null;
 				}
-				window.removeEventListener("resize", updateSize);
+				if (resizeRaf !== null) {
+					cancelAnimationFrame(resizeRaf);
+					resizeRaf = null;
+				}
+				window.removeEventListener("resize", onResize);
 				if (renderer) {
 					try {
 						const loseCtx = renderer.gl.getExtension("WEBGL_lose_context");
@@ -308,8 +357,8 @@ void main() {
 					} catch {}
 				}
 				rendererRef.current = null;
-				uniformsRef.current = null;
-				meshRef.current = null;
+				uniformsListRef.current = null;
+				sceneRef.current = null;
 			};
 		};
 
@@ -321,32 +370,34 @@ void main() {
 				cleanupFunctionRef.current = null;
 			}
 		};
-	}, [isVisible]);
+	}, [isVisible, raySources.length]);
 
 	useEffect(() => {
-		if (!uniformsRef.current) return;
-		const u = uniformsRef.current;
-		u.iSpeed.value = speed;
-		u.iRayColor1.value = hexToRgb(rayColor1);
-		u.iRayColor2.value = hexToRgb(rayColor2);
-		u.iIntensity.value = intensity;
-		u.iSpread.value = spread;
-		const { sourcePos, baseAngle } = originToParams(origin);
-		u.iSourcePos.value = sourcePos;
-		u.iBaseAngle.value = baseAngle;
-		u.iTilt.value = tilt;
-		u.iSaturation.value = saturation;
-		u.iBlend.value = blend;
-		u.iFalloff.value = falloff;
-		u.iOpacity.value = opacity;
+		if (!uniformsListRef.current) return;
+		for (let i = 0; i < uniformsListRef.current.length; i++) {
+			const u = uniformsListRef.current[i];
+			const src = raySources[i] ?? raySources[0];
+			u.iSpeed.value = speed;
+			u.iRayColor1.value = hexToRgb(rayColor1);
+			u.iRayColor2.value = hexToRgb(rayColor2);
+			u.iIntensity.value = intensity;
+			u.iSpread.value = spread;
+			const { sourcePos, baseAngle } = originToParams(src.origin);
+			u.iSourcePos.value = sourcePos;
+			u.iBaseAngle.value = baseAngle;
+			u.iTilt.value = src.tilt;
+			u.iSaturation.value = saturation;
+			u.iBlend.value = blend;
+			u.iFalloff.value = falloff;
+			u.iOpacity.value = opacity;
+		}
 	}, [
 		speed,
 		rayColor1,
 		rayColor2,
 		intensity,
 		spread,
-		origin,
-		tilt,
+		raySources,
 		saturation,
 		blend,
 		falloff,
