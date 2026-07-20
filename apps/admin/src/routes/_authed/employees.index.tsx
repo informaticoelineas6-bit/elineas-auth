@@ -31,6 +31,12 @@ import type {
 export const Route = createFileRoute("/_authed/employees/")({
 	// Búsqueda/filtro/página viajan en la URL con el mismo schema que el server fn.
 	validateSearch: employeeFiltersSchema,
+	// Prefetch del listado con los mismos filtros que usa el componente (misma
+	// query key), para calentar la cache en hover/SSR y evitar el waterfall
+	// montaje→fetch. prefetchQuery no lanza: el 403 lo sigue mostrando ForbiddenState.
+	loaderDeps: ({ search }) => search,
+	loader: ({ context: { queryClient }, deps }) =>
+		queryClient.prefetchQuery(employeesQueries.list(deps)),
 	component: EmployeesPage,
 });
 

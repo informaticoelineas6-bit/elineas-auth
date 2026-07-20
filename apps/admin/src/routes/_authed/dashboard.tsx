@@ -34,6 +34,17 @@ const STAT_TINTS = [
 ] as const;
 
 export const Route = createFileRoute("/_authed/dashboard")({
+	// Prefetch de los 4 contadores: con preload "intent" se calientan al pasar el
+	// cursor y en SSR viajan con la página, evitando el waterfall montaje→fetch.
+	// prefetchQuery (no ensureQueryData) no lanza en error: cada tarjeta sigue
+	// gestionando su propio estado de carga/error.
+	loader: ({ context: { queryClient } }) =>
+		Promise.all([
+			queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
+			queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
+			queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
+			queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
+		]),
 	component: Dashboard,
 });
 

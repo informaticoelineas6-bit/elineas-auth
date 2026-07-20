@@ -32,6 +32,10 @@ import {
 import type { Employee } from "@/modules/employees/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/employees/$employeeId/")({
+	// Prefetch del detalle (misma query key) para calentar hover/SSR. prefetchQuery
+	// no lanza: los estados 404/403 los siguen mostrando los componentes.
+	loader: ({ context: { queryClient }, params }) =>
+		queryClient.prefetchQuery(employeesQueries.detail(params.employeeId)),
 	component: EmployeeDetailPage,
 });
 

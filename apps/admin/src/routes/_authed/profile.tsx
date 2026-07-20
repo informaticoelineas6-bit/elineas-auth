@@ -12,6 +12,9 @@ import { ProfileDataForm } from "@/modules/users/components/profile-data-form.ts
 import { usersQueries } from "@/modules/users/queries/users.ts";
 
 export const Route = createFileRoute("/_authed/profile")({
+	// Prefetch del perfil (misma query key) para calentar hover/SSR.
+	loader: ({ context: { queryClient } }) =>
+		queryClient.prefetchQuery(usersQueries.me()),
 	component: ProfilePage,
 });
 

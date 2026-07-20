@@ -44,6 +44,17 @@ const ADMIN_ROLE_NAME = "admin";
 
 export const Route = createFileRoute("/_authed/user-roles")({
 	validateSearch: userRoleFiltersSchema,
+	// Prefetch del listado + las 3 fuentes (empleados/roles/sistemas) que la
+	// página usa para resolver ids, con las mismas query keys, para calentar
+	// hover/SSR y evitar el waterfall montaje→fetch.
+	loaderDeps: ({ search }) => search,
+	loader: ({ context: { queryClient }, deps }) =>
+		Promise.all([
+			queryClient.prefetchQuery(userRolesQueries.list(deps)),
+			queryClient.prefetchQuery(employeesQueries.list({ limit: 100 })),
+			queryClient.prefetchQuery(rolesQueries.list({ limit: 100 })),
+			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+		]),
 	component: UserRolesPage,
 });
 

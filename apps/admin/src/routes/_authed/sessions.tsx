@@ -30,6 +30,15 @@ import type {
 
 export const Route = createFileRoute("/_authed/sessions")({
 	validateSearch: sessionFiltersSchema,
+	// Prefetch de las 3 queries de la página (listado admin + sesiones propias +
+	// sesión actual) con las mismas query keys, para calentar hover/SSR.
+	loaderDeps: ({ search }) => search,
+	loader: ({ context: { queryClient }, deps }) =>
+		Promise.all([
+			queryClient.prefetchQuery(sessionsQueries.allList(deps)),
+			queryClient.prefetchQuery(sessionsQueries.list()),
+			queryClient.prefetchQuery(sessionsQueries.current()),
+		]),
 	component: SessionsPage,
 });
 

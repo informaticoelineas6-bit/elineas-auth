@@ -25,6 +25,13 @@ import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 
 export const Route = createFileRoute("/_authed/roles/$roleId/edit")({
+	// Prefetch del detalle + catálogo de sistemas (mismas query keys) para
+	// calentar hover/SSR.
+	loader: ({ context: { queryClient }, params }) =>
+		Promise.all([
+			queryClient.prefetchQuery(rolesQueries.detail(params.roleId)),
+			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+		]),
 	component: EditRolePage,
 });
 

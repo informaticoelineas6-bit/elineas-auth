@@ -14,7 +14,11 @@ export function getRouter() {
 		context,
 		scrollRestoration: true,
 		defaultPreload: "intent",
-		defaultPreloadStaleTime: 0,
+		// Con 0, cada hover re-ejecutaba el beforeLoad de _authed (round-trip de
+		// auth) y los loaders. 30s (igual que el staleTime de Query) reutiliza el
+		// preload; el prefetch de cada loader respeta además el staleTime de la
+		// query, así que no hay refetch redundante dentro de esa ventana.
+		defaultPreloadStaleTime: 30_000,
 		defaultViewTransition: true,
 		defaultErrorComponent: AppError,
 		defaultNotFoundComponent: NotFound,

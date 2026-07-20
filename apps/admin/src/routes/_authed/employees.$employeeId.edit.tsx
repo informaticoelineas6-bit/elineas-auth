@@ -27,6 +27,9 @@ import {
 import type { Employee } from "@/modules/employees/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/employees/$employeeId/edit")({
+	// Prefetch del detalle (misma query key) para calentar hover/SSR.
+	loader: ({ context: { queryClient }, params }) =>
+		queryClient.prefetchQuery(employeesQueries.detail(params.employeeId)),
 	component: EditEmployeePage,
 });
 

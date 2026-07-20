@@ -27,6 +27,14 @@ import type { System } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/roles/")({
 	validateSearch: roleFiltersSchema,
+	// Prefetch del listado + catálogo de sistemas (misma query key que el
+	// componente) para calentar hover/SSR y evitar el waterfall montaje→fetch.
+	loaderDeps: ({ search }) => search,
+	loader: ({ context: { queryClient }, deps }) =>
+		Promise.all([
+			queryClient.prefetchQuery(rolesQueries.list(deps)),
+			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+		]),
 	component: RolesPage,
 });
 

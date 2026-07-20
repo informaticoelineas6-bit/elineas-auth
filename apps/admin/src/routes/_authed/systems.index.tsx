@@ -24,6 +24,11 @@ import type { System, SystemFilters } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/systems/")({
 	validateSearch: systemFiltersSchema,
+	// Prefetch del listado (misma query key que el componente) para calentar
+	// hover/SSR y evitar el waterfall montaje→fetch.
+	loaderDeps: ({ search }) => search,
+	loader: ({ context: { queryClient }, deps }) =>
+		queryClient.prefetchQuery(systemsQueries.list(deps)),
 	component: SystemsPage,
 });
 

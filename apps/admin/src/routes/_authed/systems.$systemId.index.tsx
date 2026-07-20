@@ -33,6 +33,9 @@ import {
 import type { System } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/systems/$systemId/")({
+	// Prefetch del detalle (misma query key) para calentar hover/SSR.
+	loader: ({ context: { queryClient }, params }) =>
+		queryClient.prefetchQuery(systemsQueries.detail(params.systemId)),
 	component: SystemDetailPage,
 });
 
