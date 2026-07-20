@@ -35,7 +35,13 @@ export function UserMenu({ session }: { session: AuthSession }) {
 	const displayName = session.name ?? session.email ?? "Usuario";
 
 	return (
-		<DropdownMenu>
+		// modal={false}: el modo modal (por defecto) bloquea el scroll de la
+		// página mientras el menú está abierto añadiendo un margin-right al
+		// body para compensar la barra de scroll oculta; ese ajuste desplaza el
+		// contenido centrado (mx-auto) del header y se percibe como un salto
+		// hacia la izquierda. Sin modal, el menú se comporta igual pero no
+		// toca el scroll ni el layout de la página.
+		<DropdownMenu modal={false}>
 			<DropdownMenuTrigger asChild>
 				<button
 					type="button"

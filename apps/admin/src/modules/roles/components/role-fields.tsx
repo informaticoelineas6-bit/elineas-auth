@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import {
 	Field,
 	FieldError,
@@ -10,14 +11,17 @@ import type { EditRoleFormApi, RoleFormApi } from "../lib/form.ts";
 
 // Campos comunes de un rol (nombre y descripción), compartidos por el alta y la
 // edición. El `systemId` no vive aquí: en el alta lo aporta un selector aparte
-// y en la edición no es modificable. `nameError` muestra el 409 de nombre
-// duplicado dentro del mismo sistema sobre el campo.
+// (vía `systemField`, junto al nombre en la misma fila) y en la edición no es
+// modificable. `nameError` muestra el 409 de nombre duplicado dentro del mismo
+// sistema sobre el campo.
 export function RoleFields({
 	form: incomingForm,
 	nameError,
+	systemField,
 }: {
 	form: RoleFormApi;
 	nameError?: string;
+	systemField?: ReactNode;
 }) {
 	// La unión de form APIs (crear/editar) no permite renderizar <form.Field>
 	// directamente; ambos comparten name/description, así que se opera con un
@@ -26,6 +30,7 @@ export function RoleFields({
 
 	return (
 		<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
+			{systemField}
 			<form.Field name="name">
 				{(field) => {
 					const isInvalid =

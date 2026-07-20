@@ -9,7 +9,6 @@ import {
 	Field,
 	FieldDescription,
 	FieldError,
-	FieldGroup,
 	FieldLabel,
 } from "@/modules/common/components/ui/field.tsx";
 import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
@@ -92,58 +91,60 @@ function NewRolePage() {
 				}}
 				className="w-full"
 			>
-				<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
-					<form.Field name="systemId">
-						{(field) => {
-							const isInvalid =
-								field.state.meta.isTouched && !field.state.meta.isValid;
-							return (
-								<Field data-invalid={isInvalid}>
-									<FieldLabel htmlFor={field.name} required>
-										Sistema
-									</FieldLabel>
-									<Select
-										value={field.state.value || undefined}
-										onValueChange={(value) => field.handleChange(value)}
-									>
-										<SelectTrigger
-											id={field.name}
-											aria-invalid={isInvalid}
-											className="w-full"
-											disabled={systemsQuery.isPending}
+				<RoleFields
+					form={form}
+					nameError={nameError}
+					systemField={
+						<form.Field name="systemId">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name} required>
+											Sistema
+										</FieldLabel>
+										<Select
+											value={field.state.value || undefined}
+											onValueChange={(value) => field.handleChange(value)}
 										>
-											<SelectValue
-												placeholder={
-													systemsQuery.isPending
-														? "Cargando sistemas…"
-														: "Selecciona un sistema"
-												}
-											/>
-										</SelectTrigger>
-										<SelectContent>
-											{activeSystems.map((system) => (
-												<SelectItem key={system.id} value={system.id}>
-													{system.name}
-												</SelectItem>
-											))}
-										</SelectContent>
-									</Select>
-									{!systemsQuery.isPending && activeSystems.length === 0 && (
-										<FieldDescription>
-											No hay sistemas activos. Crea o activa un sistema antes de
-											definir roles.
-										</FieldDescription>
-									)}
-									{isInvalid && <FieldError errors={field.state.meta.errors} />}
-								</Field>
-							);
-						}}
-					</form.Field>
-				</FieldGroup>
-
-				<div className="mt-6">
-					<RoleFields form={form} nameError={nameError} />
-				</div>
+											<SelectTrigger
+												id={field.name}
+												aria-invalid={isInvalid}
+												className="w-full"
+												disabled={systemsQuery.isPending}
+											>
+												<SelectValue
+													placeholder={
+														systemsQuery.isPending
+															? "Cargando sistemas…"
+															: "Selecciona un sistema"
+													}
+												/>
+											</SelectTrigger>
+											<SelectContent>
+												{activeSystems.map((system) => (
+													<SelectItem key={system.id} value={system.id}>
+														{system.name}
+													</SelectItem>
+												))}
+											</SelectContent>
+										</Select>
+										{!systemsQuery.isPending && activeSystems.length === 0 && (
+											<FieldDescription>
+												No hay sistemas activos. Crea o activa un sistema antes
+												de definir roles.
+											</FieldDescription>
+										)}
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					}
+				/>
 
 				<div className="mt-8 flex justify-end gap-2">
 					<Button

@@ -18,15 +18,23 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 	const scrolled = useScrolled();
 
 	return (
+		// El padding del <header> (0 en el top) es lo que separa la barra de los
+		// bordes de la ventana al hacer scroll, dando el efecto de isla flotante;
+		// en el top desaparece y la barra vuelve a integrarse a todo lo ancho.
 		<header
 			className={cn(
-				"sticky top-0 z-50 w-full transition-[background-color,border-color,box-shadow,backdrop-filter] duration-300",
-				scrolled
-					? "border-b border-border/60 bg-background/70 shadow-sm backdrop-blur-xl supports-backdrop-filter:bg-background/60"
-					: "border-b border-transparent bg-transparent",
+				"sticky top-0 z-50 w-full transition-[padding] duration-300",
+				scrolled ? "px-3 pt-3 sm:px-4" : "px-0 pt-0",
 			)}
 		>
-			<div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-3">
+			<div
+				className={cn(
+					"mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 transition-[background-color,border-color,box-shadow,backdrop-filter,border-radius] duration-300 sm:gap-3",
+					scrolled
+						? "rounded-2xl border border-border/60 bg-background/70 shadow-lg shadow-black/5 backdrop-blur-xl supports-backdrop-filter:bg-background/60"
+						: "border-b border-transparent bg-transparent",
+				)}
+			>
 				<Link
 					to="/dashboard"
 					className="flex min-w-0 shrink-0 items-center gap-2 font-heading text-foreground"
@@ -39,7 +47,7 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 					</span>
 				</Link>
 
-				<nav className="ml-2 hidden items-center gap-1 lg:flex">
+				<nav className="ml-2 hidden min-w-0 items-center gap-1 overflow-x-auto lg:flex">
 					<NavLinks />
 				</nav>
 

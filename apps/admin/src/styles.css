@@ -177,7 +177,10 @@
     @apply border-border outline-ring/50;
   }
   html, body {
-    @apply overflow-x-hidden;
+    /* overflow-x-hidden en vez de clip rompería el sticky del header: al
+       fijar overflow en un eje, el navegador convierte a body en scroll
+       container y el sticky se calcula contra ese box en vez del viewport. */
+    @apply overflow-x-clip;
   }
   body {
     @apply bg-background text-foreground;
