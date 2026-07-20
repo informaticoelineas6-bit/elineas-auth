@@ -17,6 +17,19 @@ const ImageUrl = z
 // arbitrariamente grandes que acaben renderizadas sin escapar en un cliente.
 const DisplayName = z.string().min(1).max(100);
 
+// Dominio corporativo único admitido para cuentas del IS: el alta de usuarios
+// no es autoservicio (la crea un admin), así que restringir el dominio evita
+// cuentas con correos ajenos a la empresa. Se aplica al CREAR una cuenta
+// (SignUp) o CAMBIAR el correo (ChangeEmail), no al login (SignIn): una
+// cuenta ya existente conserva el correo que tenga, aunque fuera de un alta
+// anterior a esta regla.
+const COMPANY_EMAIL_DOMAIN = "mercadoelineas.com";
+const CompanyEmail = z
+  .email()
+  .refine((email) => email.toLowerCase().endsWith(`@${COMPANY_EMAIL_DOMAIN}`), {
+    message: `El correo debe ser del dominio @${COMPANY_EMAIL_DOMAIN}`,
+  });
+
 // Política de contraseña única y compartida por todas las rutas que reciben una
 // contraseña NUEVA (alta y cambio). Debe coincidir con la política de
 // better-auth (min/maxPasswordLength en lib/auth.ts); tenerla en un único sitio
@@ -27,7 +40,7 @@ const Password = z.string().min(12).max(128);
 export const SignUpBodySchema = z
   .object({
     name: DisplayName.openapi({ example: "Ada Lovelace" }),
-    email: z.email().openapi({ example: "ada@example.com" }),
+    email: CompanyEmail.openapi({ example: "ada@mercadoelineas.com" }),
     // Se valida aquí también para dar un error claro antes de llegar a la capa
     // de auth (better-auth aplica la misma política).
     password: Password.openapi({ example: "tu-contraseña-segura" }),
@@ -88,6 +101,17 @@ export const SessionSchema = z
 export const SafeSessionSchema = SessionSchema.omit({ token: true }).openapi(
   "SafeSession",
 );
+
+// Sesión + datos mínimos del usuario dueño, para el listado administrativo
+// (un admin ve sesiones de todos los usuarios y necesita saber de quién es
+// cada una). Igual que en `Employee.user`, solo id/name/email.
+export const AdminSafeSessionSchema = SafeSessionSchema.extend({
+  user: z.object({
+    id: z.string(),
+    name: z.string(),
+    email: z.email(),
+  }),
+}).openapi("AdminSafeSession");
 
 export const ErrorResponseSchema = z
   .object({
@@ -186,7 +210,7 @@ export const ChangePasswordResponseSchema = z
 
 export const ChangeEmailBodySchema = z
   .object({
-    newEmail: z.email().openapi({ example: "nueva@example.com" }),
+    newEmail: CompanyEmail.openapi({ example: "nueva@mercadoelineas.com" }),
     // Re-autenticación: el cambio de email se aplica sin verificación por correo
     // (updateEmailWithoutVerification), así que una sesión robada podría
     // consumar el robo de la cuenta. Exigir la contraseña actual lo evita sin

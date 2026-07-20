@@ -212,6 +212,18 @@ export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
   }),
 });
 
+// ---------------------------------------------------------------------------
+// Session (listado administrativo, todas las sesiones de todos los usuarios)
+// ---------------------------------------------------------------------------
+export const SessionListQuerySchema = PaginationQuerySchema.extend({
+  // Búsqueda libre por nombre o email del usuario dueño de la sesión
+  // (coincidencia parcial, sin distinguir mayúsculas).
+  search: z.string().max(100).optional().openapi({
+    param: { name: "search", in: "query", required: false },
+    example: "Ada",
+  }),
+});
+
 // Rol propio (vista de solo lectura para el usuario autenticado, no un admin):
 // incluye el sistema al que pertenece el rol para que un cliente pueda filtrar
 // por `systemSlug` sin exponer el resto de asignaciones de otros usuarios.

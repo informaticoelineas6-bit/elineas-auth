@@ -1,7 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { authRoutes } from "@/routes/auth.routes";
 import { usersRoutes } from "@/routes/users.routes";
-import { sessionsRoutes } from "@/routes/sessions.routes";
+import { sessionsAdminRoutes, sessionsRoutes } from "@/routes/sessions.routes";
 import { employeesRoutes } from "@/routes/employees.routes";
 import { systemsRoutes } from "@/routes/systems.routes";
 import { rolesRoutes } from "@/routes/roles.routes";
@@ -22,6 +22,7 @@ export function registerRoutes(app: OpenAPIHono<AppEnv>) {
     .route("/api/auth", authRoutes)
     .route("/api/users", usersRoutes)
     .route("/api/sessions", sessionsRoutes)
+    .route("/api/sessions/admin", sessionsAdminRoutes)
     .route("/api/employees", employeesRoutes)
     .route("/api/systems", systemsRoutes)
     .route("/api/roles", rolesRoutes)
