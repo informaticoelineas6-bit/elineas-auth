@@ -3,6 +3,7 @@ import {
 	useMutation,
 	useQueryClient,
 } from "@tanstack/react-query";
+import { CATALOG_STALE_TIME } from "@/modules/common/lib/query.ts";
 import {
 	createRoleFn,
 	deleteRoleFn,
@@ -29,6 +30,9 @@ export const rolesQueries = {
 		queryOptions({
 			queryKey: roleKeys.list(filters),
 			queryFn: () => listRolesFn({ data: filters }),
+			// Catálogo estable: varias vistas lo piden como fuente de nombres.
+			staleTime: CATALOG_STALE_TIME,
+			refetchOnWindowFocus: false,
 		}),
 	detail: (id: string) =>
 		queryOptions({
@@ -41,7 +45,9 @@ export function useCreateRole() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (input: CreateRoleInput) => createRoleFn({ data: input }),
-		onSuccess: () => queryClient.invalidateQueries({ queryKey: roleKeys.all }),
+		// Un alta solo afecta a los listados; no hay `detail` que invalidar.
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: roleKeys.lists() }),
 	});
 }
 

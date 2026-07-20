@@ -46,8 +46,9 @@ export function useCreateEmployee() {
 	return useMutation({
 		mutationFn: (input: CreateEmployeeInput) =>
 			createEmployeeFn({ data: input }),
+		// Un alta solo afecta a los listados; no hay `detail` que invalidar.
 		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: employeeKeys.all }),
+			queryClient.invalidateQueries({ queryKey: employeeKeys.lists() }),
 	});
 }
 
@@ -57,7 +58,7 @@ export function useCreateEmployeeWithUser() {
 		mutationFn: (input: CreateEmployeeWithUserInput) =>
 			createEmployeeWithUserFn({ data: input }),
 		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: employeeKeys.all }),
+			queryClient.invalidateQueries({ queryKey: employeeKeys.lists() }),
 	});
 }
 

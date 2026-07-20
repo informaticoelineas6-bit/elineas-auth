@@ -50,8 +50,12 @@ export function useCreateUserRole() {
 	return useMutation({
 		mutationFn: (input: CreateUserRoleInput) =>
 			createUserRoleFn({ data: input }),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: userRoleKeys.all }),
+		// Afecta los listados y, si te asignas un rol de consola a ti mismo, tus
+		// roles (`me`, base del acceso admin). No hay `detail` que invalidar.
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: userRoleKeys.lists() });
+			queryClient.invalidateQueries({ queryKey: userRoleKeys.me() });
+		},
 	});
 }
 

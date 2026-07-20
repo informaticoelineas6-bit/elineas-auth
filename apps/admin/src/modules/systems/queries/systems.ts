@@ -3,6 +3,7 @@ import {
 	useMutation,
 	useQueryClient,
 } from "@tanstack/react-query";
+import { CATALOG_STALE_TIME } from "@/modules/common/lib/query.ts";
 import {
 	createSystemFn,
 	deleteSystemFn,
@@ -29,6 +30,9 @@ export const systemsQueries = {
 		queryOptions({
 			queryKey: systemKeys.list(filters),
 			queryFn: () => listSystemsFn({ data: filters }),
+			// Catálogo estable: varias vistas lo piden como fuente de nombres.
+			staleTime: CATALOG_STALE_TIME,
+			refetchOnWindowFocus: false,
 		}),
 	detail: (id: string) =>
 		queryOptions({
@@ -41,8 +45,9 @@ export function useCreateSystem() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (input: CreateSystemInput) => createSystemFn({ data: input }),
+		// Un alta solo afecta a los listados; no hay `detail` que invalidar.
 		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: systemKeys.all }),
+			queryClient.invalidateQueries({ queryKey: systemKeys.lists() }),
 	});
 }
 
