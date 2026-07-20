@@ -3,7 +3,11 @@
 // sobre el script oficial, así que no vale la pena una dependencia extra.
 export type TurnstileRenderOptions = {
 	sitekey: string;
-	size?: "invisible" | "normal" | "compact";
+	size?: "normal" | "compact" | "flexible";
+	// "interaction-only": el widget no ocupa espacio ni se muestra salvo que
+	// Cloudflare decida interponer un reto interactivo. No existe un `size`
+	// "invisible": ese comportamiento se controla con `appearance`.
+	appearance?: "always" | "execute" | "interaction-only";
 	execution?: "render" | "execute";
 	callback?: (token: string) => void;
 	"error-callback"?: () => void;
@@ -31,7 +35,9 @@ let scriptPromise: Promise<void> | null = null;
 // insertar el script dos veces ni rechazar promesas ya resueltas.
 export function loadTurnstileScript(): Promise<void> {
 	if (typeof window === "undefined") {
-		return Promise.reject(new Error("Turnstile solo puede cargarse en el navegador"));
+		return Promise.reject(
+			new Error("Turnstile solo puede cargarse en el navegador"),
+		);
 	}
 	if (window.turnstile) return Promise.resolve();
 	if (scriptPromise) return scriptPromise;

@@ -22,14 +22,17 @@ export function useTurnstile(siteKey: string | null) {
 				if (cancelled || !containerRef.current || !window.turnstile) return;
 				widgetId.current = window.turnstile.render(containerRef.current, {
 					sitekey: siteKey,
-					size: "invisible",
+					size: "flexible",
+					appearance: "interaction-only",
 					execution: "execute",
 					callback: (token) => {
 						pending.current?.resolve(token);
 						pending.current = null;
 					},
 					"error-callback": () => {
-						pending.current?.reject(new Error("No se pudo verificar el captcha"));
+						pending.current?.reject(
+							new Error("No se pudo verificar el captcha"),
+						);
 						pending.current = null;
 					},
 					"expired-callback": () => {
@@ -59,7 +62,9 @@ export function useTurnstile(siteKey: string | null) {
 		if (!siteKey) return Promise.resolve("");
 		if (!widgetId.current || !window.turnstile) {
 			return Promise.reject(
-				new Error("El captcha aún no está listo. Espera un segundo e intenta de nuevo."),
+				new Error(
+					"El captcha aún no está listo. Espera un segundo e intenta de nuevo.",
+				),
 			);
 		}
 		const id = widgetId.current;
