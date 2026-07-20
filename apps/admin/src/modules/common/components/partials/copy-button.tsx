@@ -22,6 +22,7 @@ export function CopyButton({
 		try {
 			await navigator.clipboard.writeText(value);
 			setCopied(true);
+			toast.success("Copiado al portapapeles");
 			setTimeout(() => setCopied(false), 2000);
 		} catch {
 			toast.error("No se pudo copiar al portapapeles");

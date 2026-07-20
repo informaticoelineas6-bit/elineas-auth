@@ -1,8 +1,16 @@
 import { Link } from "@tanstack/react-router";
-import { ShieldCheck } from "lucide-react";
+import { Menu, ShieldCheck } from "lucide-react";
 import type { AuthSession } from "@/modules/auth/shared/types.ts";
+import { Button } from "@/modules/common/components/ui/button.tsx";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuTrigger,
+} from "@/modules/common/components/ui/dropdown-menu.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
 import { useScrolled } from "../lib/use-scrolled.ts";
+import { NAV_ITEMS } from "../shared/navigation.ts";
 import { NavLinks } from "./nav-links.tsx";
 import { UserMenu } from "./user-menu.tsx";
 
@@ -18,12 +26,12 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 					: "border-b border-transparent bg-transparent",
 			)}
 		>
-			<div className="mx-auto flex h-16 max-w-7xl items-center gap-3 px-4">
+			<div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-4 sm:gap-3">
 				<Link
 					to="/dashboard"
-					className="flex shrink-0 items-center gap-2 font-heading text-foreground"
+					className="flex min-w-0 shrink-0 items-center gap-2 font-heading text-foreground"
 				>
-					<span className="flex size-9 items-center justify-center rounded-xl bg-primary/10 text-primary">
+					<span className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
 						<ShieldCheck className="size-5" />
 					</span>
 					<span className="hidden text-base font-semibold sm:block">
@@ -36,15 +44,38 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 				</nav>
 
 				<div className="ml-auto flex items-center gap-2">
+					{/* Navegación en móvil: menú desplegable junto al de usuario, en
+					    vez de una fila con scroll horizontal (evita que la página
+					    tenga que desplazarse de lado). */}
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<Button
+								variant="ghost"
+								size="icon"
+								aria-label="Abrir menú de navegación"
+								className="lg:hidden"
+							>
+								<Menu />
+							</Button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent align="end" className="w-56 p-2">
+							{NAV_ITEMS.map((item) => (
+								<DropdownMenuItem key={item.to} asChild>
+									<Link
+										to={item.to}
+										activeOptions={{ exact: item.to === "/dashboard" }}
+										className="data-[status=active]:bg-accent data-[status=active]:font-semibold data-[status=active]:text-accent-foreground"
+									>
+										<item.icon />
+										{item.label}
+									</Link>
+								</DropdownMenuItem>
+							))}
+						</DropdownMenuContent>
+					</DropdownMenu>
+
 					<UserMenu session={session} />
 				</div>
-			</div>
-
-			{/* Navegación en móvil: fila desplazable horizontalmente. */}
-			<div className="border-t border-border/40 lg:hidden">
-				<nav className="mx-auto flex max-w-7xl items-center gap-1 overflow-x-auto px-4 py-2">
-					<NavLinks />
-				</nav>
 			</div>
 		</header>
 	);

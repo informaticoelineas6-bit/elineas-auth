@@ -2,19 +2,36 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
 	ArrowRight,
+	BookOpen,
 	Boxes,
 	CircleUser,
+	KeyRound,
+	Layers,
 	MonitorSmartphone,
 	ShieldCheck,
+	ShieldPlus,
+	ShieldQuestion,
 	UserCog,
+	UserPlus,
 	Users,
 } from "lucide-react";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
+import { cn } from "@/modules/common/lib/utils.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import { userRolesQueries } from "@/modules/user-roles/queries/user-roles.ts";
+
+// Un acento de color por tarjeta (tokens --chart-N ya definidos en
+// styles.css), para que el resumen se pueda escanear de un vistazo en vez de
+// leer cuatro tarjetas idénticas en azul.
+const STAT_TINTS = [
+	{ bg: "bg-chart-1/10", text: "text-chart-1" },
+	{ bg: "bg-chart-2/10", text: "text-chart-2" },
+	{ bg: "bg-chart-3/10", text: "text-chart-3" },
+	{ bg: "bg-chart-4/10", text: "text-chart-4" },
+] as const;
 
 export const Route = createFileRoute("/_authed/dashboard")({
 	component: Dashboard,
@@ -54,11 +71,21 @@ function Dashboard() {
 		},
 	] as const;
 
+	// Atajos de creación: el destino habitual tras revisar el Resumen es dar de
+	// alta algo. Separados de "Accesos rápidos" (navegación) porque son
+	// acciones, no vistas.
+	const quickActions = [
+		{ to: "/employees/new", label: "Nuevo usuario", icon: UserPlus },
+		{ to: "/systems/new", label: "Nuevo sistema", icon: Boxes },
+		{ to: "/roles/new", label: "Nuevo rol", icon: ShieldPlus },
+	] as const;
+
 	const quickLinks = [
 		{
 			to: "/sessions",
 			label: "Sesiones",
-			description: "Revisa y revoca tus dispositivos activos.",
+			description:
+				"Revisa y revoca las sesiones activas de todos los usuarios.",
 			icon: MonitorSmartphone,
 		},
 		{
@@ -66,6 +93,12 @@ function Dashboard() {
 			label: "Mi perfil",
 			description: "Edita tus datos, contraseña y correo.",
 			icon: CircleUser,
+		},
+		{
+			to: "/docs",
+			label: "Documentación",
+			description: "Cómo integrar un nuevo backend con Elineas.",
+			icon: BookOpen,
 		},
 	] as const;
 
@@ -80,29 +113,65 @@ function Dashboard() {
 
 			<section className="space-y-3">
 				<h2 className="text-sm font-medium text-muted-foreground">Resumen</h2>
-				<div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-					{stats.map((stat) => (
+				<div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+					{stats.map((stat, index) => {
+						const tint = STAT_TINTS[index % STAT_TINTS.length];
+						return (
+							<Link
+								key={stat.to}
+								to={stat.to}
+								className="group relative flex flex-col justify-between overflow-hidden rounded-2xl border border-border bg-card p-5 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-lg hover:shadow-primary/5"
+							>
+								{/* Marca de agua: el mismo ícono, grande y tenue, de fondo. */}
+								<stat.icon
+									className={cn(
+										"pointer-events-none absolute -right-4 -bottom-4 size-24 opacity-[0.06] transition-transform duration-300 group-hover:scale-110",
+										tint.text,
+									)}
+								/>
+								<div className="relative flex items-center justify-between">
+									<span
+										className={cn(
+											"flex size-10 items-center justify-center rounded-xl",
+											tint.bg,
+											tint.text,
+										)}
+									>
+										<stat.icon className="size-5" />
+									</span>
+									<ArrowRight className="size-4 text-muted-foreground opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+								</div>
+								<div className="relative mt-4">
+									{stat.query.isLoading ? (
+										<Skeleton className="h-9 w-16 lg:h-12 lg:w-24" />
+									) : (
+										<p className="font-heading text-3xl font-semibold tabular-nums text-foreground lg:text-5xl">
+											{stat.query.isError ? "—" : (stat.query.data ?? 0)}
+										</p>
+									)}
+									<p className="text-sm text-muted-foreground">{stat.label}</p>
+								</div>
+							</Link>
+						);
+					})}
+				</div>
+			</section>
+
+			<section className="space-y-3">
+				<h2 className="text-sm font-medium text-muted-foreground">
+					Acciones rápidas
+				</h2>
+				<div className="flex flex-wrap gap-3">
+					{quickActions.map((action) => (
 						<Link
-							key={stat.to}
-							to={stat.to}
-							className="group flex flex-col justify-between rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40"
+							key={action.to}
+							to={action.to}
+							className="group flex items-center gap-2.5 rounded-xl border border-border bg-card py-2.5 pr-4 pl-3 text-sm font-medium text-foreground transition-colors hover:border-primary/40 hover:bg-accent/40"
 						>
-							<div className="flex items-center justify-between">
-								<span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
-									<stat.icon className="size-5" />
-								</span>
-								<ArrowRight className="size-4 text-muted-foreground opacity-0 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
-							</div>
-							<div className="mt-4">
-								{stat.query.isLoading ? (
-									<Skeleton className="h-9 w-16" />
-								) : (
-									<p className="font-heading text-3xl font-semibold text-foreground">
-										{stat.query.isError ? "—" : (stat.query.data ?? 0)}
-									</p>
-								)}
-								<p className="text-sm text-muted-foreground">{stat.label}</p>
-							</div>
+							<span className="flex size-7 items-center justify-center rounded-lg bg-primary/10 text-primary">
+								<action.icon className="size-4" />
+							</span>
+							{action.label}
 						</Link>
 					))}
 				</div>
@@ -112,12 +181,12 @@ function Dashboard() {
 				<h2 className="text-sm font-medium text-muted-foreground">
 					Accesos rápidos
 				</h2>
-				<div className="grid gap-4 sm:grid-cols-2">
+				<div className="w-full grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
 					{quickLinks.map((link) => (
 						<Link
 							key={link.to}
 							to={link.to}
-							className="group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40"
+							className="w-full group flex items-center gap-4 rounded-2xl border border-border bg-card p-5 transition-colors hover:border-primary/40 hover:bg-accent/40"
 						>
 							<span className="flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
 								<link.icon className="size-5" />
@@ -131,6 +200,42 @@ function Dashboard() {
 							<ArrowRight className="size-4 text-muted-foreground transition group-hover:translate-x-0.5" />
 						</Link>
 					))}
+				</div>
+			</section>
+
+			<section className="space-y-3">
+				<h2 className="text-sm font-medium text-muted-foreground">
+					Conectar un nuevo backend
+				</h2>
+				<div className="rounded-2xl border border-border bg-card p-5">
+					<ol className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+						<li className="flex items-start gap-3">
+							<Layers className="mt-0.5 size-4 shrink-0 text-primary" />
+							<span className="text-sm text-muted-foreground">
+								Registra el sistema y sus roles.
+							</span>
+						</li>
+						<li className="flex items-start gap-3">
+							<KeyRound className="mt-0.5 size-4 shrink-0 text-primary" />
+							<span className="text-sm text-muted-foreground">
+								Haz login contra /api/auth/sign-in y verifica el JWT con el JWKS
+								del IS.
+							</span>
+						</li>
+						<li className="flex items-start gap-3">
+							<ShieldQuestion className="mt-0.5 size-4 shrink-0 text-primary" />
+							<span className="text-sm text-muted-foreground">
+								Autoriza consultando /api/user-roles/me.
+							</span>
+						</li>
+					</ol>
+					<Link
+						to="/docs"
+						className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+					>
+						Ver la guía completa con ejemplos por stack
+						<ArrowRight className="size-3.5" />
+					</Link>
 				</div>
 			</section>
 		</div>

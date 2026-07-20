@@ -14,6 +14,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
 import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
 import { Route as AuthedProfileRouteImport } from './routes/_authed/profile'
+import { Route as AuthedDocsRouteImport } from './routes/_authed/docs'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems.index'
 import { Route as AuthedRolesIndexRouteImport } from './routes/_authed/roles.index'
@@ -49,6 +50,11 @@ const AuthedSessionsRoute = AuthedSessionsRouteImport.update({
 const AuthedProfileRoute = AuthedProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDocsRoute = AuthedDocsRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
@@ -119,6 +125,7 @@ const AuthedEmployeesEmployeeIdEditRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/docs': typeof AuthedDocsRoute
   '/profile': typeof AuthedProfileRoute
   '/sessions': typeof AuthedSessionsRoute
   '/user-roles': typeof AuthedUserRolesRoute
@@ -137,6 +144,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/dashboard': typeof AuthedDashboardRoute
+  '/docs': typeof AuthedDocsRoute
   '/profile': typeof AuthedProfileRoute
   '/sessions': typeof AuthedSessionsRoute
   '/user-roles': typeof AuthedUserRolesRoute
@@ -157,6 +165,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
   '/_authed/dashboard': typeof AuthedDashboardRoute
+  '/_authed/docs': typeof AuthedDocsRoute
   '/_authed/profile': typeof AuthedProfileRoute
   '/_authed/sessions': typeof AuthedSessionsRoute
   '/_authed/user-roles': typeof AuthedUserRolesRoute
@@ -177,6 +186,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/dashboard'
+    | '/docs'
     | '/profile'
     | '/sessions'
     | '/user-roles'
@@ -195,6 +205,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/dashboard'
+    | '/docs'
     | '/profile'
     | '/sessions'
     | '/user-roles'
@@ -214,6 +225,7 @@ export interface FileRouteTypes {
     | '/'
     | '/_authed'
     | '/_authed/dashboard'
+    | '/_authed/docs'
     | '/_authed/profile'
     | '/_authed/sessions'
     | '/_authed/user-roles'
@@ -270,6 +282,13 @@ declare module '@tanstack/react-router' {
       path: '/profile'
       fullPath: '/profile'
       preLoaderRoute: typeof AuthedProfileRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/docs': {
+      id: '/_authed/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof AuthedDocsRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/dashboard': {
@@ -361,6 +380,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthedRouteChildren {
   AuthedDashboardRoute: typeof AuthedDashboardRoute
+  AuthedDocsRoute: typeof AuthedDocsRoute
   AuthedProfileRoute: typeof AuthedProfileRoute
   AuthedSessionsRoute: typeof AuthedSessionsRoute
   AuthedUserRolesRoute: typeof AuthedUserRolesRoute
@@ -379,6 +399,7 @@ interface AuthedRouteChildren {
 
 const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDashboardRoute: AuthedDashboardRoute,
+  AuthedDocsRoute: AuthedDocsRoute,
   AuthedProfileRoute: AuthedProfileRoute,
   AuthedSessionsRoute: AuthedSessionsRoute,
   AuthedUserRolesRoute: AuthedUserRolesRoute,

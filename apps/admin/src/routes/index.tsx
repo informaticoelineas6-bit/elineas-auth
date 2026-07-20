@@ -3,7 +3,12 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { signInSchema } from "#/modules/auth/lib/validation.ts";
-import { getSessionFn, signInFn } from "@/modules/auth/actions/auth.ts";
+import {
+	getSessionFn,
+	getTurnstileSiteKeyFn,
+	signInFn,
+} from "@/modules/auth/actions/auth.ts";
+import { useTurnstile } from "@/modules/auth/lib/use-turnstile.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	Field,
@@ -35,14 +40,20 @@ export const Route = createFileRoute("/")({
 		const session = await getSessionFn();
 		if (session) throw redirect({ to: safeRedirect(search.redirect) });
 	},
+	// Site key de Turnstile (pública): se resuelve en el servidor a partir de
+	// TURNSTILE_SITE_KEY y viaja al cliente como loader data, igual que el tema
+	// en el root. `null` si no está configurado (login sin captcha).
+	loader: () => getTurnstileSiteKeyFn(),
 	component: LoginPage,
 });
 
 function LoginPage() {
 	const navigate = useNavigate();
 	const search = Route.useSearch();
+	const turnstileSiteKey = Route.useLoaderData();
 	const login = useServerFn(signInFn);
 	const rateLimit = useCountdown();
+	const turnstile = useTurnstile(turnstileSiteKey);
 
 	const form = useForm({
 		defaultValues: { email: "", password: "" },
@@ -51,11 +62,13 @@ function LoginPage() {
 		},
 		onSubmit: async ({ value }) => {
 			try {
+				const turnstileToken = await turnstile.getToken();
 				const result = await login({
 					data: {
 						email: value.email,
 						password: value.password,
 						rememberMe: false,
+						turnstileToken,
 					},
 				});
 				if (result.error) {
@@ -105,8 +118,8 @@ function LoginPage() {
 					opacity={0.75}
 				/>
 			</div>
-			<div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-6 p-8">
-				<h1 className="text-5xl font-semibold shimmer text-muted-foreground">
+			<div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-6 p-4 text-center sm:p-8">
+				<h1 className="font-semibold shimmer text-muted-foreground text-5xl text-center">
 					Elineas Identity Server
 				</h1>
 				<form
@@ -170,6 +183,9 @@ function LoginPage() {
 							}}
 						</form.Field>
 					</FieldGroup>
+					{/* Widget invisible: sin tamaño ni contenido visible (size: "invisible").
+					    Cloudflare solo lo muestra si decide interponer un reto. */}
+					<div ref={turnstile.containerRef} />
 					<form.Subscribe
 						selector={(state) => ({
 							canSubmit: state.canSubmit,

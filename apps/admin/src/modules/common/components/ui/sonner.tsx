@@ -1,3 +1,4 @@
+import { getRouteApi } from "@tanstack/react-router"
 import {
   CircleCheckIcon,
   InfoIcon,
@@ -5,11 +6,14 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
 } from "lucide-react"
-import { useTheme } from "next-themes"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
+// El tema lo gestiona la app por cookie + loader del root (ver __root.tsx),
+// no next-themes (que ni siquiera tiene Provider montado). Se lee de ahí.
+const rootRoute = getRouteApi("__root__")
+
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "system" } = useTheme()
+  const theme = rootRoute.useLoaderData()
 
   return (
     <Sonner

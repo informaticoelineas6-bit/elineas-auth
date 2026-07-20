@@ -25,13 +25,16 @@ export function RoleFields({
 	const form = incomingForm as EditRoleFormApi;
 
 	return (
-		<FieldGroup className="w-full grid grid-cols-1 gap-6">
+		<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
 			<form.Field name="name">
 				{(field) => {
 					const isInvalid =
 						field.state.meta.isTouched && !field.state.meta.isValid;
 					return (
-						<Field data-invalid={isInvalid || Boolean(nameError)}>
+						<Field
+							data-invalid={isInvalid || Boolean(nameError)}
+							className="cols-span-1"
+						>
 							<FieldLabel htmlFor={field.name} required>
 								Nombre
 							</FieldLabel>
@@ -54,7 +57,7 @@ export function RoleFields({
 
 			<form.Field name="description">
 				{(field) => (
-					<Field>
+					<Field className="cols-span-1 md:col-span-2">
 						<FieldLabel htmlFor={field.name}>Descripción</FieldLabel>
 						<Textarea
 							id={field.name}

@@ -8,6 +8,7 @@ import {
 	createEmployeeWithUserFn,
 	deleteEmployeeFn,
 	getEmployeeFn,
+	listAllEmployeesFn,
 	listEmployeesFn,
 	updateEmployeeFn,
 } from "../actions/employees.ts";
@@ -69,6 +70,15 @@ export function useUpdateEmployee() {
 			queryClient.invalidateQueries({ queryKey: employeeKeys.lists() });
 			queryClient.invalidateQueries({ queryKey: employeeKeys.detail(id) });
 		},
+	});
+}
+
+// Exportar: petición puntual (disparada por el botón "Exportar"), no un
+// listado cacheado, por eso es una mutation y no una query.
+export function useExportEmployees() {
+	return useMutation({
+		mutationFn: (filters: Omit<EmployeeFilters, "page" | "limit">) =>
+			listAllEmployeesFn({ data: filters }),
 	});
 }
 

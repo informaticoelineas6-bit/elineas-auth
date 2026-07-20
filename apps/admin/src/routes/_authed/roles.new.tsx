@@ -92,7 +92,7 @@ function NewRolePage() {
 				}}
 				className="w-full"
 			>
-				<FieldGroup className="w-full grid grid-cols-1 gap-6">
+				<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
 					<form.Field name="systemId">
 						{(field) => {
 							const isInvalid =

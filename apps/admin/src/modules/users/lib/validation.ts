@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { passwordSchema } from "#/modules/common/lib/validation.ts";
+import {
+	companyEmailSchema,
+	passwordSchema,
+} from "#/modules/common/lib/validation.ts";
 
 export const updateProfileSchema = z.object({
 	name: z
@@ -46,7 +49,7 @@ export const changePasswordFormSchema = z
 // El cambio de email también exige la contraseña actual: el IS lo aplica sin
 // verificación por correo, así que es la única barrera ante una sesión robada.
 export const changeEmailSchema = z.object({
-	newEmail: z.email("Debe ser un correo electrónico válido"),
+	newEmail: companyEmailSchema,
 	currentPassword: z.string().min(1, "Este campo es obligatorio"),
 	callbackURL: z.string().optional(),
 });

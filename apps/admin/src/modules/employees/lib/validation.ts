@@ -1,18 +1,15 @@
 import { z } from "zod";
+import { phoneSchema } from "#/modules/common/lib/phone.ts";
 import {
+	companyEmailSchema,
 	isNotFutureDate,
-	paginationQuerySchema,
 	passwordSchema,
-	phoneSchema,
 } from "#/modules/common/lib/validation.ts";
 
-// Filtros de listado: paginación + búsqueda libre (nombre/apellido/CI) y estado.
-// `active` se acepta como boolean y buildQuery lo serializa a "true"/"false",
-// que es lo que el IS espera en la query string.
-export const employeeFiltersSchema = paginationQuerySchema.extend({
-	search: z.string().max(100).optional(),
-	active: z.boolean().optional(),
-});
+// `employeeFiltersSchema` vive en `./filters.ts` (sin dependencias pesadas)
+// para que el `validateSearch` de la ruta no arrastre phoneSchema/libphonenumber.
+// Se reexporta aquí por compatibilidad con los imports existentes.
+export { employeeFiltersSchema } from "./filters.ts";
 
 // Forma base compartida por alta y edición. Las fechas viajan como string ISO
 // ("YYYY-MM-DD" del <input type="date">); el IS las coacciona con
@@ -117,7 +114,7 @@ export const createEmployeeWithUserSchema = z.object({
 			.string()
 			.min(1, "Debe tener al menos 1 caracter")
 			.max(100, "Debe tener menos de 100 caracteres"),
-		email: z.email("Debe ser un correo electrónico válido"),
+		email: companyEmailSchema,
 		password: passwordSchema,
 		image: z.string().optional(),
 	}),

@@ -117,7 +117,9 @@ export function ProfileDataForm({ user }: { user: User }) {
 								field.state.meta.isTouched && !field.state.meta.isValid;
 							return (
 								<Field data-invalid={isInvalid}>
-									<FieldLabel htmlFor={field.name}>URL del avatar</FieldLabel>
+									<FieldLabel htmlFor={field.name}>
+									URL del avatar (si no se pone se generará automáticamente)
+								</FieldLabel>
 									<Input
 										id={field.name}
 										name={field.name}

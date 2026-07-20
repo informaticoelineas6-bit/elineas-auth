@@ -27,9 +27,9 @@ function ProfilePage() {
 			/>
 
 			{me.isPending ? (
-				<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-					<Skeleton className="h-96 rounded-xl" />
-					<Skeleton className="h-96 rounded-xl" />
+				<div className="columns-1 gap-6 lg:columns-2">
+					<Skeleton className="mb-6 h-96 break-inside-avoid rounded-xl" />
+					<Skeleton className="mb-6 h-96 break-inside-avoid rounded-xl" />
 				</div>
 			) : me.isError ? (
 				<div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
@@ -48,11 +48,19 @@ function ProfilePage() {
 					</Button>
 				</div>
 			) : (
-				<div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-2">
-					<ProfileDataForm user={me.data} />
-					<MyRolesCard />
-					<ChangePasswordForm />
-					<ChangeEmailForm currentEmail={me.data.email} />
+				<div className="columns-1 gap-6 lg:columns-2">
+					<div className="mb-6 break-inside-avoid">
+						<ProfileDataForm user={me.data} />
+					</div>
+					<div className="mb-6 break-inside-avoid">
+						<MyRolesCard />
+					</div>
+					<div className="mb-6 break-inside-avoid">
+						<ChangePasswordForm />
+					</div>
+					<div className="mb-6 break-inside-avoid">
+						<ChangeEmailForm currentEmail={me.data.email} />
+					</div>
 				</div>
 			)}
 		</div>

@@ -5,46 +5,61 @@ import { Info, LogOut, MonitorX } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { signOutFn } from "@/modules/auth/actions/auth.ts";
+import {
+	DataTable,
+	useListControls,
+} from "@/modules/common/components/data-table";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
-import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
-import {
-	getErrorMessage,
-	getErrorStatus,
-	reportError,
-} from "@/modules/common/lib/errors.ts";
-import { SessionItem } from "@/modules/sessions/components/session-item.tsx";
+import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
+import { getAdminSessionColumns } from "@/modules/sessions/lib/columns.tsx";
+import { sessionFiltersSchema } from "@/modules/sessions/lib/validation.ts";
 import {
 	sessionsQueries,
+	useAdminRevokeSession,
 	useRevokeAllSessions,
 	useRevokeOtherSessions,
-	useRevokeSession,
 } from "@/modules/sessions/queries/sessions.ts";
-import type { SafeSession } from "@/modules/sessions/shared/types.ts";
+import type {
+	AdminSafeSession,
+	SessionFilters,
+} from "@/modules/sessions/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/sessions")({
+	validateSearch: sessionFiltersSchema,
 	component: SessionsPage,
 });
 
+// El layout `_authed` ya bloquea a quien no tenga rol admin (ForbiddenScreen
+// en línea, ver AuthedLayout): esta página nunca se monta para un usuario sin
+// ese rol, así que aquí se asume siempre admin y se listan las sesiones de
+// TODOS los usuarios, distinguiendo la propia con la insignia "Tú".
 function SessionsPage() {
 	const navigate = useNavigate();
 	const signOut = useServerFn(signOutFn);
 
-	const list = useQuery(sessionsQueries.list());
+	// Sesiones propias: solo para decidir si tiene sentido ofrecer "cerrar mis
+	// otras sesiones" / "cerrar todas las mías" (acciones de autoservicio,
+	// separadas de la revocación de cualquier sesión en la tabla de abajo).
+	const own = useQuery(sessionsQueries.list());
 	const current = useQuery(sessionsQueries.current());
-	const revokeSession = useRevokeSession();
+	const adminRevokeSession = useAdminRevokeSession();
 	const revokeOthers = useRevokeOtherSessions();
 	const revokeAll = useRevokeAllSessions();
 
-	// Confirmaciones: revocar una concreta, o una acción masiva.
-	const [toRevoke, setToRevoke] = useState<SafeSession | null>(null);
+	const { filters, controls } = useListControls<SessionFilters>();
+	const allSessions = useQuery(sessionsQueries.allList(filters));
+
+	// Confirmaciones: revocar una concreta, o una acción masiva sobre las propias.
+	const [toRevoke, setToRevoke] = useState<AdminSafeSession | null>(null);
 	const [bulk, setBulk] = useState<"others" | "all" | null>(null);
 
-	const isForbidden = getErrorStatus(list.error) === 403;
 	const currentId = current.data?.id;
+	const hasOwnSessions = (own.data?.length ?? 0) > 0;
+	const isForbidden = getErrorStatus(allSessions.error) === 403;
 
 	// Cierra la sesión local (cookies) y vuelve al login. Reutiliza signOutFn.
 	const logout = useMutation({
@@ -55,15 +70,14 @@ function SessionsPage() {
 
 	function confirmRevoke() {
 		if (!toRevoke) return;
-		const revokingCurrent = toRevoke.id === currentId;
-		if (revokingCurrent) {
+		if (toRevoke.id === currentId) {
 			// Revocar la propia sesión equivale a cerrar sesión: limpia cookies y
 			// redirige al login.
 			setToRevoke(null);
 			logout.mutate();
 			return;
 		}
-		revokeSession.mutate(toRevoke.id, {
+		adminRevokeSession.mutate(toRevoke.id, {
 			onSuccess: () => {
 				toast.success("Sesión revocada");
 				setToRevoke(null);
@@ -95,15 +109,8 @@ function SessionsPage() {
 		}
 	}
 
-	// Sesión actual primero; el resto por fecha de inicio descendente.
-	const sessions = [...(list.data ?? [])].sort((a, b) => {
-		if (a.id === currentId) return -1;
-		if (b.id === currentId) return 1;
-		return b.createdAt.localeCompare(a.createdAt);
-	});
-
 	const busy =
-		revokeSession.isPending ||
+		adminRevokeSession.isPending ||
 		revokeOthers.isPending ||
 		revokeAll.isPending ||
 		logout.isPending;
@@ -113,18 +120,17 @@ function SessionsPage() {
 			<PageBreadcrumb items={[{ label: "Sesiones" }]} />
 			<PageHeader
 				title="Sesiones"
-				description="Revisa y revoca las sesiones activas de tu cuenta."
+				description='Revisa y revoca las sesiones activas de todos los usuarios. Las tuyas están marcadas con "Tú".'
 				actions={
-					!isForbidden &&
-					sessions.length > 0 && (
-						<div className="flex gap-2">
+					hasOwnSessions && (
+						<div className="flex flex-wrap gap-2">
 							<Button
 								variant="outline"
 								disabled={busy}
 								onClick={() => setBulk("others")}
 							>
 								<MonitorX />
-								Cerrar las demás
+								Cerrar mis otras sesiones
 							</Button>
 							<Button
 								variant="destructive"
@@ -132,7 +138,7 @@ function SessionsPage() {
 								onClick={() => setBulk("all")}
 							>
 								<LogOut />
-								Cerrar todas
+								Cerrar todas las mías
 							</Button>
 						</div>
 					)
@@ -149,48 +155,25 @@ function SessionsPage() {
 			</div>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver tus sesiones." />
-			) : list.isPending ? (
-				<div className="space-y-3">
-					<Skeleton className="h-20 rounded-lg" />
-					<Skeleton className="h-20 rounded-lg" />
-				</div>
-			) : list.isError ? (
-				<div className="flex flex-col items-center justify-center rounded-2xl border border-dashed border-border bg-card/40 px-6 py-16 text-center">
-					<p className="font-medium text-foreground">
-						No se pudieron cargar tus sesiones
-					</p>
-					<p className="mt-1 max-w-sm text-sm text-muted-foreground">
-						{getErrorMessage(list.error)}
-					</p>
-					<Button
-						variant="outline"
-						className="mt-6"
-						onClick={() => list.refetch()}
-					>
-						Reintentar
-					</Button>
-				</div>
-			) : sessions.length === 0 ? (
-				<p className="text-sm text-muted-foreground">
-					No hay sesiones activas.
-				</p>
+				<ForbiddenState description="No tienes permisos para ver las sesiones de todos los usuarios." />
 			) : (
-				<div className="space-y-3">
-					{sessions.map((session) => (
-						<SessionItem
-							key={session.id}
-							session={session}
-							isCurrent={session.id === currentId}
-							isRevoking={
-								(revokeSession.isPending &&
-									revokeSession.variables === session.id) ||
-								(logout.isPending && session.id === currentId)
-							}
-							onRevoke={() => setToRevoke(session)}
-						/>
-					))}
-				</div>
+				<DataTable
+					columns={getAdminSessionColumns({
+						currentId,
+						onRevoke: (session) => setToRevoke(session),
+					})}
+					data={allSessions.data?.sessions ?? []}
+					pagination={allSessions.data?.pagination}
+					isLoading={allSessions.isPending}
+					isFetching={allSessions.isFetching}
+					isError={allSessions.isError}
+					onRetry={() => allSessions.refetch()}
+					{...controls}
+					getRowId={(session) => session.id}
+					searchPlaceholder="Buscar por nombre o correo…"
+					emptyTitle="Sin sesiones"
+					emptyDescription="No hay sesiones activas."
+				/>
 			)}
 
 			<ConfirmDialog
@@ -206,7 +189,7 @@ function SessionsPage() {
 				}
 				confirmLabel={toRevoke?.id === currentId ? "Cerrar sesión" : "Revocar"}
 				destructive
-				loading={revokeSession.isPending || logout.isPending}
+				loading={adminRevokeSession.isPending || logout.isPending}
 				onConfirm={confirmRevoke}
 			/>
 

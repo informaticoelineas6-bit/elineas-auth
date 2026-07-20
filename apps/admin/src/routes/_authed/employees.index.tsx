@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { UserPlus } from "lucide-react";
+import { Upload, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,8 +14,10 @@ import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadc
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
+import { ExportMenu } from "@/modules/employees/components/export-menu.tsx";
+import { ImportDialog } from "@/modules/employees/components/import-dialog.tsx";
 import { getEmployeeColumns } from "@/modules/employees/lib/columns.tsx";
-import { employeeFiltersSchema } from "@/modules/employees/lib/validation.ts";
+import { employeeFiltersSchema } from "@/modules/employees/lib/filters.ts";
 import {
 	employeesQueries,
 	useDeleteEmployee,
@@ -42,6 +44,7 @@ function EmployeesPage() {
 	// Confirmaciones para las acciones destructivas/sensibles.
 	const [toDelete, setToDelete] = useState<Employee | null>(null);
 	const [toDeactivate, setToDeactivate] = useState<Employee | null>(null);
+	const [importOpen, setImportOpen] = useState(false);
 
 	// Un 403 del IS es "sin permisos", no un error genérico con reintentar.
 	const isForbidden = getErrorStatus(query.error) === 403;
@@ -123,10 +126,17 @@ function EmployeesPage() {
 				title="Usuarios"
 				description="Listado, alta, edición y baja de usuarios."
 				actions={
-					<Button onClick={() => navigate({ to: "/employees/new" })}>
-						<UserPlus />
-						Nuevo usuario
-					</Button>
+					<>
+						<ExportMenu filters={filters} />
+						<Button variant="outline" onClick={() => setImportOpen(true)}>
+							<Upload />
+							Importar
+						</Button>
+						<Button onClick={() => navigate({ to: "/employees/new" })}>
+							<UserPlus />
+							Nuevo usuario
+						</Button>
+					</>
 				}
 			/>
 
@@ -189,6 +199,8 @@ function EmployeesPage() {
 				loading={deleteEmployee.isPending}
 				onConfirm={confirmDelete}
 			/>
+
+			<ImportDialog open={importOpen} onOpenChange={setImportOpen} />
 		</div>
 	);
 }

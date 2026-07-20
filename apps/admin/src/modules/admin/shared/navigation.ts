@@ -1,4 +1,5 @@
 import {
+	BookOpen,
 	Boxes,
 	CircleUser,
 	LayoutDashboard,
@@ -17,6 +18,7 @@ export const NAV_ITEMS = [
 	{ to: "/roles", label: "Roles", icon: ShieldCheck },
 	{ to: "/user-roles", label: "Asignaciones", icon: UserCog },
 	{ to: "/sessions", label: "Sesiones", icon: MonitorSmartphone },
+	{ to: "/docs", label: "Documentación", icon: BookOpen },
 	{ to: "/profile", label: "Mi perfil", icon: CircleUser },
 ] as const;
 
