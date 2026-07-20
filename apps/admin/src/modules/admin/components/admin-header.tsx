@@ -71,7 +71,6 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 								<DropdownMenuItem key={item.to} asChild>
 									<Link
 										to={item.to}
-										activeOptions={{ exact: item.to === "/dashboard" }}
 										className="data-[status=active]:bg-accent data-[status=active]:font-semibold data-[status=active]:text-accent-foreground"
 									>
 										<item.icon />

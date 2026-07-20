@@ -182,6 +182,16 @@
        container y el sticky se calcula contra ese box en vez del viewport. */
     @apply overflow-x-clip;
   }
+  html {
+    /* Reserva siempre el espacio de la scrollbar vertical. Sin esto, al abrir
+       cualquier DropdownMenu/Dialog de Radix, el scroll-lock del body mide el
+       ancho de la scrollbar que desaparece y le agrega ese margin-right como
+       compensación; como solo se aplica al lado derecho, el contenido
+       centrado (mx-auto) recalcula su centro y "salta" a la izquierda. Al
+       reservar el gap de forma permanente, la scrollbar nunca desaparece
+       realmente y esa compensación termina siendo 0.  */
+    scrollbar-gutter: stable;
+  }
   body {
     @apply bg-background text-foreground;
   }
