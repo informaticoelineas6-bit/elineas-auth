@@ -72,24 +72,21 @@ function LoginPage() {
 
 	return (
 		<div className="relative w-full min-h-screen overflow-hidden">
-			{/* Los dos abanicos (top-left y top-right) se dibujan en UN solo contexto
-			    WebGL vía `sources`, en vez de dos <SideRays> superpuestos con dos
-			    contextos GL y dos bucles rAF. */}
 			<div className="absolute inset-0">
 				<SideRays
 					speed={2.5}
 					rayColor1="#1b08ea"
 					rayColor2="#578bc5"
-					intensity={2.5}
-					spread={2}
+					intensity={3.3}
+					spread={2.6}
 					sources={[
 						{ origin: "top-left", tilt: 14 },
 						{ origin: "top-right", tilt: -14 },
 					]}
 					saturation={1.15}
 					blend={0.75}
-					falloff={1.6}
-					opacity={0.75}
+					falloff={1.35}
+					opacity={0.85}
 				/>
 			</div>
 			<div className="relative z-10 flex min-h-screen flex-col items-center justify-center gap-6 p-4 text-center sm:p-8">

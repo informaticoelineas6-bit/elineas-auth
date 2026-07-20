@@ -63,7 +63,7 @@ export function ImportDialog({
 			// en el bundle del listado (ver import-validate.ts).
 			const [raw, { mapImportRow }] = await Promise.all([
 				parseEmployeeFile(file),
-				import("@/modules/employees/lib/import-validate.ts"),
+				import("../lib/import-validate.ts"),
 			]);
 			setRows(raw.map((row, index) => mapImportRow(row, index)));
 		} catch (error) {

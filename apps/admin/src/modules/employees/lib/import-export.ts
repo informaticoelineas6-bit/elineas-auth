@@ -187,6 +187,24 @@ export async function exportEmployees(
 
 	const XLSX = await loadXlsx();
 	const sheet = XLSX.utils.json_to_sheet(rows, { header: columns });
+	// CI y teléfono son cadenas de dígitos: sin marcarlas como texto, Excel las
+	// interpreta como número al abrir el archivo y les quita los ceros a la
+	// izquierda (un CI "01…" pasa a 10 dígitos). Forzar el formato de texto ("@")
+	// en esas columnas evita esa corrupción al reimportar.
+	const TEXT_COLUMNS: (keyof EmployeeExportRow)[] = ["ci", "phoneNumber"];
+	for (const col of TEXT_COLUMNS) {
+		const colIndex = columns.indexOf(col);
+		if (colIndex < 0) continue;
+		// Fila 0 es la cabecera; los datos empiezan en la fila 1 (índice r=1).
+		for (let r = 1; r <= rows.length; r++) {
+			const ref = XLSX.utils.encode_cell({ c: colIndex, r });
+			const cell = sheet[ref];
+			if (cell) {
+				cell.t = "s";
+				cell.z = "@";
+			}
+		}
+	}
 	const book = XLSX.utils.book_new();
 	XLSX.utils.book_append_sheet(book, sheet, "Usuarios");
 	const buffer = XLSX.write(book, { type: "array", bookType: "xlsx" });

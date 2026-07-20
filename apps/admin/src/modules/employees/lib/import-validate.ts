@@ -1,3 +1,4 @@
+import type { ZodError } from "zod";
 import type {
 	CreateEmployeeInput,
 	UpdateEmployeeInput,
@@ -19,11 +20,49 @@ function cleanString(value: unknown): string | undefined {
 	return str === "" ? undefined : str;
 }
 
+// El CI cubano son 11 dígitos. Al abrir el export en Excel/Sheets, una celda
+// "01010112345" se interpreta como número y pierde los ceros a la izquierda; si
+// llega como número, se rellena a 11 dígitos para recuperar el valor original.
+function cleanCi(value: unknown): string | undefined {
+	if (typeof value === "number" && Number.isFinite(value)) {
+		return String(value).padStart(11, "0");
+	}
+	return cleanString(value);
+}
+
 const TRUTHY = new Set(["true", "1", "sí", "si", "activo", "yes"]);
 
 function cleanBoolean(value: unknown): boolean | undefined {
 	const str = cleanString(value);
 	return str === undefined ? undefined : TRUTHY.has(str.toLowerCase());
+}
+
+// Etiquetas legibles por campo para que el error diga QUÉ columna falla (p. ej.
+// cuando las cabeceras del archivo no coinciden con los nombres esperados).
+const FIELD_LABELS: Record<string, string> = {
+	name: "Nombre",
+	lastName: "Apellido",
+	ci: "CI",
+	birthday: "Fecha de nacimiento",
+	phoneNumber: "Teléfono",
+	address: "Dirección",
+	inDate: "Fecha de alta",
+	outDate: "Fecha de baja",
+	active: "Activo",
+};
+
+// Convierte el primer issue de zod en un mensaje claro con el nombre del campo.
+// Un `invalid_type` en este contexto (todos los valores llegan como string o
+// undefined) significa que la columna falta o está vacía → "es obligatorio".
+function describeError(error: ZodError): string {
+	const issue = error.issues[0];
+	if (!issue) return "Datos inválidos";
+	const field = issue.path[0];
+	const label =
+		typeof field === "string" ? (FIELD_LABELS[field] ?? field) : undefined;
+	const message =
+		issue.code === "invalid_type" ? "es obligatorio" : issue.message;
+	return label ? `${label}: ${message}` : message;
 }
 
 export type ImportRowResult =
@@ -43,7 +82,7 @@ export function mapImportRow(
 	const payload = {
 		name: cleanString(row.name),
 		lastName: cleanString(row.lastName ?? row.lastname),
-		ci: cleanString(row.ci),
+		ci: cleanCi(row.ci),
 		birthday: cleanString(row.birthday),
 		phoneNumber: cleanString(row.phoneNumber ?? row.phonenumber ?? row.phone),
 		address: cleanString(row.address),
@@ -58,7 +97,7 @@ export function mapImportRow(
 			return {
 				kind: "error",
 				row: index + 1,
-				message: result.error.issues[0]?.message ?? "Datos inválidos",
+				message: describeError(result.error),
 			};
 		}
 		return { kind: "update", row: index + 1, id, input: result.data };
@@ -69,7 +108,7 @@ export function mapImportRow(
 		return {
 			kind: "error",
 			row: index + 1,
-			message: result.error.issues[0]?.message ?? "Datos inválidos",
+			message: describeError(result.error),
 		};
 	}
 	return { kind: "create", row: index + 1, input: result.data };

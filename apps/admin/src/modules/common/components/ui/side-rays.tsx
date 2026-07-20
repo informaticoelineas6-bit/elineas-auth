@@ -275,6 +275,12 @@ void main() {
 					fragment: frag,
 					uniforms,
 					transparent: true,
+					// Son quads 2D a pantalla completa superpuestos: la profundidad no
+					// aplica. Desactivar depth test/write garantiza que TODOS los
+					// abanicos se dibujen y se mezclen (sin esto, dos meshes a la misma z
+					// podrían descartarse entre sí según el depthFunc).
+					depthTest: false,
+					depthWrite: false,
 				});
 				const mesh = new Mesh(gl, { geometry, program });
 				mesh.setParent(scene);
