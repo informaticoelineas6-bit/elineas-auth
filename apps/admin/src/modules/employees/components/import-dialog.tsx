@@ -1,10 +1,6 @@
-import {
-	AlertTriangle,
-	CheckCircle2,
-	Upload,
-	XCircle,
-} from "lucide-react";
+import { AlertTriangle, CheckCircle2, Upload, XCircle } from "lucide-react";
 import { useState } from "react";
+import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	Dialog,
 	DialogContent,
@@ -13,15 +9,11 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@/modules/common/components/ui/dialog.tsx";
-import { Button } from "@/modules/common/components/ui/button.tsx";
 import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
 import { Spinner } from "@/modules/common/components/ui/spinner.tsx";
 import { getErrorMessage } from "@/modules/common/lib/errors.ts";
-import {
-	type ImportRowResult,
-	mapImportRow,
-	parseEmployeeFile,
-} from "@/modules/employees/lib/import-export.ts";
+import { parseEmployeeFile } from "@/modules/employees/lib/import-export.ts";
+import type { ImportRowResult } from "@/modules/employees/lib/import-validate.ts";
 import {
 	useCreateEmployee,
 	useUpdateEmployee,
@@ -67,7 +59,12 @@ export function ImportDialog({
 		setOutcomes(null);
 		setParsing(true);
 		try {
-			const raw = await parseEmployeeFile(file);
+			// La validación (zod → libphonenumber) se carga bajo demanda aquí, no
+			// en el bundle del listado (ver import-validate.ts).
+			const [raw, { mapImportRow }] = await Promise.all([
+				parseEmployeeFile(file),
+				import("@/modules/employees/lib/import-validate.ts"),
+			]);
 			setRows(raw.map((row, index) => mapImportRow(row, index)));
 		} catch (error) {
 			setParseError(getErrorMessage(error, "No se pudo leer el archivo."));
@@ -86,7 +83,11 @@ export function ImportDialog({
 		// decenas de peticiones concurrentes contra el IS.
 		for (const result of rows) {
 			if (result.kind === "error") {
-				results.push({ row: result.row, label: result.message, status: "error" });
+				results.push({
+					row: result.row,
+					label: result.message,
+					status: "error",
+				});
 				setProgress((p) => p + 1);
 				continue;
 			}
@@ -95,7 +96,10 @@ export function ImportDialog({
 					await createEmployee.mutateAsync(result.input);
 					results.push({ row: result.row, label: "Creado", status: "ok" });
 				} else {
-					await updateEmployee.mutateAsync({ id: result.id, input: result.input });
+					await updateEmployee.mutateAsync({
+						id: result.id,
+						input: result.input,
+					});
 					results.push({ row: result.row, label: "Actualizado", status: "ok" });
 				}
 			} catch (error) {
@@ -131,10 +135,10 @@ export function ImportDialog({
 				<DialogHeader>
 					<DialogTitle>Importar usuarios</DialogTitle>
 					<DialogDescription>
-						Sube un archivo CSV, JSON o Excel con los datos de empleado
-						(nombre, apellido, CI…). Si una fila trae <code>id</code>,
-						actualiza ese usuario; si no, crea uno nuevo. No crea cuentas de
-						acceso (email/contraseña): eso se gestiona desde "Nuevo usuario".
+						Sube un archivo CSV, JSON o Excel con los datos de empleado (nombre,
+						apellido, CI…). Si una fila trae <code>id</code>, actualiza ese
+						usuario; si no, crea uno nuevo. No crea cuentas de acceso
+						(email/contraseña): eso se gestiona desde "Nuevo usuario".
 					</DialogDescription>
 				</DialogHeader>
 

@@ -1,9 +1,4 @@
-import type {
-	CreateEmployeeInput,
-	Employee,
-	UpdateEmployeeInput,
-} from "../shared/types.ts";
-import { createEmployeeSchema, updateEmployeeSchema } from "./validation.ts";
+import type { Employee } from "../shared/types.ts";
 
 // `xlsx` (SheetJS) pesa ~450 KB y solo hace falta cuando el usuario elige el
 // formato Excel (o sube un .xlsx). Se carga con import() dinámico para que NO
@@ -30,7 +25,10 @@ export const EMPLOYEE_EXPORT_COLUMNS = [
 	"email",
 ] as const;
 
-type EmployeeExportRow = Record<(typeof EMPLOYEE_EXPORT_COLUMNS)[number], string>;
+type EmployeeExportRow = Record<
+	(typeof EMPLOYEE_EXPORT_COLUMNS)[number],
+	string
+>;
 
 // El IS devuelve las fechas como datetime ISO completo; se recorta a
 // "YYYY-MM-DD" (mismo formato que <input type="date"> y que toDateInputValue
@@ -200,7 +198,10 @@ export async function exportEmployees(
 
 // --- Importación -----------------------------------------------------------
 
-type RawImportRow = Record<string, unknown>;
+// Fila "cruda" del archivo (claves/valores sin validar). La validación vive en
+// import-validate.ts (cargado con import() dinámico) para no arrastrar los
+// schemas —y con ellos libphonenumber— al bundle del listado.
+export type RawImportRow = Record<string, unknown>;
 
 // Detecta el formato por extensión y devuelve filas "crudas" (claves y
 // valores tal cual vienen del archivo, sin validar todavía).
@@ -229,63 +230,4 @@ export async function parseEmployeeFile(file: File): Promise<RawImportRow[]> {
 	throw new Error(
 		`Formato de archivo no soportado (${file.name}). Usa CSV, JSON o Excel (.xlsx).`,
 	);
-}
-
-function cleanString(value: unknown): string | undefined {
-	if (value === null || value === undefined) return undefined;
-	const str = String(value).trim();
-	return str === "" ? undefined : str;
-}
-
-const TRUTHY = new Set(["true", "1", "sí", "si", "activo", "yes"]);
-
-function cleanBoolean(value: unknown): boolean | undefined {
-	const str = cleanString(value);
-	return str === undefined ? undefined : TRUTHY.has(str.toLowerCase());
-}
-
-export type ImportRowResult =
-	| { kind: "create"; row: number; input: CreateEmployeeInput }
-	| { kind: "update"; row: number; id: string; input: UpdateEmployeeInput }
-	| { kind: "error"; row: number; message: string };
-
-// Valida y normaliza una fila "cruda" del archivo. Con `id` presente, la fila
-// actualiza ese usuario existente; sin `id`, crea uno nuevo. No toca la
-// cuenta de usuario (email/contraseña): ese enlace se gestiona aparte, desde
-// "Nuevo usuario" o la ficha del empleado.
-export function mapImportRow(row: RawImportRow, index: number): ImportRowResult {
-	const id = cleanString(row.id);
-	const payload = {
-		name: cleanString(row.name),
-		lastName: cleanString(row.lastName ?? row.lastname),
-		ci: cleanString(row.ci),
-		birthday: cleanString(row.birthday),
-		phoneNumber: cleanString(row.phoneNumber ?? row.phonenumber ?? row.phone),
-		address: cleanString(row.address),
-		inDate: cleanString(row.inDate ?? row.indate),
-		outDate: cleanString(row.outDate ?? row.outdate),
-		active: cleanBoolean(row.active),
-	};
-
-	if (id) {
-		const result = updateEmployeeSchema.safeParse(payload);
-		if (!result.success) {
-			return {
-				kind: "error",
-				row: index + 1,
-				message: result.error.issues[0]?.message ?? "Datos inválidos",
-			};
-		}
-		return { kind: "update", row: index + 1, id, input: result.data };
-	}
-
-	const result = createEmployeeSchema.safeParse(payload);
-	if (!result.success) {
-		return {
-			kind: "error",
-			row: index + 1,
-			message: result.error.issues[0]?.message ?? "Datos inválidos",
-		};
-	}
-	return { kind: "create", row: index + 1, input: result.data };
 }
