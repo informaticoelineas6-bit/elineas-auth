@@ -43,7 +43,7 @@ function Dashboard() {
 	});
 
 	const stats = [
-		{ to: "/employees", label: "Empleados", icon: Users, query: employees },
+		{ to: "/employees", label: "Usuarios", icon: Users, query: employees },
 		{ to: "/systems", label: "Sistemas", icon: Boxes, query: systems },
 		{ to: "/roles", label: "Roles", icon: ShieldCheck, query: roles },
 		{
@@ -75,7 +75,7 @@ function Dashboard() {
 		<div className="space-y-8">
 			<PageHeader
 				title={firstName ? `Hola, ${firstName}` : "Consola de administración"}
-				description="Gestiona empleados, sistemas, roles y accesos del Identity Server."
+				description="Gestiona usuarios, sistemas, roles y accesos del Identity Server."
 			/>
 
 			<section className="space-y-3">

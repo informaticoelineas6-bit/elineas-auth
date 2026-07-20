@@ -40,7 +40,7 @@ function EditEmployeePage() {
 		<div className="space-y-6">
 			<PageBreadcrumb
 				items={[
-					{ label: "Empleados", to: "/employees" },
+					{ label: "Usuarios", to: "/employees" },
 					{
 						label: query.data
 							? `${query.data.name} ${query.data.lastName}`
@@ -52,8 +52,8 @@ function EditEmployeePage() {
 
 			{status === 404 ? (
 				<NotFoundState
-					title="Empleado no encontrado"
-					description="El empleado que quieres editar no existe o fue eliminado."
+					title="Usuario no encontrado"
+					description="El usuario que quieres editar no existe o fue eliminado."
 					action={
 						<Button asChild variant="outline">
 							<Link to="/employees">Volver al listado</Link>
@@ -61,7 +61,7 @@ function EditEmployeePage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para editar este empleado." />
+				<ForbiddenState description="No tienes permisos para editar este usuario." />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar la ficha"
@@ -109,9 +109,7 @@ function EditEmployeeForm({ employee }: { employee: Employee }) {
 			} catch (error) {
 				const status = getErrorStatus(error);
 				if (status === 409) {
-					setCiError(
-						getErrorMessage(error, "Ya existe un empleado con ese CI"),
-					);
+					setCiError(getErrorMessage(error, "Ya existe un usuario con ese CI"));
 				} else if (status === 429) {
 					toast.error(
 						"Demasiados intentos. Espera unos segundos antes de reintentar.",
@@ -136,8 +134,8 @@ function EditEmployeeForm({ employee }: { employee: Employee }) {
 	return (
 		<>
 			<PageHeader
-				title="Editar empleado"
-				description="Actualiza la ficha del empleado. Los cambios se reflejan en el listado al guardar."
+				title="Editar usuario"
+				description="Actualiza los datos del usuario. Los cambios se reflejan en el listado al guardar."
 			/>
 
 			<form

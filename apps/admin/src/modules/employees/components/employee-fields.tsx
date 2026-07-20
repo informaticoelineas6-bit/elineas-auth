@@ -36,7 +36,7 @@ export function EmployeeFields({
 	const form = incomingForm as EditEmployeeFormApi;
 	return (
 		<FieldSet>
-			<FieldLegend>Datos del empleado</FieldLegend>
+			<FieldLegend>Datos personales</FieldLegend>
 			<FieldDescription>
 				Ficha de la persona. Solo nombre, apellidos y CI son obligatorios.
 			</FieldDescription>
@@ -241,7 +241,7 @@ export function EmployeeFields({
 							<FieldContent>
 								<FieldLabel htmlFor={field.name}>Activo</FieldLabel>
 								<FieldDescription>
-									Un empleado inactivo no puede iniciar sesión en los sistemas.
+									Un usuario inactivo no puede iniciar sesión en los sistemas.
 								</FieldDescription>
 							</FieldContent>
 							<Switch

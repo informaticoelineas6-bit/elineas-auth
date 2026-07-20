@@ -43,15 +43,13 @@ function NewEmployeePage() {
 			const { user, employee } = await createEmployee.mutateAsync(
 				toCreateEmployeeWithUserPayload(value),
 			);
-			toast.success(`Empleado "${employee.name} ${employee.lastName}" creado`, {
+			toast.success(`Usuario "${employee.name} ${employee.lastName}" creado`, {
 				description:
 					"Asígnale un rol para que pueda iniciar sesión en algún sistema.",
 				action: {
 					label: "Asignar rol",
 					onClick: () =>
-						toast.info("Asignación de roles disponible en #9", {
-							description: `Pendiente para ${user.email}.`,
-						}),
+						navigate({ to: "/user-roles", search: { userId: user.id } }),
 				},
 			});
 			navigate({ to: "/employees" });
@@ -70,7 +68,7 @@ function NewEmployeePage() {
 					"Demasiados intentos. Espera unos segundos antes de reintentar.",
 				);
 			} else {
-				reportError(error, "No se pudo crear el empleado. Intenta nuevamente.");
+				reportError(error, "No se pudo crear el usuario. Intenta nuevamente.");
 			}
 		}
 	});
@@ -78,11 +76,11 @@ function NewEmployeePage() {
 	return (
 		<div className="space-y-6">
 			<PageBreadcrumb
-				items={[{ label: "Empleados", to: "/employees" }, { label: "Nuevo" }]}
+				items={[{ label: "Usuarios", to: "/employees" }, { label: "Nuevo" }]}
 			/>
 			<PageHeader
-				title="Nuevo empleado"
-				description="Crea la cuenta de usuario y su empleado enlazado en una sola operación."
+				title="Nuevo usuario"
+				description="Crea la cuenta de usuario y sus datos personales en una sola operación."
 			/>
 
 			<form
@@ -95,7 +93,7 @@ function NewEmployeePage() {
 				<Tabs defaultValue="user" className="gap-6">
 					<TabsList>
 						<TabsTrigger value="user">Cuenta de usuario</TabsTrigger>
-						<TabsTrigger value="employee">Dato del empleado</TabsTrigger>
+						<TabsTrigger value="employee">Datos personales</TabsTrigger>
 					</TabsList>
 					<TabsContent value="user">
 						<UserAccountFields form={form} emailError={fieldErrors.email} />
@@ -122,7 +120,7 @@ function NewEmployeePage() {
 						{({ canSubmit, isSubmitting }) => (
 							<Button type="submit" disabled={!canSubmit}>
 								<LoadingSwap isLoading={isSubmitting}>
-									Crear empleado
+									Crear usuario
 								</LoadingSwap>
 							</Button>
 						)}

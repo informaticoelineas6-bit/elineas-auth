@@ -38,7 +38,7 @@ export function EmployeeRolesCard({
 				<CardDescription>
 					{userId
 						? "Roles asignados a la cuenta de usuario enlazada."
-						: "Este empleado no tiene una cuenta de usuario enlazada, por lo que no puede tener roles ni iniciar sesión."}
+						: "Esta persona no tiene una cuenta de usuario enlazada, por lo que no puede tener roles ni iniciar sesión."}
 				</CardDescription>
 				{userId && (
 					<CardAction className="flex gap-2">

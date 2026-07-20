@@ -45,7 +45,7 @@ function EmployeeDetailPage() {
 		<div className="space-y-6">
 			<PageBreadcrumb
 				items={[
-					{ label: "Empleados", to: "/employees" },
+					{ label: "Usuarios", to: "/employees" },
 					{
 						label: query.data
 							? `${query.data.name} ${query.data.lastName}`
@@ -56,8 +56,8 @@ function EmployeeDetailPage() {
 
 			{status === 404 ? (
 				<NotFoundState
-					title="Empleado no encontrado"
-					description="El empleado que buscas no existe o fue eliminado."
+					title="Usuario no encontrado"
+					description="El usuario que buscas no existe o fue eliminado."
 					action={
 						<Button asChild variant="outline">
 							<Link to="/employees">Volver al listado</Link>
@@ -65,7 +65,7 @@ function EmployeeDetailPage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para ver esta ficha de empleado." />
+				<ForbiddenState description="No tienes permisos para ver esta ficha de usuario." />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar la ficha"
@@ -126,14 +126,14 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 	function confirmDelete() {
 		deleteEmployee.mutate(employee.id, {
 			onSuccess: () => {
-				toast.success(`Empleado "${employee.name}" eliminado`);
+				toast.success(`Usuario "${employee.name}" eliminado`);
 				navigate({ to: "/employees" });
 			},
 			onError: (error) => {
 				// Un 409 significa que el IS rechazó la eliminación (p. ej. otro
 				// recurso aún la referencia): se explica con el mensaje del IS.
 				if (getErrorStatus(error) === 409) {
-					toast.error("No se pudo eliminar el empleado", {
+					toast.error("No se pudo eliminar el usuario", {
 						description: getErrorMessage(error),
 					});
 					setConfirming(null);
@@ -240,7 +240,7 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 			<ConfirmDialog
 				open={confirming === "deactivate"}
 				onOpenChange={(open) => !open && setConfirming(null)}
-				title="Desactivar empleado"
+				title="Desactivar usuario"
 				description={`¿Dar de baja a "${employee.name} ${employee.lastName}"? Podrás reactivarlo más tarde.`}
 				confirmLabel="Desactivar"
 				destructive
@@ -251,7 +251,7 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 			<ConfirmDialog
 				open={confirming === "delete"}
 				onOpenChange={(open) => !open && setConfirming(null)}
-				title="Eliminar empleado"
+				title="Eliminar usuario"
 				description={`Se eliminará de forma permanente la ficha de "${employee.name} ${employee.lastName}". La cuenta de usuario enlazada y sus asignaciones de rol no se eliminan. Esta acción no se puede deshacer.`}
 				confirmLabel="Eliminar"
 				destructive
