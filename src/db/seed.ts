@@ -1,19 +1,24 @@
 // Seeder de arranque (bootstrap del primer admin): crea el sistema y rol de
-// administrador de este identity server y se lo asigna a un usuario. Si el
-// usuario no existe todavía, lo CREA (por eso el registro puede quedar cerrado
-// a admin en la API: el primer admin nace aquí, no vía POST /api/auth/sign-up).
+// administrador de este identity server, se lo asigna a un usuario y crea el
+// empleado enlazado a esa cuenta. Si el usuario no existe todavía, lo CREA
+// (por eso el registro puede quedar cerrado a admin en la API: el primer
+// admin nace aquí, no vía POST /api/auth/sign-up).
 //
 // Uso:
-//   # usuario ya existente → solo asigna rol admin
+//   # usuario ya existente → solo asigna rol admin (y crea el empleado si falta)
 //   bun run db:seed:local -- admin@example.com
 //   # usuario nuevo → hay que pasar una contraseña (arg 2 o ADMIN_PASSWORD)
 //   bun run db:seed:local -- admin@example.com 'tu-contraseña-segura'
 //   ADMIN_EMAIL=... ADMIN_PASSWORD=... ADMIN_NAME=... bun run db:seed:local
 //
+// Si el empleado admin todavía no existe, hacen falta sus datos mínimos
+// (name, lastName, ci son NOT NULL en la tabla employee):
+//   ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...
+//
 // Es idempotente: puede ejecutarse varias veces sin duplicar datos.
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db/index";
-import { role, system, userRole } from "@/db/business-schema";
+import { employee, role, system, userRole } from "@/db/business-schema";
 import { user } from "@/db/auth-schema";
 import { auth } from "@/lib/auth";
 import { env } from "@/config/env";
@@ -69,7 +74,47 @@ if (!targetUser) {
   console.log(`✔ Usuario administrador creado: ${targetUser.email}`);
 }
 
-// 1) Sistema que representa a este identity server.
+// 1) Empleado enlazado al usuario admin. Igual que en el alta combinada de
+// /employees (createEmployeeWithUser), el userId es el vínculo con la cuenta;
+// se busca por userId para no duplicar el empleado en reejecuciones.
+let [adminEmployee] = await db
+  .select()
+  .from(employee)
+  .where(eq(employee.userId, targetUser.id))
+  .limit(1);
+
+if (!adminEmployee) {
+  const employeeName = process.env.ADMIN_EMPLOYEE_NAME;
+  const employeeLastName = process.env.ADMIN_EMPLOYEE_LASTNAME;
+  const employeeCi = process.env.ADMIN_EMPLOYEE_CI;
+  if (!employeeName || !employeeLastName || !employeeCi) {
+    console.error(
+      `El usuario "${targetUser.email}" no tiene un empleado enlazado.\n` +
+        "Define sus datos mínimos para crearlo:\n" +
+        "  ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...",
+    );
+    process.exit(1);
+  }
+
+  await db
+    .insert(employee)
+    .values({
+      userId: targetUser.id,
+      name: employeeName,
+      lastName: employeeLastName,
+      ci: employeeCi,
+    })
+    .onConflictDoNothing({ target: employee.userId });
+
+  [adminEmployee] = await db
+    .select()
+    .from(employee)
+    .where(eq(employee.userId, targetUser.id))
+    .limit(1);
+  console.log(`✔ Empleado administrador creado: ${adminEmployee.name} ${adminEmployee.lastName}`);
+}
+
+// 2) Sistema que representa a este identity server.
 await db
   .insert(system)
   .values({
@@ -85,7 +130,7 @@ const [adminSystem] = await db
   .where(eq(system.slug, env.ADMIN_SYSTEM_SLUG))
   .limit(1);
 
-// 2) Rol admin dentro de ese sistema.
+// 3) Rol admin dentro de ese sistema.
 await db
   .insert(role)
   .values({ systemId: adminSystem.id, name: env.ADMIN_ROLE_NAME })
@@ -97,7 +142,7 @@ const [adminRole] = await db
   .where(and(eq(role.systemId, adminSystem.id), eq(role.name, env.ADMIN_ROLE_NAME)))
   .limit(1);
 
-// 3) Asignación del rol admin al usuario.
+// 4) Asignación del rol admin al usuario.
 await db
   .insert(userRole)
   .values({ userId: targetUser.id, roleId: adminRole.id })
@@ -107,5 +152,8 @@ console.log("✔ Seed completado:");
 console.log(`  sistema  ${adminSystem.slug} (${adminSystem.id})`);
 console.log(`  rol      ${adminRole.name} (${adminRole.id})`);
 console.log(`  usuario  ${targetUser.email} (${targetUser.id}) → admin`);
+console.log(
+  `  empleado ${adminEmployee.name} ${adminEmployee.lastName} (${adminEmployee.id})`,
+);
 
 process.exit(0);
