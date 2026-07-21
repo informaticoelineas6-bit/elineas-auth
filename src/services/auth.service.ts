@@ -7,11 +7,16 @@ import {
 } from "@/services/session-system.service";
 import { userHasRoleInSystem } from "@/services/user-role.service";
 import type { z } from "@hono/zod-openapi";
-import type { SignInBodySchema, SignUpBodySchema } from "@/openapi/schemas";
+import type {
+  SignInBodySchema,
+  SignUpBodySchema,
+  VerifyEmailBodySchema,
+} from "@/openapi/schemas";
 import { Context } from "hono";
 
 type SignUpInput = { out: { json: z.infer<typeof SignUpBodySchema> } };
 type SignInInput = { out: { json: z.infer<typeof SignInBodySchema> } };
+type VerifyEmailInput = { out: { json: z.infer<typeof VerifyEmailBodySchema> } };
 
 export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
   try {
@@ -87,6 +92,30 @@ export const signInFn = async (c: Context<any, string, SignInInput>) => {
     });
     const token = await issueJwt(response.token);
     return c.json({ user: response.user, token, system: sys }, 200);
+  } catch (error) {
+    return handleError(error, c);
+  }
+};
+
+// Confirma el token de verificación de cambio de correo. better-auth define
+// verify-email como GET con el token en query y, si se le pasa callbackURL,
+// responde con un redirect. Aquí se expone como POST (el token viaja en el
+// cuerpo desde la página del frontend) y SIN callbackURL, de modo que
+// better-auth devuelve JSON `{ status, user }` en vez de redirigir, encajando
+// con el resto de la API. Es un endpoint público: quien confirma puede no tener
+// sesión (abre el enlace desde su correo), y el token firmado es la credencial.
+export const verifyEmailFn = async (
+  c: Context<any, string, VerifyEmailInput>,
+) => {
+  try {
+    const { token } = c.req.valid("json");
+    const { headers, response } = await auth.api.verifyEmail({
+      query: { token },
+      headers: c.req.raw.headers,
+      returnHeaders: true,
+    });
+    forwardAuthHeaders(c, headers);
+    return c.json({ status: response?.status ?? true }, 200);
   } catch (error) {
     return handleError(error, c);
   }

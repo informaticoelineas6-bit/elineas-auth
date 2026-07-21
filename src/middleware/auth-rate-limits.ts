@@ -45,6 +45,12 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/auth/sign-up",
     rateLimit({ name: "sign-up", windowMs: 60_000, max: 5 }),
   );
+  // Verificación de cambio de correo: público y consume un token firmado. Se
+  // limita por IP para que un token no pueda forzarse a base de reintentos.
+  app.use(
+    "/api/auth/verify-email",
+    rateLimit({ name: "verify-email", windowMs: 60_000, max: 10 }),
+  );
   // JWKS (público) y token (autenticado) sin límite eran un vector barato de
   // agotamiento de recursos: cada hit dispara trabajo en better-auth. El límite
   // por IP es holgado para el uso legítimo (un verificador cachea el JWKS) pero

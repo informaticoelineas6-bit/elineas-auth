@@ -222,10 +222,26 @@ export const ChangeEmailBodySchema = z
 
 export const ChangeEmailResponseSchema = z
   .object({
-    user: UserSchema.optional(),
     status: z.boolean(),
+    // Con verificación por correo activada, el cambio NUNCA es inmediato: queda
+    // pendiente hasta que el usuario confirma el enlace enviado al nuevo correo.
+    // Es siempre true (se expone explícitamente para que el frontend no tenga
+    // que inferirlo del cuerpo, que solo trae `status`).
+    pendingVerification: z.boolean(),
   })
   .openapi("ChangeEmailResponse");
+
+export const VerifyEmailBodySchema = z
+  .object({
+    token: z.string().openapi({ example: "eyJhbGciOi..." }),
+  })
+  .openapi("VerifyEmailBody");
+
+export const VerifyEmailResponseSchema = z
+  .object({
+    status: z.boolean(),
+  })
+  .openapi("VerifyEmailResponse");
 
 export const DeleteUserBodySchema = z
   .object({

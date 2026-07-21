@@ -77,7 +77,7 @@ export const changeEmailFn = async (
   try {
     const { currentPassword, ...body } = c.req.valid("json");
     // Re-autenticación antes de un cambio sensible: sin esto, una sesión robada
-    // bastaría para apropiarse de la cuenta cambiando el email.
+    // bastaría para iniciar la apropiación de la cuenta cambiando el email.
     await assertCurrentPassword(c.get("user").id, currentPassword);
     const { headers, response } = await auth.api.changeEmail({
       body,
@@ -85,7 +85,11 @@ export const changeEmailFn = async (
       returnHeaders: true,
     });
     forwardAuthHeaders(c, headers);
-    return c.json(response, 200);
+    // Con verificación activada (ver lib/auth.ts) el cambio no se aplica aquí:
+    // better-auth ha enviado un enlace al nuevo correo y solo devuelve
+    // `{ status }`. Se expone `pendingVerification: true` para que el frontend
+    // muestre "revisa tu bandeja" sin depender del cuerpo de better-auth.
+    return c.json({ status: response.status ?? true, pendingVerification: true }, 200);
   } catch (error) {
     return handleAuthError(c, error);
   }

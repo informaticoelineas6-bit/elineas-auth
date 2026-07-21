@@ -9,6 +9,8 @@ import {
   SignUpBodySchema,
   SuccessResponseSchema,
   TokenResponseSchema,
+  VerifyEmailBodySchema,
+  VerifyEmailResponseSchema,
   badRequestResponse,
   bearerAuthSecurity,
   forbiddenResponse,
@@ -20,6 +22,7 @@ import {
   signInFn,
   signOutFn,
   signUpFn,
+  verifyEmailFn,
 } from "@/services/auth.service";
 
 // El alta de cuentas NO es autoservicio: solo un admin puede crear usuarios.
@@ -114,9 +117,34 @@ const getJwksRoute = createRoute({
   },
 });
 
+// Confirmación del cambio de correo. Público (sin requireSession): el enlace se
+// abre desde el correo del usuario, que puede no tener sesión activa; el token
+// firmado es la credencial. El cambio de email solo se materializa aquí.
+const verifyEmailRoute = createRoute({
+  method: "post",
+  path: "/verify-email",
+  operationId: "verifyEmail",
+  tags: ["Auth"],
+  summary: "Confirmar el cambio de correo con el token de verificación",
+  request: {
+    body: {
+      content: { "application/json": { schema: VerifyEmailBodySchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "Correo verificado y cambio aplicado",
+      content: { "application/json": { schema: VerifyEmailResponseSchema } },
+    },
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+  },
+});
+
 export const authRoutes = new OpenAPIHono<AppEnv>()
   .openapi(signUpRoute, signUpFn)
   .openapi(signInRoute, signInFn)
   .openapi(signOutRoute, signOutFn)
   .openapi(getTokenRoute, getTokenFn)
-  .openapi(getJwksRoute, getJwksFn);
+  .openapi(getJwksRoute, getJwksFn)
+  .openapi(verifyEmailRoute, verifyEmailFn);

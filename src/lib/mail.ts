@@ -3,6 +3,7 @@ import { Resend } from "resend";
 import { render } from "@react-email/render";
 import { env } from "@/config/env";
 import { WelcomeEmail } from "@/emails/welcome-email";
+import { ChangeEmailVerification } from "@/emails/change-email-verification";
 
 type SendArgs = { to: string; subject: string; html: string; text: string };
 
@@ -70,4 +71,29 @@ export async function sendWelcomeEmail(input: {
       error instanceof Error ? error.message : error,
     );
   }
+}
+
+// Correo de confirmación del cambio de email. A diferencia de sendWelcomeEmail
+// (fire-and-forget), aquí el correo ES el camino crítico: sin él el usuario no
+// puede completar el cambio, así que un fallo (o el mailer deshabilitado) SÍ se
+// propaga para que la solicitud de cambio devuelva un error en vez de decir
+// "revisa tu bandeja" cuando en realidad no se envió nada.
+export async function sendChangeEmailVerification(input: {
+  to: string;
+  url: string;
+}) {
+  if (!send) {
+    throw new Error(
+      "Mailer deshabilitado: no se puede enviar la verificación de cambio de correo.",
+    );
+  }
+  const element = ChangeEmailVerification({ url: input.url });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+  await send({
+    to: input.to,
+    subject: "Confirma tu nuevo correo en Mercado Elineas",
+    html,
+    text,
+  });
 }
