@@ -44,3 +44,10 @@ export function clearAuthCookies() {
 	deleteCookie(SESSION_COOKIE, baseOptions);
 	deleteCookie(ACCESS_TOKEN_COOKIE, baseOptions);
 }
+
+// Descarta solo el JWT cacheado (no la sesión de largo plazo): fuerza a que la
+// próxima getAuthSession() lo refresque contra el IS en vez de seguir sirviendo
+// claims viejos (p. ej. el email) hasta que el JWT expire por su cuenta.
+export function clearAccessToken() {
+	deleteCookie(ACCESS_TOKEN_COOKIE, baseOptions);
+}

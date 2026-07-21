@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+// Token de confirmación del cambio de correo (llega en el enlace del email).
+export const verifyEmailTokenSchema = z.object({
+	token: z.string().min(1, "Falta el token de verificación"),
+});
+
 export const signInSchema = z.object({
 	email: z.email("Correo electrónico inválido"),
 	password: z

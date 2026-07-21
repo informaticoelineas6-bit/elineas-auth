@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
@@ -28,6 +29,11 @@ import { Route as AuthedSystemsSystemIdEditRouteImport } from './routes/_authed/
 import { Route as AuthedRolesRoleIdEditRouteImport } from './routes/_authed/roles.$roleId.edit'
 import { Route as AuthedEmployeesEmployeeIdEditRouteImport } from './routes/_authed/employees.$employeeId.edit'
 
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => rootRouteImport,
@@ -124,6 +130,7 @@ const AuthedEmployeesEmployeeIdEditRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/docs': typeof AuthedDocsRoute
   '/profile': typeof AuthedProfileRoute
@@ -143,6 +150,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/verify-email': typeof VerifyEmailRoute
   '/dashboard': typeof AuthedDashboardRoute
   '/docs': typeof AuthedDocsRoute
   '/profile': typeof AuthedProfileRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/_authed': typeof AuthedRouteWithChildren
+  '/verify-email': typeof VerifyEmailRoute
   '/_authed/dashboard': typeof AuthedDashboardRoute
   '/_authed/docs': typeof AuthedDocsRoute
   '/_authed/profile': typeof AuthedProfileRoute
@@ -185,6 +194,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/verify-email'
     | '/dashboard'
     | '/docs'
     | '/profile'
@@ -204,6 +214,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/verify-email'
     | '/dashboard'
     | '/docs'
     | '/profile'
@@ -224,6 +235,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/_authed'
+    | '/verify-email'
     | '/_authed/dashboard'
     | '/_authed/docs'
     | '/_authed/profile'
@@ -245,10 +257,18 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthedRoute: typeof AuthedRouteWithChildren
+  VerifyEmailRoute: typeof VerifyEmailRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed': {
       id: '/_authed'
       path: ''
@@ -422,6 +442,7 @@ const AuthedRouteWithChildren =
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthedRoute: AuthedRouteWithChildren,
+  VerifyEmailRoute: VerifyEmailRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

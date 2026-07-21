@@ -42,6 +42,21 @@ export async function signOut() {
 	}
 }
 
+// Confirma el cambio de correo con el token del enlace. Endpoint público del IS
+// (no requiere sesión): el token firmado es la credencial. readJson lanza
+// AuthApiError si el token es inválido o caducó (401/400).
+export async function verifyEmailChange(token: string) {
+	const response = await fetch(
+		new URL("/api/auth/verify-email", env.AUTH_API_URL),
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ token }),
+		},
+	);
+	return (await readJson(response)) as { status: boolean };
+}
+
 // "Refresco" del JWT: el IS no tiene un refresh token separado, es este mismo
 // token de sesión el que se cambia por un JWT nuevo de corta duración.
 export async function refreshAccessToken(

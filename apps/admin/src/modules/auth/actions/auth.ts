@@ -2,6 +2,7 @@ import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
 import { AuthApiError } from "#/modules/auth/lib/api.ts";
 import {
+	clearAccessToken,
 	clearAuthCookies,
 	readSessionToken,
 	writeAccessToken,
@@ -10,9 +11,9 @@ import {
 import { env } from "#/modules/auth/lib/env.ts";
 import { verifyAccessToken } from "#/modules/auth/lib/jwt.ts";
 import { verifyTurnstileToken } from "#/modules/auth/lib/turnstile-server.ts";
-import { signInSchema } from "../lib/validation.ts";
+import { signInSchema, verifyEmailTokenSchema } from "../lib/validation.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
-import { signIn, signOut } from "../services/auth.ts";
+import { signIn, signOut, verifyEmailChange } from "../services/auth.ts";
 
 // Site key pública para el widget del cliente. `TURNSTILE_SECRET_KEY` (server-
 // only) nunca sale de aquí: se usa solo dentro de signInFn.
@@ -89,3 +90,30 @@ export const signOutFn = createServerFn({ method: "POST" }).handler(
 export const getSessionFn = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
 	.handler(async ({ context }) => context.session);
+
+// Confirma el cambio de correo. Público a propósito (sin authMiddleware): el
+// usuario abre el enlace desde su correo y puede no tener sesión en el frontend.
+// Devuelve un resultado tipado en vez de lanzar, para que la página /verify-email
+// muestre éxito o error sin un error boundary.
+export const verifyEmailChangeFn = createServerFn({ method: "POST" })
+	.validator(verifyEmailTokenSchema)
+	.handler(async ({ data }) => {
+		try {
+			await verifyEmailChange(data.token);
+			// Si quien confirma el enlace es el mismo navegador que ya tenía sesión,
+			// su JWT cacheado sigue con el email viejo (ver session.ts). Se descarta
+			// para forzar el refresh contra el IS en la próxima petición.
+			clearAccessToken();
+			return { ok: true } as const;
+		} catch (error) {
+			if (error instanceof AuthApiError) {
+				return {
+					ok: false,
+					error: error.message,
+					code: error.code,
+					status: error.status,
+				} as const;
+			}
+			throw error;
+		}
+	});

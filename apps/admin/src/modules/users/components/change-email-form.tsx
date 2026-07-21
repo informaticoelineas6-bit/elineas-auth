@@ -1,5 +1,4 @@
 import { useForm } from "@tanstack/react-form";
-import { useRouter } from "@tanstack/react-router";
 import { MailCheck } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -29,18 +28,16 @@ import { useCountdown } from "@/modules/common/lib/use-countdown.ts";
 import { changeEmailSchema } from "../lib/validation.ts";
 import { useChangeEmail } from "../queries/users.ts";
 
-// Bloque "Cambiar correo": exige la contraseña actual (única barrera, el IS lo
-// aplica sin verificación previa). Explica el estado de verificación del nuevo
-// correo según la respuesta e invalida la sesión en cache para refrescar la
-// cabecera. `currentEmail` es el correo vigente (solo para el texto).
+// Bloque "Cambiar correo": exige la contraseña actual (barrera ante una sesión
+// robada) y el IS envía un enlace de verificación al nuevo correo. El cambio NO
+// se aplica hasta que el usuario confirma ese enlace, así que aquí solo se
+// informa de que la verificación fue enviada. `currentEmail` es el correo
+// vigente (solo para el texto).
 export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
-	const router = useRouter();
 	const changeEmail = useChangeEmail();
 	const [currentError, setCurrentError] = useState<string | undefined>();
-	// Aviso de éxito: correo aplicado o pendiente de verificación.
-	const [result, setResult] = useState<
-		{ email: string; verified: boolean } | undefined
-	>();
+	// Aviso de éxito: correo pendiente de verificación (nunca es inmediato).
+	const [result, setResult] = useState<{ email: string } | undefined>();
 	const rateLimit = useCountdown();
 
 	const form = useForm({
@@ -50,18 +47,15 @@ export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
 			setCurrentError(undefined);
 			setResult(undefined);
 			try {
-				const response = await changeEmail.mutateAsync({
+				await changeEmail.mutateAsync({
 					newEmail: value.newEmail,
 					currentPassword: value.currentPassword,
 				});
-				// Si el IS devuelve el usuario ya con el correo nuevo, el cambio fue
-				// inmediato; si no, queda pendiente de verificación por correo.
-				const applied = response.user?.email === value.newEmail;
-				setResult({ email: value.newEmail, verified: applied });
-				toast.success(applied ? "Correo actualizado" : "Verificación enviada");
+				// El cambio siempre queda pendiente de verificación: el IS envió un
+				// enlace al nuevo correo y no aplica el cambio hasta confirmarlo.
+				setResult({ email: value.newEmail });
+				toast.success("Verificación enviada");
 				form.reset();
-				// Refresca la sesión que alimenta la cabecera (email mostrado).
-				await router.invalidate();
 			} catch (error) {
 				const status = getErrorStatus(error);
 				if (status === 401 || status === 400) {
@@ -152,19 +146,10 @@ export function ChangeEmailForm({ currentEmail }: { currentEmail: string }) {
 						<div className="flex items-start gap-2 rounded-md border border-primary/30 bg-primary/5 p-3 text-sm">
 							<MailCheck className="mt-0.5 size-4 shrink-0 text-primary" />
 							<span>
-								{result.verified ? (
-									<>
-										Tu correo se actualizó a{" "}
-										<span className="font-medium">{result.email}</span>.
-									</>
-								) : (
-									<>
-										Enviamos un enlace de verificación para{" "}
-										<span className="font-medium">{result.email}</span>. El
-										cambio se aplicará cuando lo confirmes desde tu bandeja de
-										entrada.
-									</>
-								)}
+								Enviamos un enlace de verificación a{" "}
+								<span className="font-medium">{result.email}</span>. El cambio se
+								aplicará cuando lo confirmes desde tu bandeja de entrada. El
+								enlace caduca en 1 hora.
 							</span>
 						</div>
 					)}

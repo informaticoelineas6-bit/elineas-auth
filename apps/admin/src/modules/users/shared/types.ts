@@ -32,9 +32,12 @@ export type ChangePasswordResult = {
 	user: User;
 };
 
+// El cambio de correo requiere verificación: nunca es inmediato. El IS envía un
+// enlace al nuevo correo y responde con `pendingVerification: true`. El correo
+// solo se aplica cuando el usuario confirma el enlace (POST /api/auth/verify-email).
 export type ChangeEmailResult = {
-	user?: User;
 	status: boolean;
+	pendingVerification: boolean;
 };
 
 export type UpdateProfileResult = StatusResponse;
