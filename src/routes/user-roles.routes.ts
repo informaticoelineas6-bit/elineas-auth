@@ -1,5 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { requireSession } from "@/middleware/session";
+import { requireIdentity } from "@/middleware/identity";
 import { requireAdmin } from "@/middleware/admin";
 import type { AppEnv } from "@/types/hono-env";
 import {
@@ -36,6 +37,9 @@ const myRolesRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Listar los roles del usuario autenticado (opcionalmente filtrados por sistema)",
   security: bearerAuthSecurity,
+  // Acepta sesión O JWT propio del IS: es el endpoint que los backends
+  // consumidores usan (reenviando su Bearer JWT) para resolver roles.
+  middleware: [requireIdentity] as const,
   request: { query: MyUserRolesQuerySchema },
   responses: {
     200: {
@@ -57,7 +61,7 @@ const listRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Listar asignaciones de roles (paginado, filtrable por usuario o rol)",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
+  middleware: [requireSession, requireAdmin] as const,
   request: { query: UserRoleListQuerySchema },
   responses: {
     200: {
@@ -83,7 +87,7 @@ const getRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Obtener una asignación por id",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
+  middleware: [requireSession, requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -105,7 +109,7 @@ const createRouteDef = createRoute({
   tags: ["UserRoles"],
   summary: "Asignar un rol a un usuario",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
+  middleware: [requireSession, requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateUserRoleBodySchema } } },
   },
@@ -130,7 +134,7 @@ const deleteRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Quitar un rol a un usuario",
   security: bearerAuthSecurity,
-  middleware: [requireAdmin] as const,
+  middleware: [requireSession, requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -143,18 +147,16 @@ const deleteRoute = createRoute({
   },
 });
 
-// Todas las rutas requieren sesión; el resto del recurso (lecturas y
-// escrituras sobre asignaciones ajenas) exige además rol admin por ruta, ya
-// que revela quién es admin — información sensible que no debe exponerse a
-// sesiones normales. La excepción es /me: cualquier usuario autenticado
-// puede consultar SUS PROPIOS roles.
-// El middleware se registra sobre la instancia base (no dentro de la cadena):
-// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
-// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
-// orden de ejecución en runtime es el mismo (middleware primero). El requireAdmin
-// por-ruta sigue declarado en el `middleware` de cada createRoute.
+// Autenticación por ruta (declarada en el `middleware` de cada createRoute, no
+// con un `.use("*")` sobre la base: OpenAPIHono.use() devuelve un `Hono` base
+// sin `.openapi`, que cortaría la inferencia de tipos del RPC):
+//   - `/me`: `requireIdentity` (sesión O JWT del IS) — cualquier usuario
+//     autenticado consulta SUS PROPIOS roles; es el endpoint que reenvían los
+//     backends consumidores con su Bearer JWT.
+//   - resto (lecturas/escrituras sobre asignaciones ajenas): `requireSession` +
+//     `requireAdmin`, ya que revela quién es admin — información sensible que no
+//     debe exponerse a sesiones normales ni a JWTs stateless de vida corta.
 const userRolesRoutesBase = new OpenAPIHono<AppEnv>();
-userRolesRoutesBase.use("*", requireSession);
 
 export const userRolesRoutes = userRolesRoutesBase
   .openapi(myRolesRoute, async (c) => {
