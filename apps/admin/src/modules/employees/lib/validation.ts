@@ -31,7 +31,7 @@ const employeeBaseSchema = z.object({
 		.min(11, "El CI debe tener 11 dígitos")
 		.max(11, "El CI debe tener 11 dígitos"),
 	birthday: z.string().optional(),
-	phoneNumber: phoneSchema.optional(),
+	phoneNumber: phoneSchema.or(z.literal("")).optional(),
 	address: z.string().max(300, "Debe tener menos de 300 caracteres").optional(),
 	inDate: z.string().optional(),
 	outDate: z.string().optional(),
