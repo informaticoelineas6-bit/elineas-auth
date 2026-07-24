@@ -12,6 +12,9 @@ services:
       - .env
     environment:
       NODE_ENV: development
+      # Dentro de la red compartida "localhost" es este propio contenedor, no
+      # el de la API: hay que dirigirse a ella por su container_name.
+      AUTH_API_URL: http://elineas-auth-api:8081
     volumes:
       - .:/app
       - /app/node_modules

@@ -62,9 +62,17 @@ export async function verifyEmailChange(token: string) {
 export async function refreshAccessToken(
 	sessionToken: string,
 ): Promise<string | null> {
-	const response = await fetch(new URL("/api/auth/token", env.AUTH_API_URL), {
-		headers: { Authorization: `Bearer ${sessionToken}` },
-	});
+	// Si el IS no responde (caído, red), no hay forma de confirmar la sesión:
+	// se trata igual que un token inválido en vez de tumbar la página con un
+	// error sin manejar.
+	let response: Response;
+	try {
+		response = await fetch(new URL("/api/auth/token", env.AUTH_API_URL), {
+			headers: { Authorization: `Bearer ${sessionToken}` },
+		});
+	} catch {
+		return null;
+	}
 	if (!response.ok) return null;
 	const body = (await response.json()) as { token: string | null };
 	return body.token;
