@@ -1,21 +1,4 @@
 services:
-  postgres:
-    image: postgres:16-alpine
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: elineas
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB: elineas_auth
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    networks:
-      - elineas-auth-net
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U elineas -d elineas_auth"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
   redis:
     image: redis:7-alpine
     restart: unless-stopped
@@ -52,8 +35,12 @@ services:
       - .env.production
     environment:
       APP_ENV: production
-      DATABASE_URL: postgres://elineas:${POSTGRES_PASSWORD}@postgres:5432/elineas_auth
+      DATABASE_URL: postgres://elineasadmin:wn%29%3F%5E4L_4tG%26%3DWAp@host.docker.internal:5432/ELINEAS_BD
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+    extra_hosts:
+      # host.docker.internal no resuelve por defecto en Linux (a diferencia de
+      # Docker Desktop en Mac/Windows); host-gateway lo mapea a la IP del host.
+      - "host.docker.internal:host-gateway"
     networks:
       - elineas-auth-net
     healthcheck:
@@ -67,13 +54,10 @@ services:
       retries: 3
       start_period: 15s
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
 
 volumes:
-  pgdata:
   redisdata:
 
 networks:
