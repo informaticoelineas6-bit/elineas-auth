@@ -1,15 +1,16 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import {
-	KeyRound,
-	Layers,
-	LogOut,
-	ShieldCheck,
-	ShieldQuestion,
-	UserCog,
-} from "lucide-react";
 import { CodeBlock } from "@/modules/admin/components/docs/code-block.tsx";
+import { CopyDocsButton } from "@/modules/admin/components/docs/copy-docs-button.tsx";
+import {
+	DOCS_DESCRIPTION,
+	DOCS_TITLE,
+	SECTIONS,
+	SECURITY_NOTES,
+	STEPS,
+} from "@/modules/admin/components/docs/docs-content.ts";
 import { EndpointReference } from "@/modules/admin/components/docs/endpoint-reference.tsx";
 import { FrameworkTabs } from "@/modules/admin/components/docs/framework-tabs.tsx";
+import { InlineMarkdown } from "@/modules/admin/components/docs/inline-markdown.tsx";
 import {
 	rolesSnippet,
 	verifySnippet,
@@ -28,54 +29,14 @@ export const Route = createFileRoute("/_authed/docs")({
 	component: DocsPage,
 });
 
-const STEPS = [
-	{
-		icon: Layers,
-		title: "1. Registra el sistema",
-		description:
-			"En Sistemas, crea uno para tu backend (nombre + slug). Ese slug identifica a tu sistema en cada login y en cada consulta de roles.",
-		link: { to: "/systems", label: "Ir a Sistemas" },
-	},
-	{
-		icon: UserCog,
-		title: "2. Crea roles y asígnalos",
-		description:
-			"En Roles crea los roles de tu sistema (p. ej. admin, vendedor) y en Asignaciones dales esos roles a los usuarios que deban entrar. Sin al menos un rol en el sistema, el login de ese usuario se rechaza con 403.",
-		link: { to: "/user-roles", label: "Ir a Asignaciones" },
-	},
-	{
-		icon: KeyRound,
-		title: "3. Implementa el login",
-		description:
-			'Tu frontend (o tu backend, por él) hace POST a /api/auth/sign-in con { email, password, systemSlug }. La respuesta trae { user, token } — el JWT corto — y el session token (largo plazo) viaja en la cabecera "set-auth-token".',
-	},
-	{
-		icon: ShieldCheck,
-		title: "4. Verifica el JWT en tu backend",
-		description:
-			"Con el JWKS público del IS, verifica la firma y expiración del JWT localmente (sin llamar al IS en cada petición). El JWT dura ~15 minutos; renuévalo con GET /api/auth/token usando el session token.",
-	},
-	{
-		icon: ShieldQuestion,
-		title: "5. Autoriza con los roles del usuario",
-		description:
-			"El JWT prueba identidad, no permisos. Para saber qué puede hacer el usuario en TU sistema, consulta GET /api/user-roles/me?systemSlug=… con el session token como Bearer.",
-	},
-	{
-		icon: LogOut,
-		title: "6. Cierra sesión",
-		description:
-			"POST /api/auth/sign-out con el session token revoca la sesión en el IS; limpia también tus propias cookies (session y jwt).",
-	},
-] as const;
-
 function DocsPage() {
 	return (
 		<div className="space-y-8">
 			<PageBreadcrumb items={[{ label: "Documentación" }]} />
 			<PageHeader
-				title="Documentación de integración"
-				description="Cómo conectar un nuevo backend al flujo de autenticación y autorización de Elineas, con ejemplos por stack."
+				title={DOCS_TITLE}
+				description={DOCS_DESCRIPTION}
+				actions={<CopyDocsButton />}
 			/>
 
 			<div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -106,18 +67,17 @@ function DocsPage() {
 
 			<section className="space-y-3">
 				<h2 className="font-heading text-lg font-semibold text-foreground">
-					Endpoints que necesitas
+					{SECTIONS.endpoints.title}
 				</h2>
 				<p className="text-sm text-muted-foreground">
-					El resto de la API (empleados, sistemas, roles…) es exclusiva de
-					esta consola administrativa; un backend cliente solo necesita estos.
+					{SECTIONS.endpoints.intro}
 				</p>
 				<EndpointReference />
 			</section>
 
 			<section className="space-y-3">
 				<h2 className="font-heading text-lg font-semibold text-foreground">
-					Verificar el JWT y consultar roles
+					{SECTIONS.verify.title}
 				</h2>
 				<div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
 					<CodeBlock
@@ -135,45 +95,25 @@ function DocsPage() {
 
 			<section className="space-y-3">
 				<h2 className="font-heading text-lg font-semibold text-foreground">
-					Ejemplos de login por stack
+					{SECTIONS.examples.title}
 				</h2>
 				<p className="text-sm text-muted-foreground">
-					Todos siguen el mismo patrón: el navegador llama a un backend
-					propio (nunca directo al IS desde el cliente) que guarda el session
-					token y el JWT en cookies httpOnly.
+					{SECTIONS.examples.intro}
 				</p>
 				<FrameworkTabs />
 			</section>
 
 			<Card>
 				<CardHeader>
-					<CardTitle>Notas de seguridad</CardTitle>
+					<CardTitle>{SECTIONS.security.title}</CardTitle>
 				</CardHeader>
 				<CardContent>
 					<ul className="list-inside list-disc space-y-2 text-sm text-muted-foreground">
-						<li>
-							El <strong>session token</strong> es de larga duración (días):
-							trátalo como una contraseña. Nunca lo expongas a JavaScript del
-							navegador; guárdalo solo en una cookie httpOnly de tu backend.
-						</li>
-						<li>
-							El <strong>JWT</strong> es de corta duración (~15 min) y se
-							verifica sin llamar al IS: es el que puedes exponer al cliente
-							si tu arquitectura lo necesita (p. ej. para llamadas directas
-							desde el navegador a tu propia API).
-						</li>
-						<li>
-							Agrega el origen de tu nuevo frontend a la lista de orígenes
-							permitidos del Identity Server (variable{" "}
-							<code className="rounded bg-muted px-1 py-0.5 font-mono text-xs">
-								ALLOWED_ORIGIN
-							</code>
-							) o las peticiones desde el navegador serán bloqueadas por CORS.
-						</li>
-						<li>
-							El alta de usuarios no es autoservicio: solo un admin crea
-							cuentas, desde Usuarios en esta consola.
-						</li>
+						{SECURITY_NOTES.map((note) => (
+							<li key={note}>
+								<InlineMarkdown text={note} />
+							</li>
+						))}
 					</ul>
 				</CardContent>
 			</Card>

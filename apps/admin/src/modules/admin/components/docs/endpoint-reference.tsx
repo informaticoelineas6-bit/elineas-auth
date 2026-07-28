@@ -7,51 +7,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@/modules/common/components/ui/table.tsx";
-
-const METHOD_VARIANT = {
-	GET: "secondary",
-	POST: "default",
-	DELETE: "destructive",
-} as const;
-
-const ENDPOINTS: {
-	method: keyof typeof METHOD_VARIANT;
-	path: string;
-	auth: string;
-	description: string;
-}[] = [
-	{
-		method: "POST",
-		path: "/api/auth/sign-in",
-		auth: "—",
-		description:
-			'Login con email + contraseña + systemSlug. Devuelve { user, token, system } y el session token en la cabecera "set-auth-token".',
-	},
-	{
-		method: "GET",
-		path: "/api/auth/token",
-		auth: "Session token",
-		description: "Emite un JWT nuevo (el actual dura ~15 min) sin volver a pedir credenciales.",
-	},
-	{
-		method: "GET",
-		path: "/api/auth/jwks",
-		auth: "Público",
-		description: "JSON Web Key Set para verificar el JWT localmente (sin llamar al IS).",
-	},
-	{
-		method: "POST",
-		path: "/api/auth/sign-out",
-		auth: "Session token",
-		description: "Revoca la sesión actual.",
-	},
-	{
-		method: "GET",
-		path: "/api/user-roles/me?systemSlug=…",
-		auth: "Session token",
-		description: "Roles del usuario autenticado en un sistema concreto (para autorizar).",
-	},
-];
+import { ENDPOINT_METHODS, ENDPOINTS } from "./docs-content.ts";
 
 // Tabla de referencia rápida de los endpoints que necesita un backend nuevo
 // para integrarse (login, verificación y autorización). El resto de la API
@@ -72,7 +28,7 @@ export function EndpointReference() {
 					{ENDPOINTS.map((endpoint) => (
 						<TableRow key={endpoint.path}>
 							<TableCell>
-								<Badge variant={METHOD_VARIANT[endpoint.method]}>
+								<Badge variant={ENDPOINT_METHODS[endpoint.method]}>
 									{endpoint.method}
 								</Badge>
 							</TableCell>
