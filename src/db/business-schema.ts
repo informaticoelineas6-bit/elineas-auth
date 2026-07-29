@@ -5,8 +5,14 @@ import {
   boolean,
   index,
   uniqueIndex,
+  uuid,
 } from "drizzle-orm/pg-core";
 import { user, session } from "@/db/auth-schema";
+
+// Igual que en auth-schema.ts: PKs uuid v4 con DEFAULT gen_random_uuid() en la
+// propia BD (`defaultRandom()`), no `$defaultFn(() => crypto.randomUUID())`. La
+// diferencia importa: `$defaultFn` solo se aplica cuando el INSERT pasa por
+// drizzle, así que un INSERT manual o desde otra herramienta se quedaría sin id.
 
 // Datos personales del empleado. Un empleado puede existir sin usuario
 // (aún no se le ha creado cuenta) y un usuario puede no estar ligado a
@@ -14,10 +20,8 @@ import { user, session } from "@/db/auth-schema";
 export const employee = pgTable(
   "employee",
   {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
       .unique()
       .references(() => user.id, { onDelete: "set null" }),
     name: text("name").notNull(),
@@ -41,9 +45,7 @@ export const employee = pgTable(
 // Un sistema es una aplicación/servicio de la organización sobre el cual
 // se otorgan roles a los usuarios.
 export const system = pgTable("system", {
-  id: text("id")
-    .primaryKey()
-    .$defaultFn(() => crypto.randomUUID()),
+  id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
   slug: text("slug").notNull().unique(),
   description: text("description"),
@@ -60,10 +62,8 @@ export const system = pgTable("system", {
 export const role = pgTable(
   "role",
   {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    systemId: text("system_id")
+    id: uuid("id").primaryKey().defaultRandom(),
+    systemId: uuid("system_id")
       .notNull()
       .references(() => system.id, { onDelete: "cascade" }),
     name: text("name").notNull(),
@@ -86,13 +86,11 @@ export const role = pgTable(
 export const userRole = pgTable(
   "user_role",
   {
-    id: text("id")
-      .primaryKey()
-      .$defaultFn(() => crypto.randomUUID()),
-    userId: text("user_id")
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    roleId: text("role_id")
+    roleId: uuid("role_id")
       .notNull()
       .references(() => role.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -115,13 +113,15 @@ export const userRole = pgTable(
 export const sessionSystem = pgTable(
   "session_system",
   {
-    sessionId: text("session_id")
+    // Sin defaultRandom a propósito: esta PK no es un id propio, es la FK a
+    // `session.id` (relación 1 a 1). El valor lo aporta siempre quien inserta.
+    sessionId: uuid("session_id")
       .primaryKey()
       .references(() => session.id, { onDelete: "cascade" }),
-    userId: text("user_id")
+    userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    systemId: text("system_id")
+    systemId: uuid("system_id")
       .notNull()
       .references(() => system.id, { onDelete: "cascade" }),
     createdAt: timestamp("created_at").defaultNow().notNull(),

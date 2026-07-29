@@ -6,7 +6,10 @@ import { PaginationQuerySchema } from "@/openapi/business.schemas";
 // petición y no aporta acotarla en el contrato.
 export const RequestLogSchema = z
   .object({
-    id: z.string(),
+    id: z.uuid(),
+    // Id de la entrada del Redis Stream de origen. Se expone porque el listado
+    // devuelve la fila completa; es útil para correlacionar con el stream.
+    streamId: z.string(),
     ts: z.date(),
     requestId: z.string(),
     method: z.string(),
@@ -19,8 +22,8 @@ export const RequestLogSchema = z
     referer: z.string().nullable(),
     origin: z.string().nullable(),
     contentLength: z.number().int().nullable(),
-    userId: z.string().nullable(),
-    sessionId: z.string().nullable(),
+    userId: z.uuid().nullable(),
+    sessionId: z.uuid().nullable(),
     query: z.any().nullable(),
     requestBody: z.any().nullable(),
     error: z.any().nullable(),
@@ -39,7 +42,9 @@ export const RequestLogListQuerySchema = PaginationQuerySchema.extend({
     param: { name: "to", in: "query", required: false },
     example: "2026-07-31T23:59:59.999Z",
   }),
-  userId: z.string().optional().openapi({
+  // uuid y no string: la columna es uuid, así que un valor mal formado llegaría
+  // a Postgres y respondería 500 (SQLSTATE 22P02) en vez de un 400 de validación.
+  userId: z.uuid().optional().openapi({
     param: { name: "userId", in: "query", required: false },
   }),
   status: z.coerce.number().int().optional().openapi({

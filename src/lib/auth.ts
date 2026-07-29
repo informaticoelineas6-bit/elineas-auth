@@ -66,5 +66,14 @@ export const auth = betterAuth({
       updateEmailWithoutVerification: false,
     },
   },
+  // Los ids de las tablas de better-auth son uuid v4, no el string aleatorio de
+  // 32 caracteres que genera por defecto. Con `generateId: "uuid"` y el adaptador
+  // de drizzle sobre `pg` (que declara supportsUUIDs), better-auth NO añade `id`
+  // al INSERT: lo delega al DEFAULT gen_random_uuid() de la columna. Es decir,
+  // esta opción y el `uuid(...).defaultRandom()` de auth-schema.ts van juntos;
+  // cambiar una sin la otra rompe el alta de usuarios/sesiones.
+  advanced: {
+    database: { generateId: "uuid" },
+  },
   plugins: [jwt(), bearer()],
 });

@@ -65,7 +65,7 @@ export const SignInBodySchema = z
 
 export const UserSchema = z
   .object({
-    id: z.string().openapi({ example: "usr_9f8a2b" }),
+    id: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
     name: z.string().openapi({ example: "Ada Lovelace" }),
     email: z.email().openapi({ example: "ada@example.com" }),
     emailVerified: z.boolean(),
@@ -81,9 +81,9 @@ export const UserSchema = z
 
 export const SessionSchema = z
   .object({
-    id: z.string(),
+    id: z.uuid(),
     token: z.string(),
-    userId: z.string(),
+    userId: z.uuid(),
     expiresAt: z.date(),
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -107,7 +107,7 @@ export const SafeSessionSchema = SessionSchema.omit({ token: true }).openapi(
 // cada una). Igual que en `Employee.user`, solo id/name/email.
 export const AdminSafeSessionSchema = SafeSessionSchema.extend({
   user: z.object({
-    id: z.string(),
+    id: z.uuid(),
     name: z.string(),
     email: z.email(),
   }),

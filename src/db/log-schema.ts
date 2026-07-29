@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   index,
+  uuid,
 } from "drizzle-orm/pg-core";
 
 // Registro de peticiones HTTP. Es infraestructura de observabilidad, no dominio,
@@ -18,13 +19,19 @@ import {
 export const requestLog = pgTable(
   "request_log",
   {
-    // PK = ID de la entrada del Redis Stream (p. ej. "1721212345678-0"). Dos
-    // propiedades clave: es monotónico por stream (buena localidad de inserción)
-    // y hace idempotente al worker: si un XDEL falla tras un INSERT exitoso, la
-    // relectura vuelve a insertar la misma fila y choca con esta PK, así que
-    // onConflictDoNothing la ignora (semántica exactly-once sin coordinación).
-    // No lleva $defaultFn: el id lo fija el worker con el del stream.
-    id: text("id").primaryKey(),
+    // PK uuid v4 generada por Postgres, homogénea con el resto del esquema.
+    // Contrapartida frente al esquema anterior (que usaba el id del stream como
+    // PK): el uuid es aleatorio, así que se pierde la localidad de inserción
+    // monotónica en el B-tree de la PK. Lo paga el worker de drenado en segundo
+    // plano, no el ciclo de la petición.
+    id: uuid("id").primaryKey().defaultRandom(),
+    // ID de la entrada del Redis Stream de la que provino la fila (p. ej.
+    // "1721212345678-0"). Es lo que hace idempotente al worker: si un XDEL falla
+    // tras un INSERT exitoso, la relectura vuelve a insertar la misma fila y
+    // choca con este UNIQUE, así que onConflictDoNothing la ignora (semántica
+    // exactly-once sin coordinación). Antes ese papel lo cumplía la PK; al pasar
+    // la PK a uuid, la garantía se traslada aquí y NO puede quitarse el unique.
+    streamId: text("stream_id").notNull().unique(),
     // Instante del evento. withTimezone a propósito (a diferencia de las fechas
     // de negocio del resto del esquema): un log es un momento absoluto en UTC.
     ts: timestamp("ts", { withTimezone: true }).notNull(),
@@ -47,8 +54,11 @@ export const requestLog = pgTable(
     // Usuario/sesión SIN FK a `user`/`session` a propósito: el historial debe
     // sobrevivir al borrado del usuario, y evitamos que un INSERT falle o
     // arrastre borrados en cascada. Solo se rellenan en rutas autenticadas.
-    userId: text("user_id"),
-    sessionId: text("session_id"),
+    // Son uuid (no text) para igualar el tipo de las columnas a las que apuntan;
+    // un valor que no sea uuid válido hace fallar el INSERT con SQLSTATE 22P02 y
+    // el worker descarta esa fila como "envenenada" en lugar de atascar el stream.
+    userId: uuid("user_id"),
+    sessionId: uuid("session_id"),
     // Query params ya redactados (token/code/state/otp enmascarados).
     query: jsonb("query"),
     // Cuerpo de la petición, con las claves sensibles ya enmascaradas

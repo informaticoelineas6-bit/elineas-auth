@@ -45,7 +45,8 @@
         "properties": {
           "id": {
             "type": "string",
-            "example": "usr_9f8a2b"
+            "format": "uuid",
+            "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
           },
           "name": {
             "type": "string",
@@ -103,7 +104,8 @@
         "nullable": true,
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -165,7 +167,7 @@
           "email": {
             "type": "string",
             "format": "email",
-            "example": "ada@example.com"
+            "example": "ada@mercadoelineas.com"
           },
           "password": {
             "type": "string",
@@ -304,6 +306,29 @@
           "nullable": true
         }
       },
+      "VerifyEmailResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "VerifyEmailBody": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOi..."
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
       "StatusResponse": {
         "type": "object",
         "properties": {
@@ -370,15 +395,16 @@
       "ChangeEmailResponse": {
         "type": "object",
         "properties": {
-          "user": {
-            "$ref": "#/components/schemas/User"
-          },
           "status": {
+            "type": "boolean"
+          },
+          "pendingVerification": {
             "type": "boolean"
           }
         },
         "required": [
-          "status"
+          "status",
+          "pendingVerification"
         ]
       },
       "ChangeEmailBody": {
@@ -387,7 +413,7 @@
           "newEmail": {
             "type": "string",
             "format": "email",
-            "example": "nueva@example.com"
+            "example": "nueva@mercadoelineas.com"
           },
           "currentPassword": {
             "type": "string",
@@ -406,10 +432,12 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "userId": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "expiresAt": {
             "type": "string",
@@ -448,15 +476,80 @@
           "updatedAt"
         ]
       },
+      "AdminSafeSession": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SafeSession"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "email"
+                ]
+              }
+            },
+            "required": [
+              "user"
+            ]
+          }
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "example": 57
+          },
+          "totalPages": {
+            "type": "integer",
+            "example": 3
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
       "Employee": {
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "userId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -506,7 +599,8 @@
             "nullable": true,
             "properties": {
               "id": {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               "name": {
                 "type": "string"
@@ -538,39 +632,12 @@
           "updatedAt"
         ]
       },
-      "Pagination": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer",
-            "example": 1
-          },
-          "limit": {
-            "type": "integer",
-            "example": 20
-          },
-          "total": {
-            "type": "integer",
-            "example": 57
-          },
-          "totalPages": {
-            "type": "integer",
-            "example": 3
-          }
-        },
-        "required": [
-          "page",
-          "limit",
-          "total",
-          "totalPages"
-        ]
-      },
       "CreateEmployeeBody": {
         "type": "object",
         "properties": {
           "userId": {
             "type": "string",
-            "maxLength": 100
+            "format": "uuid"
           },
           "name": {
             "type": "string",
@@ -653,7 +720,7 @@
               "email": {
                 "type": "string",
                 "format": "email",
-                "example": "ada@example.com"
+                "example": "ada@mercadoelineas.com"
               },
               "password": {
                 "type": "string",
@@ -738,7 +805,7 @@
         "properties": {
           "userId": {
             "type": "string",
-            "maxLength": 100
+            "format": "uuid"
           },
           "name": {
             "type": "string",
@@ -844,10 +911,12 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "systemId": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -879,8 +948,8 @@
         "properties": {
           "systemId": {
             "type": "string",
-            "maxLength": 100,
-            "example": "sys_9f8a2b"
+            "format": "uuid",
+            "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
           },
           "name": {
             "type": "string",
@@ -916,7 +985,8 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "name": {
             "type": "string"
@@ -929,7 +999,8 @@
             "type": "object",
             "properties": {
               "id": {
-                "type": "string"
+                "type": "string",
+                "format": "uuid"
               },
               "slug": {
                 "type": "string"
@@ -956,13 +1027,16 @@
         "type": "object",
         "properties": {
           "id": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "userId": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "roleId": {
-            "type": "string"
+            "type": "string",
+            "format": "uuid"
           },
           "createdAt": {
             "type": "string",
@@ -981,15 +1055,13 @@
         "properties": {
           "userId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "example": "usr_9f8a2b"
+            "format": "uuid",
+            "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
           },
           "roleId": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "example": "role_9f8a2b"
+            "format": "uuid",
+            "example": "3c1d2e4f-5a8b-4c0d-9e2f-3a4b5c6d7e8f"
           }
         },
         "required": [
@@ -1001,6 +1073,10 @@
         "type": "object",
         "properties": {
           "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "streamId": {
             "type": "string"
           },
           "ts": {
@@ -1048,11 +1124,13 @@
           },
           "userId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "format": "uuid"
           },
           "sessionId": {
             "type": "string",
-            "nullable": true
+            "nullable": true,
+            "format": "uuid"
           },
           "query": {
             "nullable": true
@@ -1069,6 +1147,7 @@
         },
         "required": [
           "id",
+          "streamId",
           "ts",
           "requestId",
           "method",
@@ -1290,6 +1369,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JwksResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/verify-email": {
+      "post": {
+        "operationId": "verifyEmail",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Confirmar el cambio de correo con el token de verificación",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyEmailBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Correo verificado y cambio aplicado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VerifyEmailResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
                 }
               }
             }
@@ -1693,7 +1822,8 @@
                 "properties": {
                   "sessionId": {
                     "type": "string",
-                    "example": "sess_abc123"
+                    "format": "uuid",
+                    "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
                   }
                 },
                 "required": [
@@ -1716,6 +1846,177 @@
           },
           "401": {
             "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/admin": {
+      "get": {
+        "operationId": "listAllSessions",
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Listar las sesiones activas de todos los usuarios (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "Ada"
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Sesiones activas de todos los usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/AdminSafeSession"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "sessions",
+                    "pagination"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sessions/admin/revoke": {
+      "delete": {
+        "operationId": "adminRevokeSession",
+        "tags": [
+          "Sessions"
+        ],
+        "summary": "Revocar por id la sesión de cualquier usuario (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sessionId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+                  }
+                },
+                "required": [
+                  "sessionId"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión revocada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
             "content": {
               "application/json": {
                 "schema": {
@@ -1942,6 +2243,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2015,6 +2317,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2117,6 +2420,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2448,6 +2752,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2521,6 +2826,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2623,6 +2929,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2712,7 +3019,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "required": false,
             "name": "systemId",
@@ -2875,6 +3183,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -2948,6 +3257,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -3050,6 +3360,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -3196,7 +3507,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "required": false,
             "name": "userId",
@@ -3204,7 +3516,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "required": false,
             "name": "roleId",
@@ -3357,6 +3670,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -3430,6 +3744,7 @@
           {
             "schema": {
               "type": "string",
+              "format": "uuid",
               "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
             },
             "required": true,
@@ -3541,7 +3856,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "format": "uuid"
             },
             "required": false,
             "name": "userId",

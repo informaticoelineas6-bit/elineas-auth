@@ -117,7 +117,11 @@ const revokeOneRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            sessionId: z.string().openapi({ example: "sess_abc123" }),
+            // uuid: `session.id` es una columna uuid y adminRevokeSession la
+            // consulta directamente; un valor mal formado daría 500 (22P02).
+            sessionId: z.uuid().openapi({
+              example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c",
+            }),
           }),
         },
       },
@@ -175,7 +179,11 @@ const adminRevokeRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            sessionId: z.string().openapi({ example: "sess_abc123" }),
+            // uuid: `session.id` es una columna uuid y adminRevokeSession la
+            // consulta directamente; un valor mal formado daría 500 (22P02).
+            sessionId: z.uuid().openapi({
+              example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c",
+            }),
           }),
         },
       },

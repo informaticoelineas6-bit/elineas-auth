@@ -1,8 +1,11 @@
 import { z } from "@hono/zod-openapi";
 
 // Parámetro de ruta reutilizable: /{id}
+// z.uuid() y no z.string(): todas las PKs son uuid, y un id mal formado que
+// llegue a Postgres provoca un 500 (SQLSTATE 22P02 "invalid input syntax for
+// type uuid") en lugar del 400/404 que corresponde. La validación lo corta antes.
 export const IdParamSchema = z.object({
-  id: z.string().openapi({
+  id: z.uuid().openapi({
     param: { name: "id", in: "path" },
     example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c",
   }),
@@ -40,8 +43,8 @@ export const PaginationSchema = z
 // ---------------------------------------------------------------------------
 export const EmployeeSchema = z
   .object({
-    id: z.string(),
-    userId: z.string().nullable(),
+    id: z.uuid(),
+    userId: z.uuid().nullable(),
     name: z.string(),
     lastName: z.string(),
     ci: z.string(),
@@ -58,7 +61,7 @@ export const EmployeeSchema = z
     // omiten, por eso es opcional. `null` cuando el empleado no tiene usuario.
     user: z
       .object({
-        id: z.string(),
+        id: z.uuid(),
         name: z.string(),
         email: z.string(),
       })
@@ -69,7 +72,7 @@ export const EmployeeSchema = z
 
 export const CreateEmployeeBodySchema = z
   .object({
-    userId: z.string().max(100).optional(),
+    userId: z.uuid().optional(),
     name: z.string().min(1).max(100).openapi({ example: "Ada" }),
     lastName: z.string().min(1).max(100).openapi({ example: "Lovelace" }),
     ci: z.string().min(1).max(50).openapi({ example: "12345678" }),
@@ -103,7 +106,7 @@ export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
 // ---------------------------------------------------------------------------
 export const SystemSchema = z
   .object({
-    id: z.string(),
+    id: z.uuid(),
     name: z.string(),
     slug: z.string(),
     description: z.string().nullable(),
@@ -148,8 +151,8 @@ export const SystemListQuerySchema = PaginationQuerySchema.extend({
 // ---------------------------------------------------------------------------
 export const RoleSchema = z
   .object({
-    id: z.string(),
-    systemId: z.string(),
+    id: z.uuid(),
+    systemId: z.uuid(),
     name: z.string(),
     description: z.string().nullable(),
     createdAt: z.date(),
@@ -159,7 +162,7 @@ export const RoleSchema = z
 
 export const CreateRoleBodySchema = z
   .object({
-    systemId: z.string().max(100).openapi({ example: "sys_9f8a2b" }),
+    systemId: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
     name: z.string().min(1).max(100).openapi({ example: "admin" }),
     description: z.string().max(500).optional(),
   })
@@ -173,7 +176,7 @@ export const UpdateRoleBodySchema = z
   .openapi("UpdateRoleBody");
 
 export const RoleListQuerySchema = PaginationQuerySchema.extend({
-  systemId: z.string().optional().openapi({
+  systemId: z.uuid().optional().openapi({
     param: { name: "systemId", in: "query", required: false },
   }),
   // Búsqueda libre por nombre del rol (coincidencia parcial, sin distinguir
@@ -189,25 +192,25 @@ export const RoleListQuerySchema = PaginationQuerySchema.extend({
 // ---------------------------------------------------------------------------
 export const UserRoleSchema = z
   .object({
-    id: z.string(),
-    userId: z.string(),
-    roleId: z.string(),
+    id: z.uuid(),
+    userId: z.uuid(),
+    roleId: z.uuid(),
     createdAt: z.date(),
   })
   .openapi("UserRole");
 
 export const CreateUserRoleBodySchema = z
   .object({
-    userId: z.string().min(1).max(100).openapi({ example: "usr_9f8a2b" }),
-    roleId: z.string().min(1).max(100).openapi({ example: "role_9f8a2b" }),
+    userId: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
+    roleId: z.uuid().openapi({ example: "3c1d2e4f-5a8b-4c0d-9e2f-3a4b5c6d7e8f" }),
   })
   .openapi("CreateUserRoleBody");
 
 export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
-  userId: z.string().optional().openapi({
+  userId: z.uuid().optional().openapi({
     param: { name: "userId", in: "query", required: false },
   }),
-  roleId: z.string().optional().openapi({
+  roleId: z.uuid().optional().openapi({
     param: { name: "roleId", in: "query", required: false },
   }),
 });
@@ -229,11 +232,11 @@ export const SessionListQuerySchema = PaginationQuerySchema.extend({
 // por `systemSlug` sin exponer el resto de asignaciones de otros usuarios.
 export const MyUserRoleSchema = z
   .object({
-    id: z.string(),
+    id: z.uuid(),
     name: z.string(),
     description: z.string().nullable(),
     system: z.object({
-      id: z.string(),
+      id: z.uuid(),
       slug: z.string(),
       name: z.string(),
     }),

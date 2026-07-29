@@ -54,7 +54,9 @@ function toRow(streamId: string, event: Record<string, unknown>): ParsedEntry {
   return {
     streamId,
     row: {
-      id: streamId,
+      // `id` no se envía: lo genera Postgres (DEFAULT gen_random_uuid()). La
+      // idempotencia del drenado la da `stream_id` (UNIQUE) + onConflictDoNothing.
+      streamId,
       ts,
       requestId: String(event.requestId ?? ""),
       method: String(event.method ?? ""),
@@ -202,8 +204,8 @@ export function startRequestLogWorker(): { stop: () => Promise<void> } {
       const toDelete = [...insertedIds, ...badIds];
       if (toDelete.length > 0) {
         // Borrado tras la inserción. Si este XDEL fallara, la relectura futura
-        // reinsertaría las mismas filas y chocaría con la PK (onConflictDoNothing
-        // las ignora): idempotente, sin duplicados.
+        // reinsertaría las mismas filas y chocarían con el UNIQUE de `stream_id`
+        // (onConflictDoNothing las ignora): idempotente, sin duplicados.
         await redisCommand(() => redis!.send("XDEL", [STREAM_KEY, ...toDelete]), READ_TIMEOUT_MS);
       }
 
