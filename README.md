@@ -32,7 +32,7 @@ La API queda disponible en [http://localhost:8080](http://localhost:8080).
 Para probar el envío de correos en local, levanta también maildev
 (`docker compose up -d maildev`) y define `SMTP_HOST=localhost` en
 `.env.local`; los correos capturados se ven en
-[http://localhost:8025](http://localhost:8025). Ver las variables de correo
+[http://localhost:9825](http://localhost:9825). Ver las variables de correo
 (`RESEND_API_KEY`, `SMTP_HOST`, `SMTP_PORT`, `EMAIL_FROM`) en `.env.example`:
 en producción se usa Resend con `RESEND_API_KEY` y sin ellas el mailer queda
 deshabilitado.
@@ -48,7 +48,7 @@ docker compose up --build
 ```
 
 - API: [http://localhost:8080](http://localhost:8080)
-- Correos capturados por maildev: [http://localhost:8025](http://localhost:8025)
+- Correos capturados por maildev: [http://localhost:9825](http://localhost:9825)
 - El código fuente está montado como bind mount, así que los cambios recargan
   en caliente (`bun --watch`).
 

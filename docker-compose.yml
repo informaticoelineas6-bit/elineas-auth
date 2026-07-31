@@ -33,11 +33,12 @@ services:
     image: maildev/maildev
     restart: unless-stopped
     ports:
-      # La UI escucha en 1080 dentro del contenedor, pero se publica en 8025:
-      # en Windows/WSL2 el rango 1033-1132 está reservado por Hyper-V y Docker
-      # no puede exponer el 1080 del host.
-      - "8025:1080" # UI web (http://localhost:8025)
-      - "1025:1025" # SMTP, expuesto para correr la API en el host (bun run dev)
+      # La UI escucha en 1080 dentro del contenedor, pero se publica en 9825:
+      # en Windows/WSL2 Hyper-V reserva rangos de puertos dinámicos (varían en
+      # cada reinicio) y suelen chocar con 1080/8025/1025; 9825/9826 caen
+      # fuera de esos rangos.
+      - "9825:1080" # UI web (http://localhost:9825)
+      - "9826:1025" # SMTP, expuesto para correr la API en el host (bun run dev)
 
   api:
     build:
