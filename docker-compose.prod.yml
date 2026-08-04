@@ -36,14 +36,18 @@ services:
       - .env.production
     environment:
       APP_ENV: production
-      DATABASE_URL: postgres://elineasadmin:wn%29%3F%5E4L_4tG%26%3DWAp@host.docker.internal:5432/ELINEAS_BD
+      # DATABASE_URL viene de `.env.production` (fuera de git): antes estaba
+      # aquí en claro con la contraseña del superusuario. Debe apuntar al
+      # contenedor de la BD POR NOMBRE sobre `elineas-db`, no por
+      # `host.docker.internal`:
+      #   DATABASE_URL=postgres://USUARIO:PASS@ELINEAS_BD:5432/ELINEAS_BD
+      # Por `host.docker.internal` el paquete sale al gateway del host y se
+      # NATea, así que Postgres lo ve con una IP origen que no cae en
+      # 10.0.5.0/24 — la única subred que su `pg_hba.conf` acepta.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-    extra_hosts:
-      # host.docker.internal no resuelve por defecto en Linux (a diferencia de
-      # Docker Desktop en Mac/Windows); host-gateway lo mapea a la IP del host.
-      - "host.docker.internal:host-gateway"
     networks:
       - elineas-auth-net
+      - elineas-db
     healthcheck:
       test:
         [
@@ -62,5 +66,15 @@ volumes:
   redisdata:
 
 networks:
+  # Red propia de este stack: api ↔ redis.
   elineas-auth-net:
+    external: true
+  # Único camino permitido hacia ELINEAS_BD: la red del proyecto `elineas`, con
+  # subred 10.0.5.0/24 — la que acepta su `pg_hba.conf`
+  # (`host all all 10.0.5.0/24 scram-sha-256`). No la crea este compose; la crea
+  # el del proyecto `elineas`, que la declara con `ipam` explícito para que un
+  # `down`/`up` no le reasigne otra subred del pool y deje fuera a todos los
+  # clientes a la vez. Aquí solo se consume.
+  elineas-db:
+    name: elineas_default
     external: true

@@ -64,6 +64,23 @@ export REDIS_PASSWORD=$(openssl rand -hex 32)
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
+Dos redes externas tienen que existir antes del primer `up`:
+
+```bash
+docker network create elineas-auth-net    # api ↔ redis; la crea este stack
+# elineas_default — la red del proyecto `elineas`, por donde se alcanza la BD.
+# NO se crea aquí: la levanta el compose de `elineas`. Verifica su subred:
+docker network inspect elineas_default \
+  --format '{{range .IPAM.Config}}{{.Subnet}}{{end}}'   # debe dar 10.0.5.0/24
+```
+
+La subred de `elineas_default` es **fija** (el compose de `elineas` la declara
+con `ipam` explícito) porque el `pg_hba.conf` de la BD principal solo admite
+`host all all 10.0.5.0/24 scram-sha-256`. La API tiene que alcanzarla **por
+nombre de contenedor sobre esa red** (`ELINEAS_BD:5432` en `DATABASE_URL`). Por
+`host.docker.internal` no funciona: el paquete se NATea en el gateway del host y
+llega con una IP origen que ninguna regla acepta.
+
 > En **Coolify**, en cambio, no usarás `docker-compose.prod.yml` directamente:
 > cada recurso (Postgres, Redis, API) se crea por separado en la UI y las
 > variables de entorno (`DATABASE_URL`, `REDIS_URL`, `BETTER_AUTH_SECRET`,
