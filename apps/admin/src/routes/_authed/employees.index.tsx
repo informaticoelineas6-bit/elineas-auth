@@ -13,7 +13,11 @@ import { ForbiddenState } from "@/modules/common/components/partials/forbidden-s
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
-import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
+import {
+	getErrorMessage,
+	getErrorStatus,
+	reportError,
+} from "@/modules/common/lib/errors.ts";
 import { ExportMenu } from "@/modules/employees/components/export-menu.tsx";
 import { ImportDialog } from "@/modules/employees/components/import-dialog.tsx";
 import { getEmployeeColumns } from "@/modules/employees/lib/columns.tsx";
@@ -91,7 +95,18 @@ function EmployeesPage() {
 				toast.success(`Usuario "${toDelete.name}" eliminado`);
 				setToDelete(null);
 			},
-			onError: (error) => reportError(error),
+			onError: (error) => {
+				// El IS devuelve 409 cuando la eliminación se rechaza (p. ej.
+				// intentar borrar tu propia cuenta): se muestra su mensaje.
+				if (getErrorStatus(error) === 409) {
+					toast.error("No se pudo eliminar el usuario", {
+						description: getErrorMessage(error),
+					});
+					setToDelete(null);
+				} else {
+					reportError(error);
+				}
+			},
 		});
 	}
 
@@ -197,7 +212,7 @@ function EmployeesPage() {
 				title="Eliminar usuario"
 				description={
 					toDelete
-						? `¿Seguro que quieres eliminar a "${toDelete.name} ${toDelete.lastName}"? Esta acción no se puede deshacer.`
+						? `¿Seguro que quieres eliminar a "${toDelete.name} ${toDelete.lastName}"? Se eliminan también su cuenta de usuario, sus asignaciones de rol y sus sesiones activas. Esta acción no se puede deshacer.`
 						: undefined
 				}
 				confirmLabel="Eliminar"
