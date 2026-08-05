@@ -7,4 +7,10 @@ export {
 	DataTableRowActions,
 	type RowAction,
 } from "./data-table-row-actions.tsx";
+export {
+	type DataTableColumn,
+	type DataTableColumnMeta,
+	type DataTableFeatures,
+	dataTableFeatures,
+} from "./features.ts";
 export { useListControls } from "./use-list-controls.ts";

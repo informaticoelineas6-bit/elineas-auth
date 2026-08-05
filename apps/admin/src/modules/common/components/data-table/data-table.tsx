@@ -1,9 +1,7 @@
 import {
-	type ColumnDef,
-	flexRender,
-	getCoreRowModel,
+	type RowData,
 	type RowSelectionState,
-	useReactTable,
+	useTable,
 } from "@tanstack/react-table";
 import * as React from "react";
 import {
@@ -16,17 +14,16 @@ import {
 } from "@/modules/common/components/ui/table.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
 import type { Pagination } from "@/modules/common/shared/types.ts";
-// Augmentación de ColumnMeta (className / headerClassName por columna).
-import "./column-meta.ts";
 import { DataTableEmpty } from "./data-table-empty.tsx";
 import { DataTableError } from "./data-table-error.tsx";
 import { DataTablePagination } from "./data-table-pagination.tsx";
 import { buildSelectionColumn } from "./data-table-selection-column.tsx";
 import { DataTableSkeleton } from "./data-table-skeleton.tsx";
 import { DataTableToolbar } from "./data-table-toolbar.tsx";
+import { type DataTableColumn, dataTableFeatures } from "./features.ts";
 
-export type DataTableProps<TData> = {
-	columns: ColumnDef<TData, unknown>[];
+export type DataTableProps<TData extends RowData> = {
+	columns: DataTableColumn<TData>[];
 	data: TData[];
 	/** Objeto `pagination` de la API (page, limit, total, totalPages). */
 	pagination?: Pagination;
@@ -75,7 +72,7 @@ export type DataTableProps<TData> = {
 	className?: string;
 };
 
-export function DataTable<TData>({
+export function DataTable<TData extends RowData>({
 	columns,
 	data,
 	pagination,
@@ -100,7 +97,7 @@ export function DataTable<TData>({
 }: DataTableProps<TData>) {
 	const [rowSelection, setRowSelection] = React.useState<RowSelectionState>({});
 
-	const resolvedColumns = React.useMemo<ColumnDef<TData, unknown>[]>(
+	const resolvedColumns = React.useMemo<DataTableColumn<TData>[]>(
 		() =>
 			enableRowSelection
 				? [buildSelectionColumn<TData>(), ...columns]
@@ -108,21 +105,24 @@ export function DataTable<TData>({
 		[columns, enableRowSelection],
 	);
 
-	const table = useReactTable({
+	// El listado, el filtrado y la paginación los resuelve el IS: la tabla solo
+	// pinta la página que llega. Por eso no se registran esas features (ni hacen
+	// falta `manualPagination`/`manualFiltering`/`pageCount`, que eran opciones
+	// de las features de la v8 que aquí no existen).
+	const table = useTable({
+		features: dataTableFeatures,
 		data,
 		columns: resolvedColumns,
-		getCoreRowModel: getCoreRowModel(),
-		manualPagination: true,
-		manualFiltering: true,
-		pageCount: pagination?.totalPages ?? -1,
 		getRowId,
 		enableRowSelection,
 		state: enableRowSelection ? { rowSelection } : undefined,
 		onRowSelectionChange: setRowSelection,
 	});
 
+	// `getAllLeafColumns` y no `getVisibleLeafColumns`: ocultar columnas es la
+	// feature `columnVisibilityFeature`, que no se registra.
 	const columnCount =
-		table.getVisibleLeafColumns().length || resolvedColumns.length;
+		table.getAllLeafColumns().length || resolvedColumns.length;
 
 	const selectedRows = enableRowSelection
 		? table.getSelectedRowModel().rows.map((row) => row.original)
@@ -154,12 +154,9 @@ export function DataTable<TData>({
 										key={header.id}
 										className={header.column.columnDef.meta?.headerClassName}
 									>
-										{header.isPlaceholder
-											? null
-											: flexRender(
-													header.column.columnDef.header,
-													header.getContext(),
-												)}
+										{header.isPlaceholder ? null : (
+											<table.FlexRender header={header} />
+										)}
 									</TableHead>
 								))}
 							</TableRow>
@@ -187,15 +184,12 @@ export function DataTable<TData>({
 						) : (
 							table.getRowModel().rows.map((row) => (
 								<TableRow key={row.id}>
-									{row.getVisibleCells().map((cell) => (
+									{row.getAllCells().map((cell) => (
 										<TableCell
 											key={cell.id}
 											className={cell.column.columnDef.meta?.className}
 										>
-											{flexRender(
-												cell.column.columnDef.cell,
-												cell.getContext(),
-											)}
+											<table.FlexRender cell={cell} />
 										</TableCell>
 									))}
 								</TableRow>

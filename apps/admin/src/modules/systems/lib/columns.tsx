@@ -1,5 +1,5 @@
-import type { ColumnDef } from "@tanstack/react-table";
 import { Eye, Pencil, Trash2 } from "lucide-react";
+import type { DataTableColumn } from "@/modules/common/components/data-table";
 import { DataTableRowActions } from "@/modules/common/components/data-table";
 import { CopyButton } from "@/modules/common/components/partials/copy-button.tsx";
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
@@ -20,7 +20,7 @@ export function getSystemColumns({
 	onView: (system: System) => void;
 	onEdit: (system: System) => void;
 	onDelete: (system: System) => void;
-}): ColumnDef<System, unknown>[] {
+}): DataTableColumn<System>[] {
 	return [
 		{ accessorKey: "name", header: "Nombre" },
 		{
