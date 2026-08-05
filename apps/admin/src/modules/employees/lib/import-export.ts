@@ -1,10 +1,11 @@
 import type { Employee } from "../shared/types.ts";
 
-// `xlsx` (SheetJS) pesa ~450 KB y solo hace falta cuando el usuario elige el
-// formato Excel (o sube un .xlsx). Se carga con import() dinámico para que NO
-// entre en el bundle inicial de la ruta de usuarios; CSV y JSON se manejan con
-// código nativo (sin dependencias).
-const loadXlsx = () => import("xlsx");
+// `hucre/xlsx` solo hace falta cuando el usuario elige el formato Excel (o sube
+// un .xlsx/.xls). Se carga con import() dinámico para que NO entre en el bundle
+// inicial de la ruta de usuarios; CSV y JSON se manejan con código nativo (sin
+// dependencias). Se importa el subpath `hucre/xlsx` (no la raíz `hucre`) para
+// no arrastrar los lectores/escritores de ODS, XML y CSV del paquete.
+const loadXlsx = () => import("hucre/xlsx");
 
 // Columnas del CSV/JSON/Excel de exportación e importación. `id` y `email`
 // son informativos: `email` es de solo lectura (viene de la cuenta de
@@ -138,30 +139,45 @@ function parseCsvMatrix(text: string): string[][] {
 	return rows;
 }
 
-// Matriz CSV → filas objeto con la primera fila como cabecera. Salta líneas
-// vacías (equivalente a `skipEmptyLines` de papaparse) y quita el BOM que
-// Excel suele anteponer.
-function csvToRows(text: string): RawImportRow[] {
-	const matrix = parseCsvMatrix(text.replace(/^\uFEFF/, "")).filter(
-		(cells) => !(cells.length === 1 && cells[0].trim() === ""),
+// Normaliza una celda cruda antes de validarla. `hucre` devuelve las celdas con
+// formato de fecha como Date (epoch UTC, ver serialToDate) y las vacías como
+// null; se convierten a "YYYY-MM-DD" y "" para que la fila llegue a
+// import-validate.ts con la misma forma que viene de un CSV o un JSON. Los
+// números se dejan tal cual: cleanCi los rellena a 11 dígitos.
+function normalizeCell(value: unknown): unknown {
+	if (value instanceof Date) return value.toISOString().slice(0, 10);
+	return value ?? "";
+}
+
+// Matriz de celdas → filas objeto con la primera fila como cabecera. La usan el
+// CSV y el Excel (las hojas de `hucre` son también matrices de celdas). Salta
+// las filas totalmente vacías (equivalente a `skipEmptyLines` de papaparse).
+function matrixToRows(matrix: unknown[][]): RawImportRow[] {
+	const filled = matrix.filter((cells) =>
+		cells.some((cell) => String(cell ?? "").trim() !== ""),
 	);
-	if (matrix.length === 0) return [];
-	const header = matrix[0].map((key) => key.trim());
-	return matrix.slice(1).map((cells) => {
+	if (filled.length === 0) return [];
+	const header = filled[0].map((key) => String(key ?? "").trim());
+	return filled.slice(1).map((cells) => {
 		const obj: RawImportRow = {};
 		header.forEach((key, index) => {
-			obj[key] = cells[index] ?? "";
+			obj[key] = normalizeCell(cells[index]);
 		});
 		return obj;
 	});
 }
 
+// Quita el BOM que Excel suele anteponer y delega en matrixToRows.
+function csvToRows(text: string): RawImportRow[] {
+	return matrixToRows(parseCsvMatrix(text.replace(/^\uFEFF/, "")));
+}
+
 export type ExportFormat = "csv" | "json" | "xlsx";
 
 // Convierte y dispara la descarga en el navegador. CSV y JSON son nativos;
-// Excel carga `xlsx` bajo demanda (import dinámico), así que solo quien elige
-// Excel paga ese peso. El servidor solo aporta el array completo de empleados
-// (ver listAllEmployeesFn). Es async por el import() de xlsx.
+// Excel carga `hucre/xlsx` bajo demanda (import dinámico), así que solo quien
+// elige Excel paga ese peso. El servidor solo aporta el array completo de
+// empleados (ver listAllEmployeesFn). Es async por el import() de hucre.
 export async function exportEmployees(
 	employees: Employee[],
 	format: ExportFormat,
@@ -185,31 +201,35 @@ export async function exportEmployees(
 		return;
 	}
 
-	const XLSX = await loadXlsx();
-	const sheet = XLSX.utils.json_to_sheet(rows, { header: columns });
+	const { writeXlsx } = await loadXlsx();
 	// CI y teléfono son cadenas de dígitos: sin marcarlas como texto, Excel las
 	// interpreta como número al abrir el archivo y les quita los ceros a la
-	// izquierda (un CI "01…" pasa a 10 dígitos). Forzar el formato de texto ("@")
-	// en esas columnas evita esa corrupción al reimportar.
+	// izquierda (un CI "01…" pasa a 10 dígitos). El formato de texto ("@") de la
+	// columna evita esa corrupción al reimportar.
 	const TEXT_COLUMNS: (keyof EmployeeExportRow)[] = ["ci", "phoneNumber"];
-	for (const col of TEXT_COLUMNS) {
-		const colIndex = columns.indexOf(col);
-		if (colIndex < 0) continue;
-		// Fila 0 es la cabecera; los datos empiezan en la fila 1 (índice r=1).
-		for (let r = 1; r <= rows.length; r++) {
-			const ref = XLSX.utils.encode_cell({ c: colIndex, r });
-			const cell = sheet[ref];
-			if (cell) {
-				cell.t = "s";
-				cell.z = "@";
-			}
-		}
-	}
-	const book = XLSX.utils.book_new();
-	XLSX.utils.book_append_sheet(book, sheet, "Usuarios");
-	const buffer = XLSX.write(book, { type: "array", bookType: "xlsx" });
+	const buffer = await writeXlsx({
+		sheets: [
+			{
+				name: "Usuarios",
+				// `header` es el texto de la cabecera y `key` la propiedad de la que
+				// sale el valor en cada fila de `data`: ambas son el nombre de la
+				// columna, así que el orden de EMPLOYEE_EXPORT_COLUMNS se respeta.
+				columns: columns.map((col) => ({
+					header: col,
+					key: col,
+					...(TEXT_COLUMNS.includes(col) ? { numFmt: "@" } : {}),
+				})),
+				data: rows,
+			},
+		],
+	});
 	triggerDownload(
-		new Blob([buffer], { type: "application/octet-stream" }),
+		// El Uint8Array<ArrayBufferLike> que devuelve writeXlsx no encaja en el tipo
+		// BlobPart (exige ArrayBuffer, no SharedArrayBuffer); el cast es seguro
+		// porque hucre siempre escribe sobre un ArrayBuffer normal.
+		new Blob([buffer as Uint8Array<ArrayBuffer>], {
+			type: "application/octet-stream",
+		}),
 		"usuarios.xlsx",
 	);
 }
@@ -239,10 +259,19 @@ export async function parseEmployeeFile(file: File): Promise<RawImportRow[]> {
 	}
 
 	if (ext === "xlsx" || ext === "xls") {
-		const XLSX = await loadXlsx();
-		const book = XLSX.read(await file.arrayBuffer(), { type: "array" });
-		const sheet = book.Sheets[book.SheetNames[0]];
-		return XLSX.utils.sheet_to_json<RawImportRow>(sheet, { defval: "" });
+		const { readXlsx, readXls } = await loadXlsx();
+		// `readStyles: true` es lo que permite a hucre distinguir una celda con
+		// formato de fecha de un número cualquiera: sin él, un birthday guardado
+		// como fecha llegaría como número de serie de Excel (45000) en vez de Date.
+		const book = await (ext === "xls" ? readXls : readXlsx)(
+			await file.arrayBuffer(),
+			{ readStyles: true },
+		);
+		const sheet = book.sheets[0];
+		if (!sheet) {
+			throw new Error(`El archivo Excel (${file.name}) no tiene hojas.`);
+		}
+		return matrixToRows(sheet.rows);
 	}
 
 	throw new Error(

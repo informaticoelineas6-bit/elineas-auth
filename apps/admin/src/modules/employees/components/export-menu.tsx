@@ -36,7 +36,7 @@ export function ExportMenu({ filters }: { filters: EmployeeFilters }) {
 					return;
 				}
 				try {
-					// async: el formato Excel carga `xlsx` bajo demanda (import dinámico).
+					// async: el formato Excel carga `hucre` bajo demanda (import dinámico).
 					await exportEmployees(employees, format);
 					toast.success(`${employees.length} usuario(s) exportado(s)`);
 				} catch (error) {
