@@ -174,10 +174,33 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
   return row;
 }
 
-export async function deleteEmployee(id: string) {
-  const [row] = await db
-    .delete(employee)
-    .where(eq(employee.id, id))
-    .returning({ id: employee.id });
-  if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+// Elimina el empleado y, si tiene una cuenta enlazada, también esa cuenta.
+//
+// La FK employee.userId es `set null`, así que borrar solo el empleado dejaba
+// la cuenta viva con sus roles y sesiones: el usuario seguía apareciendo en las
+// asignaciones y podía seguir iniciando sesión pese a estar "eliminado". Borrar
+// el user cascadea a account/session (auth-schema) y a userRole/sessionSystem
+// (business-schema), que es lo que espera la acción "Eliminar usuario".
+//
+// Ambos borrados van en una transacción: si el del user falla, el empleado no
+// desaparece a medias.
+export async function deleteEmployee(id: string, currentUserId?: string) {
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(employee)
+      .where(eq(employee.id, id))
+      .returning({ userId: employee.userId });
+    if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+    if (!row.userId) return;
+    // Auto-borrado: eliminaría la cuenta de quien llama junto con su sesión
+    // actual. La excepción revierte también el borrado del empleado.
+    if (row.userId === currentUserId) {
+      throw new HttpError(
+        409,
+        "No puedes eliminar tu propio usuario",
+        "CONFLICT",
+      );
+    }
+    await tx.delete(user).where(eq(user.id, row.userId));
+  });
 }
