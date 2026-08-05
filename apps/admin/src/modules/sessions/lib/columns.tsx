@@ -1,10 +1,10 @@
-import type { ColumnDef } from "@tanstack/react-table";
 import { Monitor, Smartphone } from "lucide-react";
+import type { DataTableColumn } from "@/modules/common/components/data-table";
 import { DataTableRowActions } from "@/modules/common/components/data-table";
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { formatDate } from "@/modules/common/lib/format.ts";
-import { parseUserAgent } from "./user-agent.ts";
 import type { AdminSafeSession } from "../shared/types.ts";
+import { parseUserAgent } from "./user-agent.ts";
 
 // Columnas del listado administrativo de sesiones (todas, de todos los
 // usuarios). `currentId` distingue la sesión propia con una insignia; la
@@ -15,7 +15,7 @@ export function getAdminSessionColumns({
 }: {
 	currentId: string | undefined;
 	onRevoke: (session: AdminSafeSession) => void;
-}): ColumnDef<AdminSafeSession, unknown>[] {
+}): DataTableColumn<AdminSafeSession>[] {
 	return [
 		{
 			id: "user",
@@ -78,7 +78,9 @@ export function getAdminSessionColumns({
 					actions={[
 						{
 							label:
-								row.original.id === currentId ? "Cerrar esta sesión" : "Revocar",
+								row.original.id === currentId
+									? "Cerrar esta sesión"
+									: "Revocar",
 							destructive: true,
 							onSelect: () => onRevoke(row.original),
 						},

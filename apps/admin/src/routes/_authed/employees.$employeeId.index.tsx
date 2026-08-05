@@ -134,8 +134,8 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 				navigate({ to: "/employees" });
 			},
 			onError: (error) => {
-				// Un 409 significa que el IS rechazó la eliminación (p. ej. otro
-				// recurso aún la referencia): se explica con el mensaje del IS.
+				// Un 409 significa que el IS rechazó la eliminación (p. ej.
+				// intentar borrar tu propia cuenta): se explica con su mensaje.
 				if (getErrorStatus(error) === 409) {
 					toast.error("No se pudo eliminar el usuario", {
 						description: getErrorMessage(error),
@@ -256,7 +256,7 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 				open={confirming === "delete"}
 				onOpenChange={(open) => !open && setConfirming(null)}
 				title="Eliminar usuario"
-				description={`Se eliminará de forma permanente la ficha de "${employee.name} ${employee.lastName}". La cuenta de usuario enlazada y sus asignaciones de rol no se eliminan. Esta acción no se puede deshacer.`}
+				description={`Se eliminará de forma permanente la ficha de "${employee.name} ${employee.lastName}", junto con su cuenta de usuario enlazada, sus asignaciones de rol y sus sesiones activas. Esta acción no se puede deshacer.`}
 				confirmLabel="Eliminar"
 				destructive
 				loading={deleteEmployee.isPending}

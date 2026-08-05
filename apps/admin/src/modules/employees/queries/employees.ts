@@ -3,6 +3,8 @@ import {
 	useMutation,
 	useQueryClient,
 } from "@tanstack/react-query";
+import { sessionKeys } from "@/modules/sessions/queries/sessions.ts";
+import { userRoleKeys } from "@/modules/user-roles/queries/user-roles.ts";
 import {
 	createEmployeeFn,
 	createEmployeeWithUserFn,
@@ -83,11 +85,18 @@ export function useExportEmployees() {
 	});
 }
 
+// Eliminar un empleado borra también su cuenta de usuario en el IS, y con ella
+// (por cascade) sus asignaciones de rol y sus sesiones. Por eso se invalidan
+// los tres cachés: si no, la tabla de asignaciones y el listado de sesiones
+// siguen mostrando filas de un usuario que ya no existe.
 export function useDeleteEmployee() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => deleteEmployeeFn({ data: { id } }),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: employeeKeys.all }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: employeeKeys.all });
+			queryClient.invalidateQueries({ queryKey: userRoleKeys.all });
+			queryClient.invalidateQueries({ queryKey: sessionKeys.all });
+		},
 	});
 }

@@ -1,5 +1,5 @@
-import type { ColumnDef } from "@tanstack/react-table";
 import { Pencil, Trash2 } from "lucide-react";
+import type { DataTableColumn } from "@/modules/common/components/data-table";
 import { DataTableRowActions } from "@/modules/common/components/data-table";
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { formatDate } from "@/modules/common/lib/format.ts";
@@ -19,7 +19,7 @@ export function getRoleColumns({
 	systemsById: Map<string, System>;
 	onEdit: (role: Role) => void;
 	onDelete: (role: Role) => void;
-}): ColumnDef<Role, unknown>[] {
+}): DataTableColumn<Role>[] {
 	return [
 		{ accessorKey: "name", header: "Nombre" },
 		{

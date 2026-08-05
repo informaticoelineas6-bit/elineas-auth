@@ -1,4 +1,3 @@
-import type { ColumnDef } from "@tanstack/react-table";
 import {
 	Copy,
 	Eye,
@@ -8,6 +7,7 @@ import {
 	PowerOff,
 	Trash2,
 } from "lucide-react";
+import type { DataTableColumn } from "@/modules/common/components/data-table";
 import {
 	DataTableRowActions,
 	type RowAction,
@@ -34,7 +34,7 @@ export function getEmployeeColumns({
 	onCopyEmail: (employee: Employee) => void;
 	onToggleActive: (employee: Employee) => void;
 	onDelete: (employee: Employee) => void;
-}): ColumnDef<Employee, unknown>[] {
+}): DataTableColumn<Employee>[] {
 	return [
 		{
 			id: "name",
