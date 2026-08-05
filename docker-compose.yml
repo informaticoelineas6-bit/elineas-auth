@@ -44,7 +44,7 @@ services:
     build:
       context: .
       target: dev
-    image: elineas-auth-api:1.0.0
+    image: elineas-auth-api:1.2.0
     container_name: elineas-auth-api
     restart: unless-stopped
     ports:
