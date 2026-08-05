@@ -161,6 +161,8 @@ const deleteRoute = createRoute({
   operationId: "deleteEmployee",
   tags: ["Employees"],
   summary: "Eliminar un empleado",
+  description:
+    "Elimina el empleado y, si tiene una cuenta de usuario enlazada, también esa cuenta con sus roles y sesiones. No se puede eliminar el empleado ligado a la cuenta que hace la llamada (409).",
   security: bearerAuthSecurity,
   request: { params: IdParamSchema },
   responses: {
@@ -171,6 +173,7 @@ const deleteRoute = createRoute({
     401: unauthorizedResponse,
     403: forbiddenResponse,
     404: notFoundResponse,
+    409: conflictResponse,
   },
 });
 
@@ -221,6 +224,7 @@ export const employeesRoutes = employeesRoutesBase
   })
   .openapi(deleteRoute, async (c) => {
     const { id } = c.req.valid("param");
-    await deleteEmployee(id);
+    // El id de quien llama sirve para rechazar el auto-borrado (409).
+    await deleteEmployee(id, c.get("user").id);
     return c.json({ status: true }, 200);
   });
