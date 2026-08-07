@@ -19,6 +19,8 @@ services:
   redis:
     image: redis:7-alpine
     restart: unless-stopped
+    ports:
+      - "6379:6379" # expuesto para correr la API en el host (bun run dev)
     volumes:
       - redisdata:/data
     healthcheck:
@@ -55,8 +57,6 @@ services:
       APP_ENV: local
       DATABASE_URL: postgres://elineas:elineas@postgres:5432/elineas_auth
       REDIS_URL: redis://redis:6379
-      # Correos hacia maildev. Sin depends_on a propósito: si maildev no está,
-      # el mailer solo loguea el fallo y la API arranca/funciona igual.
       SMTP_HOST: maildev
       SMTP_PORT: 1025
     volumes:
