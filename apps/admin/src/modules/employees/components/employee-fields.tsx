@@ -20,8 +20,9 @@ import type {
 
 // Sección "Empleado" compartida por el alta combinada y la edición: ambos
 // formularios anidan sus valores bajo `employee`, así que los nombres de campo
-// ("employee.name", …) valen para los dos. Solo nombre, apellidos y CI son
-// obligatorios; el resto es opcional. `ciError` recibe el 409 de CI duplicado.
+// ("employee.name", …) valen para los dos. Solo nombre y apellidos son
+// obligatorios; el resto (incluido el CI) es opcional. `ciError` recibe el 409
+// de CI duplicado, para el caso en que sí se informe uno.
 export function EmployeeFields({
 	form: incomingForm,
 	ciError,
@@ -38,7 +39,7 @@ export function EmployeeFields({
 		<FieldSet>
 			<FieldLegend>Datos personales</FieldLegend>
 			<FieldDescription>
-				Ficha de la persona. Solo nombre, apellidos y CI son obligatorios.
+				Ficha de la persona. Solo nombre y apellidos son obligatorios.
 			</FieldDescription>
 			<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
 				<form.Field name="employee.name">
@@ -97,9 +98,7 @@ export function EmployeeFields({
 							field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
 							<Field data-invalid={isInvalid || Boolean(ciError)}>
-								<FieldLabel htmlFor={field.name} required>
-									CI
-								</FieldLabel>
+								<FieldLabel htmlFor={field.name}>CI</FieldLabel>
 								<Input
 									id={field.name}
 									name={field.name}

@@ -65,7 +65,7 @@ export function employeeToFormValues(
 		employee: {
 			name: employee.name,
 			lastName: employee.lastName,
-			ci: employee.ci,
+			ci: employee.ci ?? "",
 			birthday: toDateInputValue(employee.birthday),
 			phoneNumber: employee.phoneNumber ?? "",
 			address: employee.address ?? "",
@@ -117,8 +117,8 @@ export function toUpdateEmployeePayload(
 	return {
 		name,
 		lastName,
-		ci,
 		active,
+		...(ci ? { ci } : {}),
 		...(birthday ? { birthday } : {}),
 		...(phoneNumber ? { phoneNumber } : {}),
 		...(address ? { address } : {}),
@@ -154,8 +154,8 @@ export function toCreateEmployeeWithUserPayload(
 		employee: {
 			name,
 			lastName,
-			ci,
 			active,
+			...(ci ? { ci } : {}),
 			...(birthday ? { birthday } : {}),
 			...(phoneNumber ? { phoneNumber } : {}),
 			...(address ? { address } : {}),
