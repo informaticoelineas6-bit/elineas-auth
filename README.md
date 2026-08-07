@@ -645,7 +645,7 @@ no se envía: lo fija el servidor con el id del usuario recién creado.
     "name": "Ada",
     "lastName": "Lovelace",
     "ci": "12345678",
-    // birthday, phoneNumber, address, inDate, outDate, active son opcionales
+    // ci, birthday, phoneNumber, address, inDate, outDate, active son opcionales
   },
 }
 // 201 → { "user": { /* User */ }, "employee": { /* Employee */ } }
@@ -654,12 +654,12 @@ no se envía: lo fija el servidor con el id del usuario recién creado.
 No hay una transacción única que abarque los dos pasos: el alta del usuario la
 realiza better-auth, que escribe en la BD por su cuenta y queda fuera del
 control de una transacción de Drizzle. Para que el resultado sea consistente el
-endpoint usa **pre-chequeo + compensación**: comprueba que el CI no exista
-antes de crear el usuario (así un CI duplicado responde `409` sin dejar ninguna
-cuenta), y si el `INSERT` del empleado fallara igualmente (p. ej. una carrera),
-borra el usuario recién creado para no dejar cuentas huérfanas. El alta no
-asigna roles: para que el nuevo usuario pueda iniciar sesión en un sistema hay
-que darle un rol con `POST /api/user-roles`.
+endpoint usa **pre-chequeo + compensación**: si se envía `ci`, comprueba que no
+exista antes de crear el usuario (así un CI duplicado responde `409` sin dejar
+ninguna cuenta), y si el `INSERT` del empleado fallara igualmente (p. ej. una
+carrera), borra el usuario recién creado para no dejar cuentas huérfanas. El
+alta no asigna roles: para que el nuevo usuario pueda iniciar sesión en un
+sistema hay que darle un rol con `POST /api/user-roles`.
 
 ### 10.2 Paginación y filtros en listados
 

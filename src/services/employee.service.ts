@@ -116,13 +116,18 @@ export async function createEmployeeWithUser(
   input: CreateEmployeeWithUserInput,
   headers: Headers,
 ) {
-  const [existing] = await db
-    .select({ id: employee.id })
-    .from(employee)
-    .where(eq(employee.ci, input.employee.ci))
-    .limit(1);
-  if (existing) {
-    throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+  // El CI ahora es opcional: el pre-chequeo de unicidad solo aplica cuando se
+  // envía uno. Con múltiples empleados sin CI, la restricción UNIQUE de la BD
+  // no los rechaza (Postgres permite varios NULL en una columna UNIQUE).
+  if (input.employee.ci !== undefined) {
+    const [existing] = await db
+      .select({ id: employee.id })
+      .from(employee)
+      .where(eq(employee.ci, input.employee.ci))
+      .limit(1);
+    if (existing) {
+      throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+    }
   }
 
   const { response } = await auth.api.signUpEmail({

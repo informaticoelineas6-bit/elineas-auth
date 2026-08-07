@@ -26,7 +26,7 @@ export const employee = pgTable(
       .references(() => user.id, { onDelete: "set null" }),
     name: text("name").notNull(),
     lastName: text("last_name").notNull(),
-    ci: text("ci").notNull().unique(),
+    ci: text("ci").unique(),
     birthday: timestamp("birthday"),
     phoneNumber: text("phone_number"),
     address: text("address"),
