@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, ne, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@/db/index";
 import { employee } from "@/db/business-schema";
@@ -95,6 +95,22 @@ export async function getEmployee(id: string) {
 }
 
 export async function createEmployee(input: CreateEmployeeInput) {
+  // El CI es opcional: el pre-chequeo de unicidad solo aplica cuando se envía
+  // uno (igual que en `createEmployeeWithUser`). Sin esto, un CI duplicado
+  // solo se detectaba al chocar con la restricción UNIQUE de la BD, que cae en
+  // el mensaje genérico de `handleError` ("El recurso ya existe...") en vez del
+  // mensaje específico que espera el frontend para señalar el campo.
+  if (input.ci !== undefined) {
+    const [existing] = await db
+      .select({ id: employee.id })
+      .from(employee)
+      .where(eq(employee.ci, input.ci))
+      .limit(1);
+    if (existing) {
+      throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+    }
+  }
+
   const [row] = await db.insert(employee).values(input).returning();
   return row;
 }
@@ -170,6 +186,20 @@ export async function createEmployeeWithUser(
 
 export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
   if (Object.keys(input).length === 0) return getEmployee(id);
+
+  // Mismo pre-chequeo que en el alta, excluyendo el propio registro (si no,
+  // guardar sin cambiar el CI chocaría contra sí mismo).
+  if (input.ci !== undefined) {
+    const [existing] = await db
+      .select({ id: employee.id })
+      .from(employee)
+      .where(and(eq(employee.ci, input.ci), ne(employee.id, id)))
+      .limit(1);
+    if (existing) {
+      throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+    }
+  }
+
   const [row] = await db
     .update(employee)
     .set(input)
