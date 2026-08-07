@@ -44,7 +44,7 @@ function employeeToRow(employee: Employee): EmployeeExportRow {
 		id: employee.id,
 		name: employee.name,
 		lastName: employee.lastName,
-		ci: employee.ci,
+		ci: employee.ci ?? "",
 		birthday: toDateCell(employee.birthday),
 		phoneNumber: employee.phoneNumber ?? "",
 		address: employee.address ?? "",

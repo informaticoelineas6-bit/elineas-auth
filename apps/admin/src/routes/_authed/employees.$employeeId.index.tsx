@@ -152,7 +152,7 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 		<>
 			<PageHeader
 				title={`${employee.name} ${employee.lastName}`}
-				description={`CI ${employee.ci}`}
+				description={employee.ci ? `CI ${employee.ci}` : undefined}
 				actions={
 					<>
 						<Button

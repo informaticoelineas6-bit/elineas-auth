@@ -53,7 +53,12 @@ export function getEmployeeColumns({
 					<span className="text-muted-foreground">—</span>
 				),
 		},
-		{ accessorKey: "ci", header: "CI" },
+		{
+			accessorKey: "ci",
+			header: "CI",
+			cell: ({ row }) =>
+				row.original.ci ?? <span className="text-muted-foreground">—</span>,
+		},
 		{
 			accessorKey: "phoneNumber",
 			header: "Teléfono",

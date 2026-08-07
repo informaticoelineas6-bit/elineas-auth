@@ -17,7 +17,7 @@ export type Employee = {
 	userId: string | null;
 	name: string;
 	lastName: string;
-	ci: string;
+	ci: string | null;
 	birthday: string | null;
 	phoneNumber: string | null;
 	address: string | null;
