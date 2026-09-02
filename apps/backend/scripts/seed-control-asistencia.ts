@@ -18,39 +18,39 @@ const ACCOUNTS = [
   {
     email: "ca.empleado@mercadoelineas.com",
     name: "Elena Prueba",
-    employee: { name: "Elena", lastName: "Prueba", ci: "90000001" },
+    employee: { name: "Elena", lastName: "Prueba", ci: "00090000001" },
     roles: ["employee"],
   },
   {
     email: "ca.jefe@mercadoelineas.com",
     name: "Julio Prueba",
-    employee: { name: "Julio", lastName: "Prueba", ci: "90000002" },
+    employee: { name: "Julio", lastName: "Prueba", ci: "00090000002" },
     roles: ["department_head"],
   },
   {
     email: "ca.gestor@mercadoelineas.com",
     name: "Gabriela Prueba",
-    employee: { name: "Gabriela", lastName: "Prueba", ci: "90000003" },
+    employee: { name: "Gabriela", lastName: "Prueba", ci: "00090000003" },
     roles: ["global_manager"],
   },
   {
     email: "ca.super@mercadoelineas.com",
     name: "Sergio Prueba",
-    employee: { name: "Sergio", lastName: "Prueba", ci: "90000004" },
+    employee: { name: "Sergio", lastName: "Prueba", ci: "00090000004" },
     roles: ["superadmin"],
   },
   {
     // Dos roles a la vez: comprueba el rol efectivo (RN-03.1).
     email: "ca.multi@mercadoelineas.com",
     name: "Marta Prueba",
-    employee: { name: "Marta", lastName: "Prueba", ci: "90000005" },
+    employee: { name: "Marta", lastName: "Prueba", ci: "00090000005" },
     roles: ["employee", "department_head"],
   },
   {
     // Sin rol: el IS debe rechazar su login con 403 (RN-00.33).
     email: "ca.sinrol@mercadoelineas.com",
     name: "Nadia Prueba",
-    employee: { name: "Nadia", lastName: "Prueba", ci: "90000006" },
+    employee: { name: "Nadia", lastName: "Prueba", ci: "00090000006" },
     roles: [],
   },
 ] as const;

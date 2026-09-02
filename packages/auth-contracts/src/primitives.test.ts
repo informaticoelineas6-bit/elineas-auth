@@ -87,6 +87,18 @@ describe("ci", () => {
     expect(ci.safeParse("012345678901").success).toBe(false); // 12
     expect(ci.safeParse("0123456789a").success).toBe(false); // no dígito
   });
+
+  test("opcional deja pasar la ausencia, pero no la cadena vacía", () => {
+    // Así se usa en las rutas del servidor (`ci: Ci.optional()`): hay empleados
+    // sin CI, y el panel omite el campo del payload cuando se deja en blanco en
+    // vez de enviar "". Si alguna vez enviara "", tiene que fallar de forma
+    // visible y no colarse como un CI vacío en la BD, donde además chocaría con
+    // la restricción UNIQUE de la columna.
+    const optional = ci.optional();
+    expect(optional.safeParse(undefined).success).toBe(true);
+    expect(optional.safeParse("01010112345").success).toBe(true);
+    expect(optional.safeParse("").success).toBe(false);
+  });
 });
 
 describe("slug", () => {

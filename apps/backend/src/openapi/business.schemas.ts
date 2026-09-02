@@ -1,5 +1,6 @@
 import {
   address as Address,
+  ci as Ci,
   description as Description,
   displayName as DisplayName,
   PAGE_SIZE_DEFAULT,
@@ -91,13 +92,11 @@ export const CreateEmployeeBodySchema = z
     userId: z.uuid().optional(),
     name: DisplayName.openapi({ example: "Ada" }),
     lastName: DisplayName.openapi({ example: "Lovelace" }),
-    // El panel exige 11 dígitos exactos (`ci` en @elineas/auth-contracts) pero
-    // aquí se mantiene la regla laxa a propósito: endurecerla sin comprobar
-    // antes los datos haría fallar con 400 la edición de empleados antiguos
-    // cuyo CI no cumpla el formato. Para comprobarlo:
-    //   SELECT id, ci FROM employee WHERE ci IS NOT NULL AND ci !~ '^[0-9]{11}$';
-    // Si no devuelve filas, sustituye esta línea por `ci: Ci.optional()`.
-    ci: z.string().min(1).max(50).optional().openapi({ example: "12345678" }),
+    // 11 dígitos exactos, la misma regla que aplica el panel (`ci` en
+    // @elineas/auth-contracts). El campo sigue siendo opcional: el panel omite
+    // `ci` del payload cuando el usuario lo deja vacío (nunca envía ""), así
+    // que un empleado sin CI se sigue dando de alta y editando igual.
+    ci: Ci.optional().openapi({ example: "01010112345" }),
     birthday: z.coerce.date().optional(),
     phoneNumber: PhoneNumber.optional(),
     address: Address.optional(),

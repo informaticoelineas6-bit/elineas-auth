@@ -91,7 +91,9 @@ if (!adminEmployee) {
     console.error(
       `El usuario "${targetUser.email}" no tiene un empleado enlazado.\n` +
         "Define sus datos mínimos para crearlo:\n" +
-        "  ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...",
+        "  ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...\n" +
+        "El CI son 11 dígitos (p. ej. 01010112345): es la regla que aplican la API\n" +
+        "y el panel, así que un valor con otro formato no se podría editar después.",
     );
     process.exit(1);
   }

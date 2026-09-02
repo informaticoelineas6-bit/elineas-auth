@@ -121,17 +121,19 @@ export const id = z.string().min(1, "Este campo es obligatorio");
 
 // --- Campos de negocio (empleados) ------------------------------------------
 
-// Carné de identidad: 11 dígitos exactos.
+// Carné de identidad: 11 dígitos exactos. La aplican los dos extremos.
 //
-// OJO: esta regla la aplica hoy SOLO el panel. El servidor sigue aceptando
-// `min(1).max(50)` a propósito, hasta comprobar que ninguna fila existente
-// incumpla el formato; endurecerlo antes haría fallar con 400 la edición de
-// empleados antiguos. Para comprobarlo:
+// El campo es OPCIONAL donde se usa (`ci.optional()`): hay empleados sin CI. Lo
+// que esta regla exige es que, si viene, tenga el formato. El panel omite `ci`
+// del payload cuando el usuario deja el campo vacío —nunca envía ""—, así que
+// un empleado sin CI se da de alta y se edita igual que antes.
+//
+// Si al aplicarla aparecieran filas antiguas con otro formato, se detectan con:
 //
 //   SELECT id, ci FROM employee WHERE ci IS NOT NULL AND ci !~ '^[0-9]{11}$';
 //
-// Si no devuelve filas, sustituye `Ci` en `apps/backend/src/openapi/business.schemas.ts`
-// por esta primitiva y quedará aplicada en ambos extremos.
+// Esas filas se pueden leer y listar sin problema (la respuesta no valida el
+// formato); lo que fallaría con 400 es reenviar ese CI al editarlas.
 export const CI_LENGTH = 11;
 
 export const ci = z

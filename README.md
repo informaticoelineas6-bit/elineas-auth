@@ -164,15 +164,13 @@ Cuando no quede ningún consumidor, borra `api-client.ts`.
 
 ## Deuda pendiente
 
-- **Regla del CI sin aplicar en el servidor.** El panel exige 11 dígitos; la API
-  sigue aceptando 1-50 caracteres. La primitiva `ci` ya está en el contrato,
-  pero endurecer el servidor sin comprobar los datos haría fallar con 400 la
-  edición de empleados antiguos. Comprueba y aplica:
+- **Filas antiguas con CI fuera de formato.** La regla de 11 dígitos ya la
+  aplican los dos extremos. Si en la base de datos hubiera CIs con otro
+  formato, se pueden listar y consultar sin problema, pero editar esa ficha
+  fallaría con 400 al reenviar el CI. Para localizarlas:
   ```sql
   SELECT id, ci FROM employee WHERE ci IS NOT NULL AND ci !~ '^[0-9]{11}$';
   ```
-  Si no devuelve filas, usa `ci` del contrato en
-  `apps/backend/src/openapi/business.schemas.ts` (hay una nota en el sitio exacto).
 - **Formato pendiente en código preexistente**: 30 archivos en `apps/backend` (que
   nunca tuvo linter) y 7 en `apps/frontend`. `bun run format` los arregla de golpe;
   se dejó sin hacer para que el diff de la unificación fuera revisable. Si lo

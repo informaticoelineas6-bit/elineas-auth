@@ -658,9 +658,8 @@
           },
           "ci": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "example": "12345678"
+            "pattern": "^\\d{11}$",
+            "example": "01010112345"
           },
           "birthday": {
             "type": "string",
@@ -762,9 +761,8 @@
               },
               "ci": {
                 "type": "string",
-                "minLength": 1,
-                "maxLength": 50,
-                "example": "12345678"
+                "pattern": "^\\d{11}$",
+                "example": "01010112345"
               },
               "birthday": {
                 "type": "string",
@@ -825,9 +823,8 @@
           },
           "ci": {
             "type": "string",
-            "minLength": 1,
-            "maxLength": 50,
-            "example": "12345678"
+            "pattern": "^\\d{11}$",
+            "example": "01010112345"
           },
           "birthday": {
             "type": "string",
