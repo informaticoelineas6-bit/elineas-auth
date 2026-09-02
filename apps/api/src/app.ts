@@ -1,17 +1,17 @@
 import { OpenAPIHono } from "@hono/zod-openapi";
-import { handleError } from "@/lib/http";
-import { registerRequestLogging } from "@/middleware/request-log";
-import { registerSecurityMiddleware } from "@/middleware/security";
-import { registerAuthRateLimits } from "@/middleware/auth-rate-limits";
-import { registerHealthChecks } from "@/routes/health.routes";
-import { registerRoutes } from "@/routes";
-import { registerOpenApiDocs } from "@/openapi/docs";
-import type { AppEnv } from "@/types/hono-env";
+import { handleError } from "@api/lib/http.ts";
+import { registerRequestLogging } from "@api/middleware/request-log.ts";
+import { registerSecurityMiddleware } from "@api/middleware/security.ts";
+import { registerAuthRateLimits } from "@api/middleware/auth-rate-limits.ts";
+import { registerHealthChecks } from "@api/routes/health.routes.ts";
+import { registerRoutes } from "@api/routes/index.ts";
+import { registerOpenApiDocs } from "@api/openapi/docs.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // openApiInfo vive junto al resto de la configuración de documentación
 // (openapi/docs.ts); se reexporta aquí porque scripts/generate-openapi.ts lo
 // consume junto a createApp desde este mismo módulo.
-export { openApiInfo } from "@/openapi/docs";
+export { openApiInfo } from "@api/openapi/docs.ts";
 
 // Construye la aplicación completamente configurada (middleware + rutas + doc)
 // pero SIN abrir el puerto: así el mismo grafo de rutas alimenta tanto al

@@ -1,17 +1,17 @@
-import { auth } from "@/lib/auth";
-import { forwardAuthHeaders, handleError, HttpError, issueJwt } from "@/lib/http";
-import { sendWelcomeEmail } from "@/lib/mail";
+import { auth } from "@api/lib/auth.ts";
+import { forwardAuthHeaders, handleError, HttpError, issueJwt } from "@api/lib/http.ts";
+import { sendWelcomeEmail } from "@api/lib/mail.ts";
 import {
   bindSessionToSystem,
   resolveActiveSystem,
-} from "@/services/session-system.service";
-import { userHasRoleInSystem } from "@/services/user-role.service";
+} from "@api/services/session-system.service.ts";
+import { userHasRoleInSystem } from "@api/services/user-role.service.ts";
 import type { z } from "@hono/zod-openapi";
 import type {
   SignInBodySchema,
   SignUpBodySchema,
   VerifyEmailBodySchema,
-} from "@/openapi/schemas";
+} from "@api/openapi/schemas.ts";
 import { Context } from "hono";
 
 type SignUpInput = { out: { json: z.infer<typeof SignUpBodySchema> } };

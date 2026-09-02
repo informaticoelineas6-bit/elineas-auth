@@ -1,8 +1,8 @@
 import type { Context, Next } from "hono";
 import { createRemoteJWKSet, jwtVerify } from "jose";
-import { auth } from "@/lib/auth";
-import { env } from "@/config/env";
-import type { AppEnv } from "@/types/hono-env";
+import { auth } from "@api/lib/auth.ts";
+import { env } from "@api/config/env.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // Verificador del JWT que emite este propio IS (plugin `jwt()` de better-auth).
 // Se valida LOCALMENTE contra el JWKS que este mismo servidor publica:

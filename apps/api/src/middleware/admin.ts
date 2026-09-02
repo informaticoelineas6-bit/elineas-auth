@@ -1,10 +1,10 @@
 import type { Context, Next } from "hono";
 import { and, eq } from "drizzle-orm";
-import { db } from "@/db/index";
-import { role, system, userRole } from "@/db/business-schema";
-import { redis, redisCommand } from "@/lib/redis";
-import { env } from "@/config/env";
-import type { AppEnv } from "@/types/hono-env";
+import { db } from "@api/db/index.ts";
+import { role, system, userRole } from "@api/db/business-schema.ts";
+import { redis, redisCommand } from "@api/lib/redis.ts";
+import { env } from "@api/config/env.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // TTL de la caché de pertenencia a admin. Corto a propósito: si se revoca el rol
 // admin, el acceso caduca como mucho en este intervalo. Cachear evita repetir un

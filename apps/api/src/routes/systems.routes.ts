@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { requireSession } from "@/middleware/session";
-import { requireAdmin } from "@/middleware/admin";
-import type { AppEnv } from "@/types/hono-env";
+import { requireSession } from "@api/middleware/session.ts";
+import { requireAdmin } from "@api/middleware/admin.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 import {
   CreateSystemBodySchema,
   IdParamSchema,
@@ -9,8 +9,8 @@ import {
   SystemListQuerySchema,
   SystemSchema,
   UpdateSystemBodySchema,
-} from "@/openapi/business.schemas";
-import { paginationMeta } from "@/lib/pagination";
+} from "@api/openapi/business.schemas.ts";
+import { paginationMeta } from "@api/lib/pagination.ts";
 import {
   StatusResponseSchema,
   badRequestResponse,
@@ -19,14 +19,14 @@ import {
   forbiddenResponse,
   notFoundResponse,
   unauthorizedResponse,
-} from "@/openapi/schemas";
+} from "@api/openapi/schemas.ts";
 import {
   createSystem,
   deleteSystem,
   getSystem,
   listSystems,
   updateSystem,
-} from "@/services/system.service";
+} from "@api/services/system.service.ts";
 
 const listRoute = createRoute({
   method: "get",

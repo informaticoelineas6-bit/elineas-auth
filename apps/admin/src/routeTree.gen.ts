@@ -9,53 +9,43 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as VerifyEmailRouteImport } from './routes/verify-email'
-import { Route as AuthedRouteImport } from './routes/_authed'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
-import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
-import { Route as AuthedProfileRouteImport } from './routes/_authed/profile'
-import { Route as AuthedDocsRouteImport } from './routes/_authed/docs'
+import { Route as AuthedRouteImport } from './routes/_authed'
+import { Route as VerifyEmailRouteImport } from './routes/verify-email'
 import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
-import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems.index'
-import { Route as AuthedRolesIndexRouteImport } from './routes/_authed/roles.index'
+import { Route as AuthedDocsRouteImport } from './routes/_authed/docs'
+import { Route as AuthedProfileRouteImport } from './routes/_authed/profile'
+import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
+import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
 import { Route as AuthedEmployeesIndexRouteImport } from './routes/_authed/employees.index'
-import { Route as AuthedSystemsNewRouteImport } from './routes/_authed/systems.new'
-import { Route as AuthedRolesNewRouteImport } from './routes/_authed/roles.new'
 import { Route as AuthedEmployeesNewRouteImport } from './routes/_authed/employees.new'
-import { Route as AuthedSystemsSystemIdIndexRouteImport } from './routes/_authed/systems.$systemId.index'
+import { Route as AuthedRolesIndexRouteImport } from './routes/_authed/roles.index'
+import { Route as AuthedRolesNewRouteImport } from './routes/_authed/roles.new'
+import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems.index'
+import { Route as AuthedSystemsNewRouteImport } from './routes/_authed/systems.new'
 import { Route as AuthedEmployeesEmployeeIdIndexRouteImport } from './routes/_authed/employees.$employeeId.index'
-import { Route as AuthedSystemsSystemIdEditRouteImport } from './routes/_authed/systems.$systemId.edit'
-import { Route as AuthedRolesRoleIdEditRouteImport } from './routes/_authed/roles.$roleId.edit'
 import { Route as AuthedEmployeesEmployeeIdEditRouteImport } from './routes/_authed/employees.$employeeId.edit'
+import { Route as AuthedRolesRoleIdEditRouteImport } from './routes/_authed/roles.$roleId.edit'
+import { Route as AuthedSystemsSystemIdIndexRouteImport } from './routes/_authed/systems.$systemId.index'
+import { Route as AuthedSystemsSystemIdEditRouteImport } from './routes/_authed/systems.$systemId.edit'
 
-const VerifyEmailRoute = VerifyEmailRouteImport.update({
-  id: '/verify-email',
-  path: '/verify-email',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthedRoute = AuthedRouteImport.update({
   id: '/_authed',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const VerifyEmailRoute = VerifyEmailRouteImport.update({
+  id: '/verify-email',
+  path: '/verify-email',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AuthedUserRolesRoute = AuthedUserRolesRouteImport.update({
-  id: '/user-roles',
-  path: '/user-roles',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedSessionsRoute = AuthedSessionsRouteImport.update({
-  id: '/sessions',
-  path: '/sessions',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedProfileRoute = AuthedProfileRouteImport.update({
-  id: '/profile',
-  path: '/profile',
+const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedDocsRoute = AuthedDocsRouteImport.update({
@@ -63,19 +53,19 @@ const AuthedDocsRoute = AuthedDocsRouteImport.update({
   path: '/docs',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedDashboardRoute = AuthedDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
+const AuthedProfileRoute = AuthedProfileRouteImport.update({
+  id: '/profile',
+  path: '/profile',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedSystemsIndexRoute = AuthedSystemsIndexRouteImport.update({
-  id: '/systems/',
-  path: '/systems/',
+const AuthedSessionsRoute = AuthedSessionsRouteImport.update({
+  id: '/sessions',
+  path: '/sessions',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedRolesIndexRoute = AuthedRolesIndexRouteImport.update({
-  id: '/roles/',
-  path: '/roles/',
+const AuthedUserRolesRoute = AuthedUserRolesRouteImport.update({
+  id: '/user-roles',
+  path: '/user-roles',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedEmployeesIndexRoute = AuthedEmployeesIndexRouteImport.update({
@@ -83,9 +73,14 @@ const AuthedEmployeesIndexRoute = AuthedEmployeesIndexRouteImport.update({
   path: '/employees/',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedSystemsNewRoute = AuthedSystemsNewRouteImport.update({
-  id: '/systems/new',
-  path: '/systems/new',
+const AuthedEmployeesNewRoute = AuthedEmployeesNewRouteImport.update({
+  id: '/employees/new',
+  path: '/employees/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedRolesIndexRoute = AuthedRolesIndexRouteImport.update({
+  id: '/roles/',
+  path: '/roles/',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedRolesNewRoute = AuthedRolesNewRouteImport.update({
@@ -93,9 +88,31 @@ const AuthedRolesNewRoute = AuthedRolesNewRouteImport.update({
   path: '/roles/new',
   getParentRoute: () => AuthedRoute,
 } as any)
-const AuthedEmployeesNewRoute = AuthedEmployeesNewRouteImport.update({
-  id: '/employees/new',
-  path: '/employees/new',
+const AuthedSystemsIndexRoute = AuthedSystemsIndexRouteImport.update({
+  id: '/systems/',
+  path: '/systems/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSystemsNewRoute = AuthedSystemsNewRouteImport.update({
+  id: '/systems/new',
+  path: '/systems/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedEmployeesEmployeeIdIndexRoute =
+  AuthedEmployeesEmployeeIdIndexRouteImport.update({
+    id: '/employees/$employeeId/',
+    path: '/employees/$employeeId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedEmployeesEmployeeIdEditRoute =
+  AuthedEmployeesEmployeeIdEditRouteImport.update({
+    id: '/employees/$employeeId/edit',
+    path: '/employees/$employeeId/edit',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedRolesRoleIdEditRoute = AuthedRolesRoleIdEditRouteImport.update({
+  id: '/roles/$roleId/edit',
+  path: '/roles/$roleId/edit',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedSystemsSystemIdIndexRoute =
@@ -104,27 +121,10 @@ const AuthedSystemsSystemIdIndexRoute =
     path: '/systems/$systemId/',
     getParentRoute: () => AuthedRoute,
   } as any)
-const AuthedEmployeesEmployeeIdIndexRoute =
-  AuthedEmployeesEmployeeIdIndexRouteImport.update({
-    id: '/employees/$employeeId/',
-    path: '/employees/$employeeId/',
-    getParentRoute: () => AuthedRoute,
-  } as any)
 const AuthedSystemsSystemIdEditRoute =
   AuthedSystemsSystemIdEditRouteImport.update({
     id: '/systems/$systemId/edit',
     path: '/systems/$systemId/edit',
-    getParentRoute: () => AuthedRoute,
-  } as any)
-const AuthedRolesRoleIdEditRoute = AuthedRolesRoleIdEditRouteImport.update({
-  id: '/roles/$roleId/edit',
-  path: '/roles/$roleId/edit',
-  getParentRoute: () => AuthedRoute,
-} as any)
-const AuthedEmployeesEmployeeIdEditRoute =
-  AuthedEmployeesEmployeeIdEditRouteImport.update({
-    id: '/employees/$employeeId/edit',
-    path: '/employees/$employeeId/edit',
     getParentRoute: () => AuthedRoute,
   } as any)
 
@@ -262,11 +262,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/verify-email': {
-      id: '/verify-email'
-      path: '/verify-email'
-      fullPath: '/verify-email'
-      preLoaderRoute: typeof VerifyEmailRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authed': {
@@ -276,32 +276,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/verify-email': {
+      id: '/verify-email'
+      path: '/verify-email'
+      fullPath: '/verify-email'
+      preLoaderRoute: typeof VerifyEmailRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_authed/user-roles': {
-      id: '/_authed/user-roles'
-      path: '/user-roles'
-      fullPath: '/user-roles'
-      preLoaderRoute: typeof AuthedUserRolesRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/sessions': {
-      id: '/_authed/sessions'
-      path: '/sessions'
-      fullPath: '/sessions'
-      preLoaderRoute: typeof AuthedSessionsRouteImport
-      parentRoute: typeof AuthedRoute
-    }
-    '/_authed/profile': {
-      id: '/_authed/profile'
-      path: '/profile'
-      fullPath: '/profile'
-      preLoaderRoute: typeof AuthedProfileRouteImport
+    '/_authed/dashboard': {
+      id: '/_authed/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof AuthedDashboardRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/docs': {
@@ -311,25 +297,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedDocsRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/dashboard': {
-      id: '/_authed/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof AuthedDashboardRouteImport
+    '/_authed/profile': {
+      id: '/_authed/profile'
+      path: '/profile'
+      fullPath: '/profile'
+      preLoaderRoute: typeof AuthedProfileRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/systems/': {
-      id: '/_authed/systems/'
-      path: '/systems'
-      fullPath: '/systems/'
-      preLoaderRoute: typeof AuthedSystemsIndexRouteImport
+    '/_authed/sessions': {
+      id: '/_authed/sessions'
+      path: '/sessions'
+      fullPath: '/sessions'
+      preLoaderRoute: typeof AuthedSessionsRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/roles/': {
-      id: '/_authed/roles/'
-      path: '/roles'
-      fullPath: '/roles/'
-      preLoaderRoute: typeof AuthedRolesIndexRouteImport
+    '/_authed/user-roles': {
+      id: '/_authed/user-roles'
+      path: '/user-roles'
+      fullPath: '/user-roles'
+      preLoaderRoute: typeof AuthedUserRolesRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/employees/': {
@@ -339,11 +325,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedEmployeesIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/systems/new': {
-      id: '/_authed/systems/new'
-      path: '/systems/new'
-      fullPath: '/systems/new'
-      preLoaderRoute: typeof AuthedSystemsNewRouteImport
+    '/_authed/employees/new': {
+      id: '/_authed/employees/new'
+      path: '/employees/new'
+      fullPath: '/employees/new'
+      preLoaderRoute: typeof AuthedEmployeesNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/roles/': {
+      id: '/_authed/roles/'
+      path: '/roles'
+      fullPath: '/roles/'
+      preLoaderRoute: typeof AuthedRolesIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/roles/new': {
@@ -353,18 +346,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRolesNewRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/employees/new': {
-      id: '/_authed/employees/new'
-      path: '/employees/new'
-      fullPath: '/employees/new'
-      preLoaderRoute: typeof AuthedEmployeesNewRouteImport
+    '/_authed/systems/': {
+      id: '/_authed/systems/'
+      path: '/systems'
+      fullPath: '/systems/'
+      preLoaderRoute: typeof AuthedSystemsIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/systems/$systemId/': {
-      id: '/_authed/systems/$systemId/'
-      path: '/systems/$systemId'
-      fullPath: '/systems/$systemId/'
-      preLoaderRoute: typeof AuthedSystemsSystemIdIndexRouteImport
+    '/_authed/systems/new': {
+      id: '/_authed/systems/new'
+      path: '/systems/new'
+      fullPath: '/systems/new'
+      preLoaderRoute: typeof AuthedSystemsNewRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/employees/$employeeId/': {
@@ -374,11 +367,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedEmployeesEmployeeIdIndexRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/systems/$systemId/edit': {
-      id: '/_authed/systems/$systemId/edit'
-      path: '/systems/$systemId/edit'
-      fullPath: '/systems/$systemId/edit'
-      preLoaderRoute: typeof AuthedSystemsSystemIdEditRouteImport
+    '/_authed/employees/$employeeId/edit': {
+      id: '/_authed/employees/$employeeId/edit'
+      path: '/employees/$employeeId/edit'
+      fullPath: '/employees/$employeeId/edit'
+      preLoaderRoute: typeof AuthedEmployeesEmployeeIdEditRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/roles/$roleId/edit': {
@@ -388,11 +381,18 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedRolesRoleIdEditRouteImport
       parentRoute: typeof AuthedRoute
     }
-    '/_authed/employees/$employeeId/edit': {
-      id: '/_authed/employees/$employeeId/edit'
-      path: '/employees/$employeeId/edit'
-      fullPath: '/employees/$employeeId/edit'
-      preLoaderRoute: typeof AuthedEmployeesEmployeeIdEditRouteImport
+    '/_authed/systems/$systemId/': {
+      id: '/_authed/systems/$systemId/'
+      path: '/systems/$systemId'
+      fullPath: '/systems/$systemId/'
+      preLoaderRoute: typeof AuthedSystemsSystemIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/systems/$systemId/edit': {
+      id: '/_authed/systems/$systemId/edit'
+      path: '/systems/$systemId/edit'
+      fullPath: '/systems/$systemId/edit'
+      preLoaderRoute: typeof AuthedSystemsSystemIdEditRouteImport
       parentRoute: typeof AuthedRoute
     }
   }

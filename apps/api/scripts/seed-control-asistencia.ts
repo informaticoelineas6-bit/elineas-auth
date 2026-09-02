@@ -6,10 +6,10 @@
 //
 //   APP_ENV=local bun --env-file=/dev/null scripts/seed-control-asistencia.ts
 import { and, eq } from "drizzle-orm";
-import { user } from "@/db/auth-schema";
-import { employee, role, system, userRole } from "@/db/business-schema";
-import { db } from "@/db/index";
-import { auth } from "@/lib/auth";
+import { user } from "@api/db/auth-schema.ts";
+import { employee, role, system, userRole } from "@api/db/business-schema.ts";
+import { db } from "@api/db/index.ts";
+import { auth } from "@api/lib/auth.ts";
 
 const SYSTEM_SLUG = "control-asistencia";
 const PASSWORD = "Asistencia2026!";

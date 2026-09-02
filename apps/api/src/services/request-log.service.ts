@@ -1,8 +1,8 @@
 import { and, count, desc, eq, gte, ilike, lte } from "drizzle-orm";
-import { db } from "@/db/index";
-import { requestLog } from "@/db/log-schema";
-import { escapeLike } from "@/lib/search";
-import { toOffset, type PaginationInput } from "@/lib/pagination";
+import { db } from "@api/db/index.ts";
+import { requestLog } from "@api/db/log-schema.ts";
+import { escapeLike } from "@api/lib/search.ts";
+import { toOffset, type PaginationInput } from "@api/lib/pagination.ts";
 
 type RequestLogFilters = {
   from?: Date;

@@ -1,10 +1,10 @@
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { jwt, bearer } from "better-auth/plugins";
-import { db } from "@/db/index";
-import * as schema from "@/db/auth-schema";
-import { env } from "@/config/env";
-import { sendChangeEmailVerification } from "@/lib/mail";
+import { db } from "@api/db/index.ts";
+import * as schema from "@api/db/auth-schema.ts";
+import { env } from "@api/config/env.ts";
+import { sendChangeEmailVerification } from "@api/lib/mail.ts";
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,

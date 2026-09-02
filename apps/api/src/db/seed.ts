@@ -17,11 +17,11 @@
 //
 // Es idempotente: puede ejecutarse varias veces sin duplicar datos.
 import { and, eq } from "drizzle-orm";
-import { db } from "@/db/index";
-import { employee, role, system, userRole } from "@/db/business-schema";
-import { user } from "@/db/auth-schema";
-import { auth } from "@/lib/auth";
-import { env } from "@/config/env";
+import { db } from "@api/db/index.ts";
+import { employee, role, system, userRole } from "@api/db/business-schema.ts";
+import { user } from "@api/db/auth-schema.ts";
+import { auth } from "@api/lib/auth.ts";
+import { env } from "@api/config/env.ts";
 
 const email = process.argv[2] ?? process.env.ADMIN_EMAIL;
 

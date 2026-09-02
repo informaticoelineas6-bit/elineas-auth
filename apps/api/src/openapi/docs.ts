@@ -1,7 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { swaggerUI } from "@hono/swagger-ui";
-import { env } from "@/config/env";
-import type { AppEnv } from "@/types/hono-env";
+import { env } from "@api/config/env.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // Metadatos del documento OpenAPI. Se reutilizan tanto en el endpoint en vivo
 // (`/api/openapi.json`) como en el generador estático (scripts/generate-openapi.ts),

@@ -14,6 +14,11 @@
     // Bun y Vite resuelven la extensión .ts nativamente, así que se permite
     // importarla explícitamente (packages/* la usa).
     "allowImportingTsExtensions": true,
+    // Obliga a marcar los imports de solo-tipo con `import type`. Va en la base
+    // porque apps/admin compila las fuentes de apps/api con SUS opciones al
+    // tipar el cliente RPC: si solo admin lo activara, los incumplimientos del
+    // backend aparecerían como errores del panel en lugar de los suyos.
+    "verbatimModuleSyntax": true,
 
     "strict": true,
     "skipLibCheck": true,

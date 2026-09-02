@@ -1,6 +1,6 @@
 import { initLogger, type DrainContext } from "evlog";
-import { redis, redisCommand } from "@/lib/redis";
-import { env } from "@/config/env";
+import { redis, redisCommand } from "@api/lib/redis.ts";
+import { env } from "@api/config/env.ts";
 
 // Clave del Redis Stream donde se encolan los wide events de cada request.
 // Compartida entre el productor (este drain) y el consumidor (el worker de

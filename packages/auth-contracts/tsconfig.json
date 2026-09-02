@@ -1,11 +1,13 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    // Agnóstico del entorno a propósito: sin `DOM` y sin los tipos de Bun, para
-    // que no pueda colarse una dependencia de un runtime concreto en un paquete
-    // que consumen tanto el servidor (Bun) como el panel (navegador).
+    // Sin `DOM`: este paquete lo consumen tanto el servidor (Bun) como el panel
+    // (navegador), así que no debe poder tocar APIs del navegador.
     "lib": ["ES2022"],
-    "types": []
+    // Los tipos de Bun están SOLO por `bun:test` en los *.test.ts. Lo que
+    // mantiene el paquete agnóstico del entorno es su campo `dependencies`
+    // (únicamente zod), no esta lista: nada de Bun acaba en lo que se publica.
+    "types": ["bun"]
   },
   "include": ["src"]
 }

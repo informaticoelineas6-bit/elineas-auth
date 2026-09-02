@@ -1,5 +1,5 @@
 import type { Context, Next } from "hono";
-import { env } from "@/config/env";
+import { env } from "@api/config/env.ts";
 
 // Protección CSRF ligera para rutas que cambian estado SIN cuerpo JSON (p. ej.
 // sign-out): en esos casos no hay preflight CORS que las cubra, así que un

@@ -1,6 +1,6 @@
 import type { Context, Next } from "hono";
-import { redis, redisCommand } from "@/lib/redis";
-import { clientIp } from "@/lib/client-ip";
+import { redis, redisCommand } from "@api/lib/redis.ts";
+import { clientIp } from "@api/lib/client-ip.ts";
 
 type Options = {
   // Prefijo del contador; distingue límites (p. ej. "sign-in" vs "sign-up").

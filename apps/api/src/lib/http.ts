@@ -1,7 +1,7 @@
 import type { Context } from "hono";
 import { HTTPException } from "hono/http-exception";
 import type { ContentfulStatusCode } from "hono/utils/http-status";
-import { auth } from "@/lib/auth";
+import { auth } from "@api/lib/auth.ts";
 
 const FORWARDED_HEADERS = ["set-auth-token", "set-auth-jwt", "access-control-expose-headers"];
 

@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
-import { env } from "@/config/env";
-import { relations } from "@/db/relations";
+import { env } from "@api/config/env.ts";
+import { relations } from "@api/db/relations.ts";
 
 // Un único driver de Postgres (TCP estándar, `pg`) para todos los entornos
 // —local, staging y producción—, de modo que el comportamiento sea idéntico en

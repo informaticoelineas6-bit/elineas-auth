@@ -1,18 +1,18 @@
 import { and, count, desc, eq, ilike, ne, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
-import { db } from "@/db/index";
-import { employee } from "@/db/business-schema";
-import { user } from "@/db/auth-schema";
-import { auth } from "@/lib/auth";
-import { HttpError } from "@/lib/http";
-import { sendWelcomeEmail } from "@/lib/mail";
-import { escapeLike } from "@/lib/search";
-import { toOffset, type PaginationInput } from "@/lib/pagination";
+import { db } from "@api/db/index.ts";
+import { employee } from "@api/db/business-schema.ts";
+import { user } from "@api/db/auth-schema.ts";
+import { auth } from "@api/lib/auth.ts";
+import { HttpError } from "@api/lib/http.ts";
+import { sendWelcomeEmail } from "@api/lib/mail.ts";
+import { escapeLike } from "@api/lib/search.ts";
+import { toOffset, type PaginationInput } from "@api/lib/pagination.ts";
 import type {
   CreateEmployeeBodySchema,
   UpdateEmployeeBodySchema,
-} from "@/openapi/business.schemas";
-import type { CreateEmployeeWithUserBodySchema } from "@/openapi/schemas";
+} from "@api/openapi/business.schemas.ts";
+import type { CreateEmployeeWithUserBodySchema } from "@api/openapi/schemas.ts";
 
 type CreateEmployeeInput = z.infer<typeof CreateEmployeeBodySchema>;
 type UpdateEmployeeInput = z.infer<typeof UpdateEmployeeBodySchema>;

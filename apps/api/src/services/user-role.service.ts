@@ -1,10 +1,10 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
-import { db } from "@/db/index";
-import { role, system, userRole } from "@/db/business-schema";
-import { HttpError } from "@/lib/http";
-import { toOffset, type PaginationInput } from "@/lib/pagination";
-import type { CreateUserRoleBodySchema } from "@/openapi/business.schemas";
+import { db } from "@api/db/index.ts";
+import { role, system, userRole } from "@api/db/business-schema.ts";
+import { HttpError } from "@api/lib/http.ts";
+import { toOffset, type PaginationInput } from "@api/lib/pagination.ts";
+import type { CreateUserRoleBodySchema } from "@api/openapi/business.schemas.ts";
 
 type CreateUserRoleInput = z.infer<typeof CreateUserRoleBodySchema>;
 

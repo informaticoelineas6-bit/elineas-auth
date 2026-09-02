@@ -1,13 +1,13 @@
 import { defineRelations } from "drizzle-orm";
-import { user, session, account, verification, jwks } from "@/db/auth-schema";
+import { user, session, account, verification, jwks } from "@api/db/auth-schema.ts";
 import {
   employee,
   role,
   system,
   userRole,
   sessionSystem,
-} from "@/db/business-schema";
-import { requestLog } from "@/db/log-schema";
+} from "@api/db/business-schema.ts";
+import { requestLog } from "@api/db/log-schema.ts";
 
 export const schema = {
   user,

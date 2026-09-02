@@ -1,11 +1,11 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context, Next } from "hono";
 import { evlog } from "evlog/hono";
-import { clientIp } from "@/lib/client-ip";
-import type { AppEnv } from "@/types/hono-env";
+import { clientIp } from "@api/lib/client-ip.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 // Importa por efecto secundario: ejecuta initLogger() (configura evlog + el drain
 // hacia el Redis Stream) antes de montar el middleware.
-import "@/lib/logging";
+import "@api/lib/logging.ts";
 
 // Claves de query string a enmascarar además de la redacción de PII de evlog.
 // better-auth pasa secretos por la URL en verificación de email / reset de

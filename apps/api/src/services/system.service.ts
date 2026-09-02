@@ -1,14 +1,14 @@
 import { and, count, desc, eq, ilike, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
-import { db } from "@/db/index";
-import { system } from "@/db/business-schema";
-import { HttpError } from "@/lib/http";
-import { escapeLike } from "@/lib/search";
-import { toOffset, type PaginationInput } from "@/lib/pagination";
+import { db } from "@api/db/index.ts";
+import { system } from "@api/db/business-schema.ts";
+import { HttpError } from "@api/lib/http.ts";
+import { escapeLike } from "@api/lib/search.ts";
+import { toOffset, type PaginationInput } from "@api/lib/pagination.ts";
 import type {
   CreateSystemBodySchema,
   UpdateSystemBodySchema,
-} from "@/openapi/business.schemas";
+} from "@api/openapi/business.schemas.ts";
 
 type CreateSystemInput = z.infer<typeof CreateSystemBodySchema>;
 type UpdateSystemInput = z.infer<typeof UpdateSystemBodySchema>;

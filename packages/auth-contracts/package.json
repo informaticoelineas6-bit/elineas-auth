@@ -10,8 +10,11 @@
   "exports": {
     ".": "./src/index.ts"
   },
-  "files": ["src"],
+  "files": [
+    "src"
+  ],
   "scripts": {
+    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "build": "tsc --noEmit"
   },
@@ -19,6 +22,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.0",
     "typescript": "^7.0.2"
   }
 }

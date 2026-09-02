@@ -1,9 +1,9 @@
 import { sql } from "drizzle-orm";
-import { db } from "@/db/index";
-import { requestLog } from "@/db/log-schema";
-import { redis, redisCommand } from "@/lib/redis";
-import { STREAM_KEY } from "@/lib/logging";
-import { env } from "@/config/env";
+import { db } from "@api/db/index.ts";
+import { requestLog } from "@api/db/log-schema.ts";
+import { redis, redisCommand } from "@api/lib/redis.ts";
+import { STREAM_KEY } from "@api/lib/logging.ts";
+import { env } from "@api/config/env.ts";
 
 // Cada cuánto se drena el stream a Postgres.
 const DRAIN_INTERVAL_MS = 5_000;

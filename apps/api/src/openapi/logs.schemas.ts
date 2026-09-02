@@ -1,5 +1,5 @@
 import { z } from "@hono/zod-openapi";
-import { PaginationQuerySchema } from "@/openapi/business.schemas";
+import { PaginationQuerySchema } from "@api/openapi/business.schemas.ts";
 
 // Representación de una fila de request_log tal como se devuelve al cliente.
 // Los campos jsonb (query/error/extra) se tipan laxos: su forma depende de cada

@@ -1,7 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import { sql } from "drizzle-orm";
-import { db } from "@/db/index";
-import type { AppEnv } from "@/types/hono-env";
+import { db } from "@api/db/index.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // Tope del ping de readiness. Corto a propósito: el healthcheck lo ejecuta el
 // orquestador cada pocos segundos, así que no debe heredar los timeouts largos

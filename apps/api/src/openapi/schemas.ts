@@ -1,41 +1,28 @@
+import {
+  companyEmail as CompanyEmail,
+  currentPassword as CurrentPassword,
+  displayName as DisplayName,
+  imageUrl as ImageUrl,
+  loginEmail as LoginEmail,
+  password as Password,
+  signInPassword as SignInPassword,
+} from "@elineas/auth-contracts";
 import { z } from "@hono/zod-openapi";
 import {
   CreateEmployeeBodySchema,
   EmployeeSchema,
   SystemSchema,
-} from "@/openapi/business.schemas";
+} from "@api/openapi/business.schemas.ts";
 
-// URL de imagen (avatar): acotada en longitud y restringida a http(s) para
-// evitar que se almacene un `javascript:`/`data:` que dispare XSS al renderizar
-// <img src=...> en cualquier frontend consumidor.
-const ImageUrl = z
-  .string()
-  .max(2048)
-  .regex(/^https?:\/\//i, "Debe ser una URL http(s)");
-
-// Nombre visible de persona: con tope de longitud para no aceptar cadenas
-// arbitrariamente grandes que acaben renderizadas sin escapar en un cliente.
-const DisplayName = z.string().min(1).max(100);
-
-// Dominio corporativo único admitido para cuentas del IS: el alta de usuarios
-// no es autoservicio (la crea un admin), así que restringir el dominio evita
-// cuentas con correos ajenos a la empresa. Se aplica al CREAR una cuenta
-// (SignUp) o CAMBIAR el correo (ChangeEmail), no al login (SignIn): una
-// cuenta ya existente conserva el correo que tenga, aunque fuera de un alta
-// anterior a esta regla.
-const COMPANY_EMAIL_DOMAIN = "mercadoelineas.com";
-const CompanyEmail = z
-  .email()
-  .refine((email) => email.toLowerCase().endsWith(`@${COMPANY_EMAIL_DOMAIN}`), {
-    message: `El correo debe ser del dominio @${COMPANY_EMAIL_DOMAIN}`,
-  });
-
-// Política de contraseña única y compartida por todas las rutas que reciben una
-// contraseña NUEVA (alta y cambio). Debe coincidir con la política de
-// better-auth (min/maxPasswordLength en lib/auth.ts); tenerla en un único sitio
-// evita que se desincronicen. No aplica al login (SignIn), donde solo se
-// comprueba contra la contraseña ya almacenada.
-const Password = z.string().min(12).max(128);
+// Las reglas de validación de estos campos NO viven aquí: son el contrato que
+// comparten el servidor y sus consumidores, así que están en
+// `@elineas/auth-contracts` (packages/auth-contracts). Antes estaban escritas
+// dos veces —aquí y en el panel— y habían divergido de verdad: el panel exigía
+// mayúscula, minúscula y carácter especial en la contraseña y el servidor no,
+// de modo que una llamada directa a la API podía fijar una contraseña débil.
+//
+// Aquí solo se les añade la metadata de OpenAPI (`.openapi({ example })`), que
+// es documentación y no validación.
 
 export const SignUpBodySchema = z
   .object({
@@ -54,8 +41,8 @@ export const SignUpBodySchema = z
 
 export const SignInBodySchema = z
   .object({
-    email: z.email().openapi({ example: "ada@example.com" }),
-    password: z.string().min(1).max(128).openapi({ example: "tu-contraseña-segura" }),
+    email: LoginEmail.openapi({ example: "ada@example.com" }),
+    password: SignInPassword.openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
     // Obligatorio: cada login pertenece a un sistema concreto.
@@ -196,7 +183,7 @@ export const ChangePasswordBodySchema = z
     // sin esta validación se aceptaba cualquier cadena y la política mínima la
     // ponía better-auth (más laxa), permitiendo bajar a una contraseña débil.
     newPassword: Password.openapi({ example: "tu-nueva-contraseña" }),
-    currentPassword: z.string().openapi({ example: "tu-contraseña-actual" }),
+    currentPassword: CurrentPassword.openapi({ example: "tu-contraseña-actual" }),
     revokeOtherSessions: z.boolean().optional(),
   })
   .openapi("ChangePasswordBody");
@@ -215,7 +202,7 @@ export const ChangeEmailBodySchema = z
     // (updateEmailWithoutVerification), así que una sesión robada podría
     // consumar el robo de la cuenta. Exigir la contraseña actual lo evita sin
     // depender de envío de correos.
-    currentPassword: z.string().openapi({ example: "tu-contraseña-segura" }),
+    currentPassword: CurrentPassword.openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
   })
   .openapi("ChangeEmailBody");

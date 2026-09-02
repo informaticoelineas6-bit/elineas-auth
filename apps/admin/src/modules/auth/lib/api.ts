@@ -12,8 +12,23 @@ export class AuthApiError extends Error {
 	}
 }
 
-export async function readJson(response: Response) {
-	const body = await response.json().catch(() => null);
+// Se acepta la forma mínima que esta función realmente usa —`ok`, `status`,
+// `headers` y `json()`— en vez de `Response` completa: así sirve igual para la
+// respuesta de un `fetch` y para el `ClientResponse` del cliente RPC de Hono,
+// que es estructuralmente compatible pero no declara todos los miembros de
+// `Response` (le falta `textStream`).
+type JsonResponse = {
+	ok: boolean;
+	status: number;
+	headers: { get(name: string): string | null };
+	json(): Promise<unknown>;
+};
+
+export async function readJson(response: JsonResponse) {
+	const body = (await response.json().catch(() => null)) as {
+		error?: string;
+		code?: string;
+	} | null;
 	if (!response.ok) {
 		const header = response.headers.get("Retry-After");
 		const retryAfter = header ? Number(header) : undefined;

@@ -1,15 +1,15 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { requireSession } from "@/middleware/session";
-import { requireAdmin } from "@/middleware/admin";
-import type { AppEnv } from "@/types/hono-env";
-import { PaginationSchema } from "@/openapi/business.schemas";
+import { requireSession } from "@api/middleware/session.ts";
+import { requireAdmin } from "@api/middleware/admin.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
+import { PaginationSchema } from "@api/openapi/business.schemas.ts";
 import {
   RequestLogListQuerySchema,
   RequestLogSchema,
-} from "@/openapi/logs.schemas";
-import { paginationMeta } from "@/lib/pagination";
-import { bearerAuthSecurity, forbiddenResponse, unauthorizedResponse } from "@/openapi/schemas";
-import { listRequestLogs } from "@/services/request-log.service";
+} from "@api/openapi/logs.schemas.ts";
+import { paginationMeta } from "@api/lib/pagination.ts";
+import { bearerAuthSecurity, forbiddenResponse, unauthorizedResponse } from "@api/openapi/schemas.ts";
+import { listRequestLogs } from "@api/services/request-log.service.ts";
 
 const listRoute = createRoute({
   method: "get",

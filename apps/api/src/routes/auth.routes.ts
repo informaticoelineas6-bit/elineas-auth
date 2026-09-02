@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
-import { requireSession } from "@/middleware/session";
-import { requireAdmin } from "@/middleware/admin";
-import type { AppEnv } from "@/types/hono-env";
+import { requireSession } from "@api/middleware/session.ts";
+import { requireAdmin } from "@api/middleware/admin.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 import {
   AuthResultSchema,
   JwksResponseSchema,
@@ -15,7 +15,7 @@ import {
   bearerAuthSecurity,
   forbiddenResponse,
   unauthorizedResponse,
-} from "@/openapi/schemas";
+} from "@api/openapi/schemas.ts";
 import {
   getJwksFn,
   getTokenFn,
@@ -23,7 +23,7 @@ import {
   signOutFn,
   signUpFn,
   verifyEmailFn,
-} from "@/services/auth.service";
+} from "@api/services/auth.service.ts";
 
 // El alta de cuentas NO es autoservicio: solo un admin puede crear usuarios.
 // El primer admin se siembra con `bun run db:seed` (crea el usuario si no existe

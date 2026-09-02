@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { requireSession } from "@/middleware/session";
-import { requireAdmin } from "@/middleware/admin";
-import type { AppEnv } from "@/types/hono-env";
+import { requireSession } from "@api/middleware/session.ts";
+import { requireAdmin } from "@api/middleware/admin.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 import {
   AdminSafeSessionSchema,
   SafeSessionSchema,
@@ -11,10 +11,10 @@ import {
   forbiddenResponse,
   notFoundResponse,
   unauthorizedResponse,
-} from "@/openapi/schemas";
-import { PaginationSchema, SessionListQuerySchema } from "@/openapi/business.schemas";
-import { SystemSchema } from "@/openapi/business.schemas";
-import { paginationMeta } from "@/lib/pagination";
+} from "@api/openapi/schemas.ts";
+import { PaginationSchema, SessionListQuerySchema } from "@api/openapi/business.schemas.ts";
+import { SystemSchema } from "@api/openapi/business.schemas.ts";
+import { paginationMeta } from "@api/lib/pagination.ts";
 import {
   adminRevokeSession,
   getSessionFn,
@@ -23,7 +23,7 @@ import {
   revokeAllFn,
   revokeOneFn,
   revokeOthersFn,
-} from "@/services/session.service";
+} from "@api/services/session.service.ts";
 
 const getSessionRoute = createRoute({
   method: "get",

@@ -1,6 +1,6 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { requireSession } from "@/middleware/session";
-import type { AppEnv } from "@/types/hono-env";
+import { requireSession } from "@api/middleware/session.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 import {
   ChangeEmailBodySchema,
   ChangeEmailResponseSchema,
@@ -12,13 +12,13 @@ import {
   badRequestResponse,
   bearerAuthSecurity,
   unauthorizedResponse,
-} from "@/openapi/schemas";
+} from "@api/openapi/schemas.ts";
 import {
   changeEmailFn,
   changePasswordFn,
   getMeFn,
   updateMeFn,
-} from "@/services/user.service";
+} from "@api/services/user.service.ts";
 
 const getMeRoute = createRoute({
   method: "get",

@@ -7,7 +7,7 @@ import {
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { user, session } from "@/db/auth-schema";
+import { user, session } from "@api/db/auth-schema.ts";
 
 // Igual que en auth-schema.ts: PKs uuid v4 con DEFAULT gen_random_uuid() en la
 // propia BD (`defaultRandom()`), no `$defaultFn(() => crypto.randomUUID())`. La

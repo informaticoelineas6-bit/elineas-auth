@@ -4,8 +4,8 @@ import { bodyLimit } from "hono/body-limit";
 import { secureHeaders } from "hono/secure-headers";
 import { timeout } from "hono/timeout";
 import { HTTPException } from "hono/http-exception";
-import { env } from "@/config/env";
-import type { AppEnv } from "@/types/hono-env";
+import { env } from "@api/config/env.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // Tope de tiempo por petición. Si un handler se cuelga (BD bloqueada, better-auth
 // sin responder, etc.), el cliente recibe un 504 en vez de esperar para siempre

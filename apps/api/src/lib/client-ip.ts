@@ -1,6 +1,6 @@
 import type { Context } from "hono";
 import { getConnInfo } from "hono/bun";
-import { env } from "@/config/env";
+import { env } from "@api/config/env.ts";
 
 // IP del cliente. Por defecto usa la IP real del socket (getConnInfo), que NO es
 // falsificable por el cliente. La cabecera X-Forwarded-For solo se tiene en

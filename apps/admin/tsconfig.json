@@ -6,11 +6,15 @@
     "types": ["vite/client"],
     "paths": {
       "#/*": ["./src/*"],
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      // Al importar `AppType` desde `@elineas/auth-api/rpc`, TypeScript compila
+      // las fuentes del backend dentro de este programa y tiene que poder
+      // resolver SUS alias internos. Ver el comentario en
+      // apps/api/tsconfig.json: el prefijo es propio del backend justamente
+      // para que no choque con `#/*` ni `@/*` de esta app.
+      "@api/*": ["../api/src/*"]
     },
 
-    /* Bundler mode */
-    "verbatimModuleSyntax": true,
 
     /* Linting: más estricto que la base porque el frontend ya cumplía esto */
     "noUnusedLocals": true,

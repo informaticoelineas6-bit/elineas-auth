@@ -1,13 +1,13 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
-import { authRoutes } from "@/routes/auth.routes";
-import { usersRoutes } from "@/routes/users.routes";
-import { sessionsAdminRoutes, sessionsRoutes } from "@/routes/sessions.routes";
-import { employeesRoutes } from "@/routes/employees.routes";
-import { systemsRoutes } from "@/routes/systems.routes";
-import { rolesRoutes } from "@/routes/roles.routes";
-import { userRolesRoutes } from "@/routes/user-roles.routes";
-import { requestLogsRoutes } from "@/routes/request-logs.routes";
-import type { AppEnv } from "@/types/hono-env";
+import { authRoutes } from "@api/routes/auth.routes.ts";
+import { usersRoutes } from "@api/routes/users.routes.ts";
+import { sessionsAdminRoutes, sessionsRoutes } from "@api/routes/sessions.routes.ts";
+import { employeesRoutes } from "@api/routes/employees.routes.ts";
+import { systemsRoutes } from "@api/routes/systems.routes.ts";
+import { rolesRoutes } from "@api/routes/roles.routes.ts";
+import { userRolesRoutes } from "@api/routes/user-roles.routes.ts";
+import { requestLogsRoutes } from "@api/routes/request-logs.routes.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // Tabla de montaje de la API: cada familia de endpoints bajo su prefijo. Es el
 // único sitio que hay que tocar para añadir o quitar un grupo de rutas, de modo

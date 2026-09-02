@@ -1,3 +1,13 @@
+import {
+  address as Address,
+  description as Description,
+  displayName as DisplayName,
+  PAGE_SIZE_DEFAULT,
+  PAGE_SIZE_MAX,
+  phoneNumber as PhoneNumber,
+  searchTerm as SearchTerm,
+  slug as Slug,
+} from "@elineas/auth-contracts";
 import { z } from "@hono/zod-openapi";
 
 // Parámetro de ruta reutilizable: /{id}
@@ -22,10 +32,16 @@ export const PaginationQuerySchema = z.object({
     param: { name: "page", in: "query", required: false },
     example: 1,
   }),
-  limit: z.coerce.number().int().min(1).max(100).default(20).openapi({
-    param: { name: "limit", in: "query", required: false },
-    example: 20,
-  }),
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(PAGE_SIZE_MAX)
+    .default(PAGE_SIZE_DEFAULT)
+    .openapi({
+      param: { name: "limit", in: "query", required: false },
+      example: PAGE_SIZE_DEFAULT,
+    }),
 });
 
 // Metadatos que acompañan a cada respuesta de listado.
@@ -73,12 +89,18 @@ export const EmployeeSchema = z
 export const CreateEmployeeBodySchema = z
   .object({
     userId: z.uuid().optional(),
-    name: z.string().min(1).max(100).openapi({ example: "Ada" }),
-    lastName: z.string().min(1).max(100).openapi({ example: "Lovelace" }),
+    name: DisplayName.openapi({ example: "Ada" }),
+    lastName: DisplayName.openapi({ example: "Lovelace" }),
+    // El panel exige 11 dígitos exactos (`ci` en @elineas/auth-contracts) pero
+    // aquí se mantiene la regla laxa a propósito: endurecerla sin comprobar
+    // antes los datos haría fallar con 400 la edición de empleados antiguos
+    // cuyo CI no cumpla el formato. Para comprobarlo:
+    //   SELECT id, ci FROM employee WHERE ci IS NOT NULL AND ci !~ '^[0-9]{11}$';
+    // Si no devuelve filas, sustituye esta línea por `ci: Ci.optional()`.
     ci: z.string().min(1).max(50).optional().openapi({ example: "12345678" }),
     birthday: z.coerce.date().optional(),
-    phoneNumber: z.string().max(30).optional(),
-    address: z.string().max(300).optional(),
+    phoneNumber: PhoneNumber.optional(),
+    address: Address.optional(),
     inDate: z.coerce.date().optional(),
     outDate: z.coerce.date().optional(),
     active: z.boolean().optional(),
@@ -95,7 +117,7 @@ export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Búsqueda libre por nombre, apellido, CI o email del usuario enlazado
   // (coincidencia parcial, sin distinguir mayúsculas).
-  search: z.string().max(100).optional().openapi({
+  search: SearchTerm.optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "Ada",
   }),
@@ -118,14 +140,9 @@ export const SystemSchema = z
 
 export const CreateSystemBodySchema = z
   .object({
-    name: z.string().min(1).max(100).openapi({ example: "Punto de Venta" }),
-    slug: z
-      .string()
-      .min(1)
-      .max(50)
-      .regex(/^[a-z0-9-]+$/, "Solo minúsculas, números y guiones")
-      .openapi({ example: "pos" }),
-    description: z.string().max(500).optional(),
+    name: DisplayName.openapi({ example: "Punto de Venta" }),
+    slug: Slug.openapi({ example: "pos" }),
+    description: Description.optional(),
     active: z.boolean().optional(),
   })
   .openapi("CreateSystemBody");
@@ -140,7 +157,7 @@ export const SystemListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Búsqueda libre por nombre o slug (coincidencia parcial, sin distinguir
   // mayúsculas).
-  search: z.string().max(100).optional().openapi({
+  search: SearchTerm.optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "pos",
   }),
@@ -163,15 +180,15 @@ export const RoleSchema = z
 export const CreateRoleBodySchema = z
   .object({
     systemId: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
-    name: z.string().min(1).max(100).openapi({ example: "admin" }),
-    description: z.string().max(500).optional(),
+    name: DisplayName.openapi({ example: "admin" }),
+    description: Description.optional(),
   })
   .openapi("CreateRoleBody");
 
 export const UpdateRoleBodySchema = z
   .object({
-    name: z.string().min(1).max(100).optional(),
-    description: z.string().max(500).optional(),
+    name: DisplayName.optional(),
+    description: Description.optional(),
   })
   .openapi("UpdateRoleBody");
 
@@ -181,7 +198,7 @@ export const RoleListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Búsqueda libre por nombre del rol (coincidencia parcial, sin distinguir
   // mayúsculas).
-  search: z.string().max(100).optional().openapi({
+  search: SearchTerm.optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "admin",
   }),
@@ -221,7 +238,7 @@ export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
 export const SessionListQuerySchema = PaginationQuerySchema.extend({
   // Búsqueda libre por nombre o email del usuario dueño de la sesión
   // (coincidencia parcial, sin distinguir mayúsculas).
-  search: z.string().max(100).optional().openapi({
+  search: SearchTerm.optional().openapi({
     param: { name: "search", in: "query", required: false },
     example: "Ada",
   }),

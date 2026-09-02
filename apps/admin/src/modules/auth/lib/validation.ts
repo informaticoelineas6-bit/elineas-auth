@@ -1,3 +1,4 @@
+import { loginEmail, signInPassword } from "@elineas/auth-contracts";
 import { z } from "zod";
 
 // Token de confirmación del cambio de correo (llega en el enlace del email).
@@ -6,11 +7,15 @@ export const verifyEmailTokenSchema = z.object({
 });
 
 export const signInSchema = z.object({
-	email: z.email("Correo electrónico inválido"),
-	password: z
-		.string()
-		.min(12, "La contraseña debe tener 12 caracteres o más")
-		.max(128, "La contraseña debe tener 12 caracteres o más"),
+	// `loginEmail` y `signInPassword`, no `companyEmailSchema`/`passwordSchema`:
+	// al INICIAR SESIÓN no se valida ninguna política, solo que los campos
+	// vengan. Antes este formulario exigía 12 caracteres de contraseña, la
+	// política del ALTA, y eso dejaba fuera del panel a cualquier cuenta creada
+	// antes de endurecerla: no podía entrar y, por tanto, tampoco cambiar su
+	// contraseña. El servidor siempre fue permisivo aquí (`min(1)`); es el panel
+	// el que iba por su cuenta. Ver `signInPassword` en @elineas/auth-contracts.
+	email: loginEmail,
+	password: signInPassword,
 	rememberMe: z.boolean().optional(),
 	// Token del captcha invisible (Cloudflare Turnstile). Opcional aquí: si el
 	// captcha no está configurado en el servidor (TURNSTILE_SECRET_KEY), no se

@@ -7,7 +7,7 @@
 // Reutiliza createApp() (src/app.ts), por lo que necesita las mismas variables
 // de entorno que el resto de scripts (DATABASE_URL, BETTER_AUTH_*, ...). No abre
 // ningún puerto ni conecta a la BD: solo serializa el registro de OpenAPI.
-import { createApp, openApiInfo } from "@/app";
+import { createApp, openApiInfo } from "@api/app.ts";
 
 const OUTPUT = "postman/elineas-auth.openapi.json";
 

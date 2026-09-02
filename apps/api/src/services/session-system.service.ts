@@ -1,9 +1,9 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "@/db/index";
-import { sessionSystem, system } from "@/db/business-schema";
-import { session } from "@/db/auth-schema";
-import { auth } from "@/lib/auth";
-import { HttpError } from "@/lib/http";
+import { db } from "@api/db/index.ts";
+import { sessionSystem, system } from "@api/db/business-schema.ts";
+import { session } from "@api/db/auth-schema.ts";
+import { auth } from "@api/lib/auth.ts";
+import { HttpError } from "@api/lib/http.ts";
 
 // Resuelve un sistema activo por su slug. Se valida ANTES de crear la sesión,
 // para no dejar sesiones colgando sin sistema si el slug es inválido.

@@ -57,7 +57,14 @@ export const password = z
   })
   .refine((value) => /[^A-Za-z0-9]/.test(value), {
     message: "Debe contener al menos un carácter especial",
-  });
+  })
+  // Las tres reglas anteriores son `.refine()`, es decir predicados propios sin
+  // representación en JSON Schema: se aplican en cada petición pero NO salen en
+  // el OpenAPI generado. La descripción las hace visibles para quien consuma la
+  // API desde fuera del panel.
+  .describe(
+    `Entre ${PASSWORD_MIN_LENGTH} y ${PASSWORD_MAX_LENGTH} caracteres, con al menos una mayúscula, una minúscula y un carácter especial.`,
+  );
 
 // Contraseña al INICIAR SESIÓN: deliberadamente permisiva. Aquí no se valida
 // una política, solo que el campo no venga vacío, porque se comprueba contra el

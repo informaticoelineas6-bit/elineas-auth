@@ -1,4 +1,4 @@
-import type { auth } from "@/lib/auth";
+import type { auth } from "@api/lib/auth.ts";
 import type { AuditableLogger } from "evlog";
 
 export type SessionResult = NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;

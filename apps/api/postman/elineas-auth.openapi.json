@@ -173,6 +173,7 @@
             "type": "string",
             "minLength": 12,
             "maxLength": 128,
+            "description": "Entre 12 y 128 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.",
             "example": "tu-contraseña-segura"
           },
           "image": {
@@ -377,10 +378,12 @@
             "type": "string",
             "minLength": 12,
             "maxLength": 128,
+            "description": "Entre 12 y 128 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.",
             "example": "tu-nueva-contraseña"
           },
           "currentPassword": {
             "type": "string",
+            "minLength": 1,
             "example": "tu-contraseña-actual"
           },
           "revokeOtherSessions": {
@@ -417,6 +420,7 @@
           },
           "currentPassword": {
             "type": "string",
+            "minLength": 1,
             "example": "tu-contraseña-segura"
           },
           "callbackURL": {
@@ -558,7 +562,8 @@
             "type": "string"
           },
           "ci": {
-            "type": "string"
+            "type": "string",
+            "nullable": true
           },
           "birthday": {
             "type": "string",
@@ -686,8 +691,7 @@
         },
         "required": [
           "name",
-          "lastName",
-          "ci"
+          "lastName"
         ]
       },
       "EmployeeWithUserResult": {
@@ -726,6 +730,7 @@
                 "type": "string",
                 "minLength": 12,
                 "maxLength": 128,
+                "description": "Entre 12 y 128 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.",
                 "example": "tu-contraseña-segura"
               },
               "image": {
@@ -790,8 +795,7 @@
             },
             "required": [
               "name",
-              "lastName",
-              "ci"
+              "lastName"
             ]
           }
         },

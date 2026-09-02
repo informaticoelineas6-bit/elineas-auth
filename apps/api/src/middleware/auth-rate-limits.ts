@@ -1,8 +1,8 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import { rateLimit } from "@/middleware/rate-limit";
-import { requireSameOrigin } from "@/middleware/same-origin";
-import type { AppEnv } from "@/types/hono-env";
+import { rateLimit } from "@api/middleware/rate-limit.ts";
+import { requireSameOrigin } from "@api/middleware/same-origin.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 
 // Extrae el email del cuerpo de una petición de login para poder limitar los
 // intentos POR CUENTA (no solo por IP): así una botnet que rota IPs no puede

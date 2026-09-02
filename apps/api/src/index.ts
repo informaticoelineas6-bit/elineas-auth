@@ -1,8 +1,8 @@
-import { createApp } from "@/app";
-import { env } from "@/config/env";
-import { pool } from "@/db/index";
-import { redis } from "@/lib/redis";
-import { startRequestLogWorker } from "@/workers/request-log-worker";
+import { createApp } from "@api/app.ts";
+import { env } from "@api/config/env.ts";
+import { pool } from "@api/db/index.ts";
+import { redis } from "@api/lib/redis.ts";
+import { startRequestLogWorker } from "@api/workers/request-log-worker.ts";
 
 // Red de seguridad de proceso. Cualquier rechazo o excepción que escape del
 // ciclo request/response (callbacks, timers, listeners de eventos) llega aquí.

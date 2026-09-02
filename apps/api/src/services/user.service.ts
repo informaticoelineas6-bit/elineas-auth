@@ -1,15 +1,15 @@
 import { and, eq } from "drizzle-orm";
 import { verifyPassword } from "better-auth/crypto";
-import { auth } from "@/lib/auth";
-import { db } from "@/db/index";
-import { account } from "@/db/auth-schema";
-import { forwardAuthHeaders, handleAuthError, HttpError } from "@/lib/http";
+import { auth } from "@api/lib/auth.ts";
+import { db } from "@api/db/index.ts";
+import { account } from "@api/db/auth-schema.ts";
+import { forwardAuthHeaders, handleAuthError, HttpError } from "@api/lib/http.ts";
 import type { z } from "@hono/zod-openapi";
 import type {
   ChangeEmailBodySchema,
   ChangePasswordBodySchema,
   UpdateUserBodySchema,
-} from "@/openapi/schemas";
+} from "@api/openapi/schemas.ts";
 import { Context } from "hono";
 
 // Verifica que `password` coincida con la contraseña actual del usuario. Lee el

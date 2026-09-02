@@ -1,5 +1,5 @@
 import { RedisClient } from "bun";
-import { env } from "@/config/env";
+import { env } from "@api/config/env.ts";
 
 // Cliente Redis compartido de toda la app. Bun trae un cliente nativo, por lo
 // que no hace falta ninguna dependencia externa.

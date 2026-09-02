@@ -1,9 +1,9 @@
 import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { render } from "@react-email/render";
-import { env } from "@/config/env";
-import { WelcomeEmail } from "@/emails/welcome-email";
-import { ChangeEmailVerification } from "@/emails/change-email-verification";
+import { env } from "@api/config/env.ts";
+import { WelcomeEmail } from "@api/emails/welcome-email.tsx";
+import { ChangeEmailVerification } from "@api/emails/change-email-verification.tsx";
 
 type SendArgs = { to: string; subject: string; html: string; text: string };
 

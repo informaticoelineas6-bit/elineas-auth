@@ -3,9 +3,16 @@
   "compilerOptions": {
     // Corre en Bun: sin DOM y con los tipos de Bun.
     "lib": ["ES2022"],
+    // El alias interno es `@api/*` y no `@/*` porque apps/admin importa
+    // `@elineas/auth-api/rpc` para tipar su cliente RPC, y al hacerlo compila
+    // las fuentes de esta app dentro de SU programa, resolviendo estos alias
+    // con SU tsconfig. Con `@/*` en ambos —y teniendo las dos un `src/routes/`—
+    // `@/routes` acababa apuntando al árbol de admin y `AppType` degeneraba en
+    // `unknown`, sin ningún error que lo delatara. Con un prefijo propio no hay
+    // ambigüedad posible: apps/admin/tsconfig.json mapea `@api/*` aquí.
     "types": ["bun"],
     "paths": {
-      "@/*": ["./src/*"]
+      "@api/*": ["./src/*"]
     }
   },
   "include": ["src", "scripts", "drizzle.config.ts"]

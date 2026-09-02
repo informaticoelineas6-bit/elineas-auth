@@ -1,14 +1,14 @@
 import { and, count, desc, eq, gt, ilike, or } from "drizzle-orm";
-import { auth } from "@/lib/auth";
-import { db } from "@/db/index";
-import { session, user } from "@/db/auth-schema";
-import { forwardAuthHeaders, handleAuthError, HttpError } from "@/lib/http";
-import { escapeLike } from "@/lib/search";
-import { toOffset, type PaginationInput } from "@/lib/pagination";
-import { getSessionSystem } from "@/services/session-system.service";
-import type { AppEnv } from "@/types/hono-env";
-import { RevokeOneBodyInput } from "@/types/session";
-import { Context } from "hono";
+import { auth } from "@api/lib/auth.ts";
+import { db } from "@api/db/index.ts";
+import { session, user } from "@api/db/auth-schema.ts";
+import { forwardAuthHeaders, handleAuthError, HttpError } from "@api/lib/http.ts";
+import { escapeLike } from "@api/lib/search.ts";
+import { toOffset, type PaginationInput } from "@api/lib/pagination.ts";
+import { getSessionSystem } from "@api/services/session-system.service.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
+import type { RevokeOneBodyInput } from "@api/types/session.ts";
+import type { Context } from "hono";
 
 // El token es un secreto de portador: nunca se devuelve al cliente. Se elimina
 // del objeto de sesión antes de responder para que un XSS no pueda leerlo y

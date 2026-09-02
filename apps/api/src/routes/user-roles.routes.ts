@@ -1,8 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { requireSession } from "@/middleware/session";
-import { requireIdentity } from "@/middleware/identity";
-import { requireAdmin } from "@/middleware/admin";
-import type { AppEnv } from "@/types/hono-env";
+import { requireSession } from "@api/middleware/session.ts";
+import { requireIdentity } from "@api/middleware/identity.ts";
+import { requireAdmin } from "@api/middleware/admin.ts";
+import type { AppEnv } from "@api/types/hono-env.ts";
 import {
   CreateUserRoleBodySchema,
   IdParamSchema,
@@ -11,8 +11,8 @@ import {
   PaginationSchema,
   UserRoleListQuerySchema,
   UserRoleSchema,
-} from "@/openapi/business.schemas";
-import { paginationMeta } from "@/lib/pagination";
+} from "@api/openapi/business.schemas.ts";
+import { paginationMeta } from "@api/lib/pagination.ts";
 import {
   StatusResponseSchema,
   badRequestResponse,
@@ -21,14 +21,14 @@ import {
   forbiddenResponse,
   notFoundResponse,
   unauthorizedResponse,
-} from "@/openapi/schemas";
+} from "@api/openapi/schemas.ts";
 import {
   createUserRole,
   deleteUserRole,
   getUserRole,
   listMyRoles,
   listUserRoles,
-} from "@/services/user-role.service";
+} from "@api/services/user-role.service.ts";
 
 const myRolesRoute = createRoute({
   method: "get",
