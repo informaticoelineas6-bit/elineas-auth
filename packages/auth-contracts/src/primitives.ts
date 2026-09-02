@@ -2,8 +2,8 @@ import { z } from "zod";
 
 // Primitivas de validación compartidas por el identity server y sus
 // consumidores. Cada regla vive aquí UNA sola vez: antes estaban escritas dos
-// veces (en `apps/api/src/openapi/*.schemas.ts` y en
-// `apps/admin/src/modules/*/lib/validation.ts`) y habían divergido de verdad
+// veces (en `apps/backend/src/openapi/*.schemas.ts` y en
+// `apps/frontend/src/modules/*/lib/validation.ts`) y habían divergido de verdad
 // —la política de contraseña del panel era más estricta que la del servidor, y
 // el login del panel rechazaba contraseñas que el servidor sí aceptaba—.
 //
@@ -29,7 +29,7 @@ export const loginEmail = z.email("Correo electrónico inválido");
 
 // Política de contraseña NUEVA (alta de cuenta y cambio de contraseña). Debe
 // mantenerse alineada con better-auth (`minPasswordLength`/`maxPasswordLength`
-// en `apps/api/src/lib/auth.ts`), que aplica los límites de longitud por su
+// en `apps/backend/src/lib/auth.ts`), que aplica los límites de longitud por su
 // cuenta pero no las clases de carácter.
 //
 // Las tres reglas de clase de carácter las exigía solo el panel: eso dejaba a
@@ -130,7 +130,7 @@ export const id = z.string().min(1, "Este campo es obligatorio");
 //
 //   SELECT id, ci FROM employee WHERE ci IS NOT NULL AND ci !~ '^[0-9]{11}$';
 //
-// Si no devuelve filas, sustituye `Ci` en `apps/api/src/openapi/business.schemas.ts`
+// Si no devuelve filas, sustituye `Ci` en `apps/backend/src/openapi/business.schemas.ts`
 // por esta primitiva y quedará aplicada en ambos extremos.
 export const CI_LENGTH = 11;
 
@@ -139,7 +139,7 @@ export const ci = z
   .regex(/^\d{11}$/, `El CI debe tener ${CI_LENGTH} dígitos`);
 
 // Teléfono. Solo se acota la longitud: la validación de formato real por país
-// (libphonenumber-js) se queda en el panel —`apps/admin/src/modules/common/lib/phone.ts`—
+// (libphonenumber-js) se queda en el panel —`apps/frontend/src/modules/common/lib/phone.ts`—
 // porque la librería pesa ~275 KB y allí está aislada en su propio módulo para
 // no arrastrarla al chunk compartido. Este paquete no debe depender de ella.
 export const phoneNumber = z

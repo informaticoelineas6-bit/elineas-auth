@@ -6,8 +6,8 @@
 // Hono, ni `@hono/zod-openapi`, ni libphonenumber-js.
 //
 // Los tipos de las RESPUESTAS no se declaran aquí: viajan por el tipo
-// `AppType` que expone `@elineas/auth-api/rpc`, derivado de las rutas reales
-// del servidor. Ver `apps/admin/src/modules/common/lib/rpc.ts`.
+// `AppType` que expone `@elineas/auth-backend/rpc`, derivado de las rutas reales
+// del servidor. Ver `apps/frontend/src/modules/common/lib/rpc.ts`.
 
 export * from "./dates.ts";
 export * from "./pagination.ts";

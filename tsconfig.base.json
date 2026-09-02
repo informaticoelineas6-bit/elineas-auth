@@ -15,7 +15,7 @@
     // importarla explícitamente (packages/* la usa).
     "allowImportingTsExtensions": true,
     // Obliga a marcar los imports de solo-tipo con `import type`. Va en la base
-    // porque apps/admin compila las fuentes de apps/api con SUS opciones al
+    // porque apps/frontend compila las fuentes de apps/backend con SUS opciones al
     // tipar el cliente RPC: si solo admin lo activara, los incumplimientos del
     // backend aparecerían como errores del panel en lugar de los suyos.
     "verbatimModuleSyntax": true,

@@ -8,8 +8,8 @@
   ],
   "scripts": {
     "dev": "bun run --filter '*' dev",
-    "dev:api": "bun run --filter @elineas/auth-api dev",
-    "dev:admin": "bun run --filter @elineas/auth-admin dev",
+    "dev:backend": "bun run --filter @elineas/auth-backend dev",
+    "dev:frontend": "bun run --filter @elineas/auth-frontend dev",
     "build": "bun run --filter '*' build",
     "typecheck": "bun run --filter '*' typecheck",
     "test": "bun run --filter '*' test",
@@ -18,13 +18,13 @@
     "format": "biome format --write",
     "format:check": "biome format",
     "lint": "biome lint",
-    "db:generate:auth:schemas": "bun run --filter @elineas/auth-api db:generate:auth:schemas",
-    "db:generate:migrations": "bun run --filter @elineas/auth-api db:generate:migrations",
-    "db:migrate:local": "bun run --filter @elineas/auth-api db:migrate:local",
-    "db:migrate:staging": "bun run --filter @elineas/auth-api db:migrate:staging",
-    "db:seed:local": "bun run --filter @elineas/auth-api db:seed:local",
-    "db:seed:staging": "bun run --filter @elineas/auth-api db:seed:staging",
-    "openapi:generate": "bun run --filter @elineas/auth-api openapi:generate"
+    "db:generate:auth:schemas": "bun run --filter @elineas/auth-backend db:generate:auth:schemas",
+    "db:generate:migrations": "bun run --filter @elineas/auth-backend db:generate:migrations",
+    "db:migrate:local": "bun run --filter @elineas/auth-backend db:migrate:local",
+    "db:migrate:staging": "bun run --filter @elineas/auth-backend db:migrate:staging",
+    "db:seed:local": "bun run --filter @elineas/auth-backend db:seed:local",
+    "db:seed:staging": "bun run --filter @elineas/auth-backend db:seed:staging",
+    "openapi:generate": "bun run --filter @elineas/auth-backend openapi:generate"
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",

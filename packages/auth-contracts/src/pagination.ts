@@ -2,7 +2,7 @@ import { z } from "zod";
 import { searchTerm } from "./primitives.ts";
 
 // Query de paginación compartida por todos los listados administrativos del IS
-// (ver `apps/api/README.md` §10.2): `page` 1-indexado y `limit` acotado a
+// (ver `apps/backend/README.md` §10.2): `page` 1-indexado y `limit` acotado a
 // [1, 100]. `z.coerce` admite tanto el número que envía un cliente JSON como su
 // forma en string, que es como llega en la query string de una URL.
 export const PAGE_SIZE_DEFAULT = 20;

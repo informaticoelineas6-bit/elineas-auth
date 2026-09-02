@@ -26,19 +26,19 @@ services:
       timeout: 3s
       retries: 5
 
-  api:
+  backend:
     build:
       # Contexto = raíz del monorepo: ahí están el lockfile y los workspaces.
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: apps/backend/Dockerfile
       target: prod
-    image: elineas-auth-api:1.2.0
-    container_name: elineas-auth-api
+    image: elineas-auth-backend:1.2.0
+    container_name: elineas-auth-backend
     restart: unless-stopped
     ports:
       - "3001:8080"
     env_file:
-      - apps/api/.env.production
+      - apps/backend/.env.production
     environment:
       APP_ENV: production
       # DATABASE_URL viene de `.env.production` (fuera de git): antes estaba
@@ -67,27 +67,27 @@ services:
       redis:
         condition: service_healthy
 
-  admin:
+  frontend:
     build:
       context: .
-      dockerfile: apps/admin/Dockerfile
+      dockerfile: apps/frontend/Dockerfile
       target: prod
-    image: elineas-auth-admin:2.0.0
-    container_name: elineas-auth-admin
+    image: elineas-auth-frontend:2.0.0
+    container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
-      - apps/admin/.env.production
+      - apps/frontend/.env.production
     environment:
       NODE_ENV: production
       # Por el nombre del servicio dentro de `elineas-auth-net`, no por el
       # puerto publicado en el host: el tráfico no sale de la red de compose.
-      AUTH_API_URL: http://api:8080
+      AUTH_API_URL: http://backend:8080
     networks:
       - elineas-auth-net
     depends_on:
-      api:
+      backend:
         condition: service_healthy
 
 volumes:

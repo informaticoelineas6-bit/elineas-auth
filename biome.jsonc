@@ -20,13 +20,13 @@
 			// El CSS lo formatea Tailwind por su cuenta.
 			"!**/*.css",
 			// Generado por la CLI de better-auth (`db:generate:auth:schemas`).
-			"!apps/api/src/db/auth-schema.ts",
+			"!apps/backend/src/db/auth-schema.ts",
 			// Generadas por drizzle-kit: no se editan a mano.
-			"!apps/api/src/db/migrations/**/*",
+			"!apps/backend/src/db/migrations/**/*",
 			// Componentes de shadcn vendorizados tal cual vienen de upstream. Se
 			// regeneran con `shadcn add`, así que arreglar sus avisos solo
 			// crearía divergencias que la próxima regeneración deshace.
-			"!apps/admin/src/modules/common/components/ui/**"
+			"!apps/frontend/src/modules/common/components/ui/**"
 		]
 	},
 	"formatter": {
@@ -47,11 +47,11 @@
 	},
 	"overrides": [
 		{
-			// apps/api y packages/* se escribieron con 2 espacios; apps/admin con
+			// apps/backend y packages/* se escribieron con 2 espacios; apps/frontend con
 			// tabulaciones (era el único con Biome configurado). Se respeta el
 			// estilo de cada uno para que unificar el linter no obligue a
 			// reformatear 78 archivos del backend y romper su `git blame`.
-			"includes": ["apps/api/**/*", "packages/**/*"],
+			"includes": ["apps/backend/**/*", "packages/**/*"],
 			"formatter": {
 				"indentStyle": "space",
 				"indentWidth": 2

@@ -28,7 +28,7 @@ services:
     image: redis:7-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379" # expuesto para correr la API en el host (bun run dev:api)
+      - "6379:6379" # expuesto para correr la API en el host (bun run dev:backend)
     volumes:
       - redisdata:/data
     healthcheck:
@@ -51,19 +51,19 @@ services:
       - "9825:1080" # UI web (http://localhost:9825)
       - "9826:1025" # SMTP, expuesto para correr la API en el host
 
-  api:
+  backend:
     build:
       # Contexto = raíz del monorepo: ahí están el lockfile y los workspaces.
       context: .
-      dockerfile: apps/api/Dockerfile
+      dockerfile: apps/backend/Dockerfile
       target: dev
-    image: elineas-auth-api:1.2.0
-    container_name: elineas-auth-api
+    image: elineas-auth-backend:1.2.0
+    container_name: elineas-auth-backend
     restart: unless-stopped
     ports:
       - "8081:8081"
     env_file:
-      - apps/api/.env.local
+      - apps/backend/.env.local
     environment:
       APP_ENV: local
       DATABASE_URL: postgres://elineas:elineas@postgres:5432/elineas_auth
@@ -74,41 +74,41 @@ services:
       # Se montan los tres workspaces que la API compila, y se preservan los
       # node_modules de la imagen (los del host son de otra plataforma y, con
       # workspaces, viven tanto en la raíz como en cada app).
-      - ./apps/api:/app/apps/api
+      - ./apps/backend:/app/apps/backend
       - ./packages/auth-contracts:/app/packages/auth-contracts
       - /app/node_modules
-      - /app/apps/api/node_modules
+      - /app/apps/backend/node_modules
     depends_on:
       postgres:
         condition: service_healthy
       redis:
         condition: service_healthy
 
-  admin:
+  frontend:
     build:
       context: .
-      dockerfile: apps/admin/Dockerfile
+      dockerfile: apps/frontend/Dockerfile
       target: dev
-    image: elineas-auth-admin:2.0.0
-    container_name: elineas-auth-admin
+    image: elineas-auth-frontend:2.0.0
+    container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
     env_file:
-      - apps/admin/.env
+      - apps/frontend/.env
     environment:
       NODE_ENV: development
       # Dentro de la red de compose "localhost" es este propio contenedor, no
       # el de la API: hay que dirigirse a ella por el nombre del servicio.
-      AUTH_API_URL: http://api:8081
+      AUTH_API_URL: http://backend:8081
     volumes:
-      - ./apps/admin:/app/apps/admin
-      - ./apps/api:/app/apps/api
+      - ./apps/frontend:/app/apps/frontend
+      - ./apps/backend:/app/apps/backend
       - ./packages/auth-contracts:/app/packages/auth-contracts
       - /app/node_modules
-      - /app/apps/admin/node_modules
+      - /app/apps/frontend/node_modules
     depends_on:
-      - api
+      - backend
 
 volumes:
   pgdata:

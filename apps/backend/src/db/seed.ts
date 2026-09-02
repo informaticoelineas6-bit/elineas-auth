@@ -1,0 +1,159 @@
+// Seeder de arranque (bootstrap del primer admin): crea el sistema y rol de
+// administrador de este identity server, se lo asigna a un usuario y crea el
+// empleado enlazado a esa cuenta. Si el usuario no existe todavía, lo CREA
+// (por eso el registro puede quedar cerrado a admin en la API: el primer
+// admin nace aquí, no vía POST /api/auth/sign-up).
+//
+// Uso:
+//   # usuario ya existente → solo asigna rol admin (y crea el empleado si falta)
+//   bun run db:seed:local -- admin@example.com
+//   # usuario nuevo → hay que pasar una contraseña (arg 2 o ADMIN_PASSWORD)
+//   bun run db:seed:local -- admin@example.com 'tu-contraseña-segura'
+//   ADMIN_EMAIL=... ADMIN_PASSWORD=... ADMIN_NAME=... bun run db:seed:local
+//
+// Si el empleado admin todavía no existe, hacen falta sus datos mínimos
+// (name, lastName, ci son NOT NULL en la tabla employee):
+//   ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...
+//
+// Es idempotente: puede ejecutarse varias veces sin duplicar datos.
+import { and, eq } from "drizzle-orm";
+import { db } from "@backend/db/index.ts";
+import { employee, role, system, userRole } from "@backend/db/business-schema.ts";
+import { user } from "@backend/db/auth-schema.ts";
+import { auth } from "@backend/lib/auth.ts";
+import { env } from "@backend/config/env.ts";
+
+const email = process.argv[2] ?? process.env.ADMIN_EMAIL;
+
+if (!email) {
+  console.error(
+    "Falta el email del administrador.\n" +
+      "Uso: bun run db:seed:local -- admin@example.com\n" +
+      "  o: ADMIN_EMAIL=admin@example.com bun run db:seed:local",
+  );
+  process.exit(1);
+}
+
+async function findUser(byEmail: string) {
+  const [row] = await db
+    .select({ id: user.id, email: user.email })
+    .from(user)
+    .where(eq(user.email, byEmail))
+    .limit(1);
+  return row;
+}
+
+let targetUser = await findUser(email);
+
+// Si el usuario no existe, lo creamos (bootstrap). La contraseña se pasa por
+// argumento o por la variable ADMIN_PASSWORD y debe cumplir la política de
+// longitud mínima configurada en lib/auth.ts.
+if (!targetUser) {
+  const password = process.argv[3] ?? process.env.ADMIN_PASSWORD;
+  if (!password) {
+    console.error(
+      `No existe ningún usuario con email "${email}".\n` +
+        "Para crearlo, indica una contraseña:\n" +
+        "  bun run db:seed:local -- " +
+        email +
+        " 'tu-contraseña-segura'\n" +
+        "  o define ADMIN_PASSWORD en el entorno.",
+    );
+    process.exit(1);
+  }
+
+  await auth.api.signUpEmail({
+    body: { email, password, name: process.env.ADMIN_NAME ?? email },
+  });
+
+  targetUser = await findUser(email);
+  if (!targetUser) {
+    console.error("No se pudo crear el usuario administrador.");
+    process.exit(1);
+  }
+  console.log(`✔ Usuario administrador creado: ${targetUser.email}`);
+}
+
+// 1) Empleado enlazado al usuario admin. Igual que en el alta combinada de
+// /employees (createEmployeeWithUser), el userId es el vínculo con la cuenta;
+// se busca por userId para no duplicar el empleado en reejecuciones.
+let [adminEmployee] = await db
+  .select()
+  .from(employee)
+  .where(eq(employee.userId, targetUser.id))
+  .limit(1);
+
+if (!adminEmployee) {
+  const employeeName = process.env.ADMIN_EMPLOYEE_NAME;
+  const employeeLastName = process.env.ADMIN_EMPLOYEE_LASTNAME;
+  const employeeCi = process.env.ADMIN_EMPLOYEE_CI;
+  if (!employeeName || !employeeLastName || !employeeCi) {
+    console.error(
+      `El usuario "${targetUser.email}" no tiene un empleado enlazado.\n` +
+        "Define sus datos mínimos para crearlo:\n" +
+        "  ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...",
+    );
+    process.exit(1);
+  }
+
+  await db
+    .insert(employee)
+    .values({
+      userId: targetUser.id,
+      name: employeeName,
+      lastName: employeeLastName,
+      ci: employeeCi,
+    })
+    .onConflictDoNothing({ target: employee.userId });
+
+  [adminEmployee] = await db
+    .select()
+    .from(employee)
+    .where(eq(employee.userId, targetUser.id))
+    .limit(1);
+  console.log(`✔ Empleado administrador creado: ${adminEmployee.name} ${adminEmployee.lastName}`);
+}
+
+// 2) Sistema que representa a este identity server.
+await db
+  .insert(system)
+  .values({
+    name: "Auth Server",
+    slug: env.ADMIN_SYSTEM_SLUG,
+    description: "Identity server (gestión de sistemas, roles y empleados)",
+  })
+  .onConflictDoNothing({ target: system.slug });
+
+const [adminSystem] = await db
+  .select()
+  .from(system)
+  .where(eq(system.slug, env.ADMIN_SYSTEM_SLUG))
+  .limit(1);
+
+// 3) Rol admin dentro de ese sistema.
+await db
+  .insert(role)
+  .values({ systemId: adminSystem.id, name: env.ADMIN_ROLE_NAME })
+  .onConflictDoNothing();
+
+const [adminRole] = await db
+  .select()
+  .from(role)
+  .where(and(eq(role.systemId, adminSystem.id), eq(role.name, env.ADMIN_ROLE_NAME)))
+  .limit(1);
+
+// 4) Asignación del rol admin al usuario.
+await db
+  .insert(userRole)
+  .values({ userId: targetUser.id, roleId: adminRole.id })
+  .onConflictDoNothing();
+
+console.log("✔ Seed completado:");
+console.log(`  sistema  ${adminSystem.slug} (${adminSystem.id})`);
+console.log(`  rol      ${adminRole.name} (${adminRole.id})`);
+console.log(`  usuario  ${targetUser.email} (${targetUser.id}) → admin`);
+console.log(
+  `  empleado ${adminEmployee.name} ${adminEmployee.lastName} (${adminEmployee.id})`,
+);
+
+process.exit(0);

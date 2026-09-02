@@ -1,0 +1,25 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Corre en el navegador (SSR con Nitro): necesita DOM y los tipos de Vite.
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "types": ["vite/client"],
+    "paths": {
+      "#/*": ["./src/*"],
+      "@/*": ["./src/*"],
+      // Al importar `AppType` desde `@elineas/auth-backend/rpc`, TypeScript compila
+      // las fuentes del backend dentro de este programa y tiene que poder
+      // resolver SUS alias internos. Ver el comentario en
+      // apps/backend/tsconfig.json: el prefijo es propio del backend justamente
+      // para que no choque con `#/*` ni `@/*` de esta app.
+      "@backend/*": ["../backend/src/*"]
+    },
+
+
+    /* Linting: más estricto que la base porque el frontend ya cumplía esto */
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noUncheckedSideEffectImports": true
+  },
+  "include": ["src", "vite.config.ts"]
+}

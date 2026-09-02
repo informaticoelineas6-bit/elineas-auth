@@ -5,8 +5,8 @@ repositorio con workspaces de bun.
 
 ```
 apps/
-  api/                 Identity server (Hono + better-auth + Drizzle, sobre Bun)
-  admin/               Panel de administración (TanStack Start + React + Vite)
+  backend/             Identity server (Hono + better-auth + Drizzle, sobre Bun)
+  frontend/            Panel de administración (TanStack Start + React + Vite)
 packages/
   auth-contracts/      Reglas de validación compartidas por ambos
 ```
@@ -23,7 +23,7 @@ funcionan sobre los 182 commits, también los anteriores a la unificación.
 
 ```bash
 bun install                 # una sola vez, instala los tres workspaces
-docker compose up -d        # postgres + redis + maildev + api + admin
+docker compose up -d        # postgres + redis + maildev + backend + frontend
 ```
 
 O sin Docker, con la infraestructura en contenedores y las apps en el host:
@@ -32,15 +32,15 @@ O sin Docker, con la infraestructura en contenedores y las apps en el host:
 docker compose up -d postgres redis maildev
 bun run db:migrate:local
 bun run db:seed:local
-bun run dev:api             # http://localhost:8080
-bun run dev:admin           # http://localhost:3000
+bun run dev:backend             # http://localhost:8080
+bun run dev:frontend           # http://localhost:3000
 ```
 
 Variables de entorno: copia las plantillas y rellénalas.
 
 ```bash
-cp apps/api/.env.example    apps/api/.env.local
-cp apps/admin/.env.example  apps/admin/.env
+cp apps/backend/.env.example    apps/backend/.env.local
+cp apps/frontend/.env.example  apps/frontend/.env
 ```
 
 `AUTH_API_URL` del panel tiene que apuntar al `BETTER_AUTH_URL` de la API, y el
@@ -52,7 +52,7 @@ rol asignado al usuario que inicie sesión; si no, el login responde 403.
 | Script | Qué hace |
 | --- | --- |
 | `bun run dev` | Arranca API y panel a la vez |
-| `bun run dev:api` / `dev:admin` | Solo una de las dos |
+| `bun run dev:backend` / `dev:frontend` | Solo una de las dos |
 | `bun run typecheck` | `tsc --noEmit` en cada workspace |
 | `bun run test` | Pruebas de todos los workspaces |
 | `bun run lint` | Biome sobre todo el repo |
@@ -60,17 +60,17 @@ rol asignado al usuario que inicie sesión; si no, el login responde 403.
 | `bun run build` | Build de producción de las dos apps |
 | `bun run db:migrate:local` | Migraciones de Drizzle |
 | `bun run db:seed:local` | Siembra de datos |
-| `bun run openapi:generate` | Regenera `apps/api/postman/*.openapi.json` |
+| `bun run openapi:generate` | Regenera `apps/backend/postman/*.openapi.json` |
 
 Los scripts delegan en cada workspace con `bun run --filter`, así que también
-puedes entrar en `apps/api` o `apps/admin` y usar sus scripts directamente.
+puedes entrar en `apps/backend` o `apps/frontend` y usar sus scripts directamente.
 
 ## El contrato compartido
 
 `packages/auth-contracts` es la **única** definición de las reglas que el
 servidor y el panel tienen que aplicar igual: política de contraseña, dominio
 corporativo, límites de paginación y campos de negocio. Antes vivían en
-`apps/api/src/openapi/*.schemas.ts` y en `apps/admin/src/modules/*/lib/validation.ts`
+`apps/backend/src/openapi/*.schemas.ts` y en `apps/frontend/src/modules/*/lib/validation.ts`
 por separado, y habían divergido:
 
 | Regla | Servidor (antes) | Panel (antes) | Consecuencia |
@@ -88,16 +88,16 @@ Hono, ni `@hono/zod-openapi`, ni `libphonenumber-js`. Así lo pueden importar el
 servidor (Bun) y el panel (navegador) sin arrastrar nada de uno al otro.
 
 Los tipos de **respuesta** no están aquí: se derivan del grafo de rutas real del
-servidor vía `AppType`, que expone `@elineas/auth-api/rpc`.
+servidor vía `AppType`, que expone `@elineas/auth-backend/rpc`.
 
 ## Cliente RPC tipado
 
-`apps/admin/src/modules/common/lib/rpc.ts` construye un cliente por grupo de
+`apps/frontend/src/modules/common/lib/rpc.ts` construye un cliente por grupo de
 rutas con `hc<...>` de Hono. La ruta, el método, el cuerpo y la respuesta los
 deriva TypeScript del servidor, así que un cambio en la API **rompe la
 compilación del panel** en lugar de aparecer en producción.
 
-`@elineas/auth-api` está en `devDependencies` del panel a propósito: solo se usa
+`@elineas/auth-backend` está en `devDependencies` del panel a propósito: solo se usa
 su TIPO. El build lo verifica — no hay rastro de `drizzle-orm`, `better-auth`,
 `pg`, `nodemailer` ni `resend` en el bundle del panel.
 
@@ -106,7 +106,7 @@ su TIPO. El build lo verifica — no hay rastro de `drizzle-orm`, `better-auth`,
 El módulo `users` está migrado como patrón de referencia. Los otros siete
 (`employees`, `roles`, `systems`, `sessions`, `user-roles`, `auth`, `common`)
 siguen usando el cliente antiguo `isApi` de
-`apps/admin/src/modules/common/lib/api-client.ts` y sus tipos escritos a mano.
+`apps/frontend/src/modules/common/lib/api-client.ts` y sus tipos escritos a mano.
 Funcionan; se migran uno a uno así:
 
 1. En `<módulo>/services/*.ts`, cambia `isApi.get<T>("/api/x")` por el cliente
@@ -122,23 +122,23 @@ Cuando no quede ningún consumidor, borra `api-client.ts`.
 ## Convenciones
 
 - **Alias de imports.** El panel usa `#/*` (y `@/*`) para su propio `src`. El
-  backend usa `@api/*`. El prefijo del backend es distinto **a propósito**: al
+  backend usa `@backend/*`. El prefijo del backend es distinto **a propósito**: al
   importar `AppType`, TypeScript compila las fuentes del backend dentro del
   programa del panel y resuelve sus alias con el tsconfig del panel; como ambas
   apps tienen un `src/routes/`, con `@/*` en las dos `@/routes` apuntaba al
   árbol equivocado y `AppType` degeneraba en `unknown` sin un solo error.
 - **Formato.** Biome, configurado en `biome.jsonc` (con `c`: `biome.json` no
   admite comentarios y los ignora en silencio). El linter cubre todo el repo;
-  el formateo respeta el estilo de cada app — 2 espacios en `apps/api` y
-  `packages/*`, tabuladores en `apps/admin` — para no reformatear 78 archivos
+  el formateo respeta el estilo de cada app — 2 espacios en `apps/backend` y
+  `packages/*`, tabuladores en `apps/frontend` — para no reformatear 78 archivos
   del backend y romper su `git blame`.
 - **TypeScript.** `tsconfig.base.json` tiene lo común; cada workspace añade solo
   lo de su entorno. No hay un `tsc` único desde la raíz: la API compila contra
   los tipos de Bun (sin DOM) y el panel contra los del navegador, y cada uno
   fija su propia versión (7.0.2 y 6.0.3). `bun run typecheck` delega en cada uno.
-- **Migraciones y esquemas generados** (`apps/api/src/db/migrations/`,
+- **Migraciones y esquemas generados** (`apps/backend/src/db/migrations/`,
   `auth-schema.ts`) y los **componentes de shadcn** vendorizados
-  (`apps/admin/src/modules/common/components/ui/`) quedan fuera del linter: se
+  (`apps/frontend/src/modules/common/components/ui/`) quedan fuera del linter: se
   regeneran, y corregirlos solo crea divergencias.
 
 ## Trampas conocidas
@@ -149,7 +149,7 @@ Cuando no quede ningún consumidor, borra `api-client.ts`.
   `"nitro/types"`. TypeScript resuelve los symlinks a su ruta real y busca
   `node_modules/nitro` hacia arriba desde el store de bun, donde el alias ya no
   está. Sin la declaración en la raíz, `NitroConfig` no resuelve y
-  `apps/admin/vite.config.ts` deja de compilar.
+  `apps/frontend/vite.config.ts` deja de compilar.
 - **Un cliente RPC por grupo de rutas, no uno solo sobre `AppType`.**
   `hc<AppType>` pierde los hijos de un nodo que es a la vez hoja y rama, y
   `/api/users/me` lo es: tiene GET y PATCH propios más `/me/change-password` y
@@ -172,12 +172,12 @@ Cuando no quede ningún consumidor, borra `api-client.ts`.
   SELECT id, ci FROM employee WHERE ci IS NOT NULL AND ci !~ '^[0-9]{11}$';
   ```
   Si no devuelve filas, usa `ci` del contrato en
-  `apps/api/src/openapi/business.schemas.ts` (hay una nota en el sitio exacto).
-- **Formato pendiente en código preexistente**: 30 archivos en `apps/api` (que
-  nunca tuvo linter) y 7 en `apps/admin`. `bun run format` los arregla de golpe;
+  `apps/backend/src/openapi/business.schemas.ts` (hay una nota en el sitio exacto).
+- **Formato pendiente en código preexistente**: 30 archivos en `apps/backend` (que
+  nunca tuvo linter) y 7 en `apps/frontend`. `bun run format` los arregla de golpe;
   se dejó sin hacer para que el diff de la unificación fuera revisable. Si lo
   haces, añade el commit a `.git-blame-ignore-revs`.
-- **23 avisos del linter en `apps/api`**: 10 `noNonNullAssertion`, 7
+- **23 avisos del linter en `apps/backend`**: 10 `noNonNullAssertion`, 7
   `noExplicitAny`, 6 `useImportType`. Son reales, ninguno es un fallo.
 - **9 dependencias del panel fijadas a `latest`** (incluido un
   `nitro-nightly`). Cualquier `bun install` puede traer una versión distinta y
@@ -187,5 +187,5 @@ Cuando no quede ningún consumidor, borra `api-client.ts`.
 
 ## Documentación por app
 
-- `apps/api/README.md` — referencia completa de la API (endpoints, auth, roles).
-- `apps/api/DEPLOY-BD.md` — despliegue y acceso a la base de datos.
+- `apps/backend/README.md` — referencia completa de la API (endpoints, auth, roles).
+- `apps/backend/DEPLOY-BD.md` — despliegue y acceso a la base de datos.
