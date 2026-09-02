@@ -1,0 +1,27 @@
+services:
+  frontend:
+    build:
+      context: .
+      target: dev
+    image: elineas-auth-frontend:2.0.0
+    container_name: elineas-auth-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: development
+      # Dentro de la red compartida "localhost" es este propio contenedor, no
+      # el de la API: hay que dirigirse a ella por su container_name.
+      AUTH_API_URL: http://elineas-auth-api:8081
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - elineas-auth
+
+networks:
+  elineas-auth:
+    name: elineas-auth_default
+    external: true
