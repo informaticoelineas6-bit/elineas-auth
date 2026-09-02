@@ -2,6 +2,7 @@
 .yarn/
 !.yarn/releases
 .vscode/*
+!.vscode/settings.json
 !.vscode/launch.json
 !.vscode/*.code-snippets
 .idea/workspace.xml
@@ -10,14 +11,26 @@
 
 # deps
 node_modules/
+
+# build
 dist/
+dist-ssr/
+.output/
+.nitro/
+.tanstack/
+.vinxi/
+.wrangler/
+*.local
+__unconfig*
 
 # env
 # Ignora TODOS los .env.* (incluye .env.staging y cualquier entorno futuro) para
-# no filtrar credenciales por accidente. La única excepción es la plantilla.
+# no filtrar credenciales por accidente. Las únicas excepciones son las
+# plantillas, que no llevan valores reales.
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # logs
 logs/
@@ -30,3 +43,4 @@ lerna-debug.log*
 
 # misc
 .DS_Store
+todos.json

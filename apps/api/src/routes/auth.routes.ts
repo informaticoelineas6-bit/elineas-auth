@@ -1,4 +1,4 @@
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
 import { requireSession } from "@/middleware/session";
 import { requireAdmin } from "@/middleware/admin";
 import type { AppEnv } from "@/types/hono-env";

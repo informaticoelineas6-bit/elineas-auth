@@ -1,0 +1,33 @@
+{
+  "name": "@elineas/auth-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:api": "bun run --filter @elineas/auth-api dev",
+    "dev:admin": "bun run --filter @elineas/auth-admin dev",
+    "build": "bun run --filter '*' build",
+    "typecheck": "bun run --filter '*' typecheck",
+    "test": "bun run --filter '*' test",
+    "check": "biome check",
+    "check:fix": "biome check --write",
+    "format": "biome format --write",
+    "format:check": "biome format",
+    "lint": "biome lint",
+    "db:generate:auth:schemas": "bun run --filter @elineas/auth-api db:generate:auth:schemas",
+    "db:generate:migrations": "bun run --filter @elineas/auth-api db:generate:migrations",
+    "db:migrate:local": "bun run --filter @elineas/auth-api db:migrate:local",
+    "db:migrate:staging": "bun run --filter @elineas/auth-api db:migrate:staging",
+    "db:seed:local": "bun run --filter @elineas/auth-api db:seed:local",
+    "db:seed:staging": "bun run --filter @elineas/auth-api db:seed:staging",
+    "openapi:generate": "bun run --filter @elineas/auth-api openapi:generate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.5",
+    "nitro": "npm:nitro-nightly@latest"
+  }
+}

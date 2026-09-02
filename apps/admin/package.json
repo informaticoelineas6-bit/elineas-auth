@@ -1,5 +1,7 @@
 {
-  "name": "elineas-auth-frontend",
+  "name": "@elineas/auth-admin",
+  "version": "2.0.0",
+  "description": "Panel de administración del identity server: usuarios, empleados, roles, sistemas y sesiones.",
   "private": true,
   "type": "module",
   "imports": {
@@ -9,14 +11,13 @@
     "dev": "vite dev --port 3000",
     "generate-routes": "tsr generate",
     "build": "vite build",
+    "typecheck": "tsc --noEmit",
     "start": "bun .output/server/index.mjs",
     "preview": "vite preview",
-    "test": "vitest run",
-    "format": "biome format",
-    "lint": "biome lint",
-    "check": "biome check"
+    "test": "vitest run"
   },
   "dependencies": {
+    "@elineas/auth-contracts": "workspace:*",
     "@fontsource-variable/inter": "^5.3.0",
     "@fontsource-variable/space-grotesk": "^5.3.0",
     "@tailwindcss/vite": "^4.3.3",
@@ -32,6 +33,7 @@
     "@tanstack/router-plugin": "^1.168.35",
     "class-variance-authority": "^0.7.1",
     "cn": "^0.2.4",
+    "hono": "^4.13.5",
     "hucre": "^1.1.0",
     "jose": "^6.2.10",
     "libphonenumber-js": "^1.13.12",
@@ -49,7 +51,7 @@
     "zod": "^4.5.4"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.5",
+    "@elineas/auth-api": "workspace:*",
     "@rolldown/plugin-babel": "^0.2.3",
     "@tailwindcss/typography": "^0.5.20",
     "@tanstack/devtools-vite": "latest",

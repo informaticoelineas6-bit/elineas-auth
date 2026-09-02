@@ -1,21 +1,12 @@
 {
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
+    // Corre en Bun: sin DOM y con los tipos de Bun.
     "lib": ["ES2022"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
     "types": ["bun"],
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "scripts", "drizzle.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["src", "scripts", "drizzle.config.ts"]
 }

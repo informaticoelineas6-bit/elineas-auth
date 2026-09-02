@@ -1,0 +1,11 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    // Agnóstico del entorno a propósito: sin `DOM` y sin los tipos de Bun, para
+    // que no pueda colarse una dependencia de un runtime concreto en un paquete
+    // que consumen tanto el servidor (Bun) como el panel (navegador).
+    "lib": ["ES2022"],
+    "types": []
+  },
+  "include": ["src"]
+}

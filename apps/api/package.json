@@ -1,6 +1,10 @@
 {
-  "name": "@elineas/auth",
+  "name": "@elineas/auth-api",
+  "version": "1.0.0",
+  "description": "Identity server de Mercado Elineas: autenticación, sesiones por sistema, roles y empleados sobre Hono + better-auth.",
+  "private": true,
   "type": "module",
+  "module": "src/index.ts",
   "exports": {
     "./rpc": "./src/rpc.ts"
   },
@@ -23,6 +27,7 @@
     "esbuild"
   ],
   "dependencies": {
+    "@elineas/auth-contracts": "workspace:*",
     "@hono/swagger-ui": "^0.6.1",
     "@hono/zod-openapi": "^1.6.2",
     "@react-email/components": "^1.0.12",
