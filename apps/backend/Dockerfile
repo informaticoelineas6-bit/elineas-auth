@@ -32,6 +32,10 @@ COPY packages/auth-contracts ./packages/auth-contracts
 COPY apps/backend ./apps/backend
 WORKDIR /app/apps/backend
 EXPOSE 8080
+# `--env-file=/dev/null` a propósito (no es un resto): dentro del contenedor TODO
+# el entorno llega de compose (env_file + environment), y así Bun no carga el
+# .env bind-mounteado del host. Fuera de Docker, los scripts de package.json
+# apuntan al .env.<entorno> que corresponda.
 CMD ["bun", "--env-file=/dev/null", "--watch", "src/index.ts"]
 
 # ---- build: valida tipos (tsc --noEmit) y genera el bundle de producción ----
@@ -68,4 +72,5 @@ COPY --from=build /app/apps/backend/dist ./dist
 COPY --from=build /app/apps/backend/package.json ./
 USER bun
 EXPOSE 8080
+# Ver la nota del stage `dev`: el entorno lo aporta compose, no un archivo.
 CMD ["bun", "--env-file=/dev/null", "dist/index.js"]

@@ -9,19 +9,19 @@
     "./rpc": "./src/rpc.ts"
   },
   "scripts": {
-    "dev": "APP_ENV=local bun --env-file=/dev/null --watch src/index.ts",
-    "dev:staging": "APP_ENV=staging bun --env-file=/dev/null --watch src/index.ts",
-    "db:generate:auth:schemas": "bunx --env-file=/dev/null @better-auth/cli@latest generate --output ./src/db/auth-schema.ts",
-    "db:generate:migrations": "bunx --env-file=/dev/null drizzle-kit generate",
-    "db:migrate:local": "APP_ENV=local bunx --env-file=/dev/null drizzle-kit migrate",
-    "db:migrate:staging": "APP_ENV=staging bunx --env-file=/dev/null drizzle-kit migrate",
-    "db:seed:local": "APP_ENV=local bun --env-file=/dev/null src/db/seed.ts",
-    "db:seed:staging": "APP_ENV=staging bun --env-file=/dev/null src/db/seed.ts",
+    "dev": "APP_ENV=local bun --env-file=.env.local --watch src/index.ts",
+    "dev:staging": "APP_ENV=staging bun --env-file=.env.staging --watch src/index.ts",
+    "db:generate:auth:schemas": "bunx --env-file=.env.local @better-auth/cli@latest generate --output ./src/db/auth-schema.ts",
+    "db:generate:migrations": "bunx --env-file=.env.local drizzle-kit generate",
+    "db:migrate:local": "APP_ENV=local bunx --env-file=.env.local drizzle-kit migrate",
+    "db:migrate:staging": "APP_ENV=staging bunx --env-file=.env.staging drizzle-kit migrate",
+    "db:seed:local": "APP_ENV=local bun --env-file=.env.local src/db/seed.ts",
+    "db:seed:staging": "APP_ENV=staging bun --env-file=.env.staging src/db/seed.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
     "build:prod": "bun build src/index.ts --target=bun --outdir=dist --minify",
-    "openapi:generate": "APP_ENV=local bun --env-file=/dev/null scripts/generate-openapi.ts",
-    "start": "bun --env-file=/dev/null src/index.ts"
+    "openapi:generate": "APP_ENV=local bun --env-file=.env.local scripts/generate-openapi.ts",
+    "start": "bun --env-file=.env.local src/index.ts"
   },
   "trustedDependencies": [
     "esbuild"
@@ -33,7 +33,6 @@
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
     "better-auth": "^1.7.2",
-    "dotenv": "^17.4.2",
     "drizzle-orm": "1.0.0-rc.4",
     "evlog": "^2.28.0",
     "hono": "^4.13.5",

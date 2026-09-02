@@ -1,13 +1,22 @@
 // src/config/env.ts
-import { config } from "dotenv";
 
+// El archivo .env lo carga BUN, no una dependencia: cada script pasa
+// `--env-file=.env.<entorno>` (ver package.json). Es equivalente exacto al
+// `dotenv.config({ override: false, quiet: true })` que había aquí antes:
+//
+//   - Las variables ya presentes en el entorno real (Docker Compose, shell, CI)
+//     GANAN sobre las del archivo. Imprescindible en Docker: compose inyecta
+//     DATABASE_URL apuntando al servicio `postgres`, y no debe ser pisada por el
+//     `localhost` de .env.local (que solo vale desde el host).
+//   - `--env-file` SUSTITUYE la carga automática de `.env`, así que el `.env`
+//     del directorio no se cuela (era lo que buscaba el `--env-file=/dev/null`).
+//   - Un archivo inexistente se ignora en silencio (caso de producción, donde
+//     todo llega por compose y no hay .env.production dentro de la imagen).
+//
+// En los Dockerfiles se mantiene `--env-file=/dev/null` a propósito: dentro del
+// contenedor TODO el entorno viene de compose (env_file + environment), y así
+// un .env bind-mounteado no puede alterarlo.
 const environment = process.env.APP_ENV ?? "local";
-// override: false → las variables ya presentes en el entorno real
-// (Docker Compose, shell, CI) tienen prioridad sobre el archivo .env.
-// Es imprescindible en Docker: compose inyecta DATABASE_URL apuntando al
-// servicio `postgres`, y no debe ser sobrescrita por el `localhost` de
-// .env.local (que solo es válido desde el host).
-config({ path: `.env.${environment}`, quiet: true, override: false });
 
 function required(name: string): string {
   const value = process.env[name];
