@@ -38,7 +38,6 @@
     "hono": "^4.13.5",
     "jose": "^6.2.10",
     "nodemailer": "^9.1.1",
-    "pg": "^8.23.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "resend": "^6.25.0",
@@ -47,7 +46,6 @@
   "devDependencies": {
     "@types/bun": "^1.4.0",
     "@types/nodemailer": "^8.0.1",
-    "@types/pg": "^8.23.1",
     "@types/react": "^19.2.18",
     "drizzle-kit": "1.0.0-rc.4",
     "typescript": "^7.0.2"

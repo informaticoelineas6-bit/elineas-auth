@@ -1,6 +1,6 @@
 import { createApp } from "@backend/app.ts";
 import { env } from "@backend/config/env.ts";
-import { pool } from "@backend/db/index.ts";
+import { closeDatabase } from "@backend/db/index.ts";
 import { redis } from "@backend/lib/redis.ts";
 import { startRequestLogWorker } from "@backend/workers/request-log-worker.ts";
 
@@ -45,7 +45,7 @@ const requestLogWorker = startRequestLogWorker();
 // Apagado ordenado. `docker stop` envía SIGTERM: sin esto, el proceso se corta
 // en seco, abortando peticiones en vuelo y dejando conexiones de BD/Redis sin
 // cerrar. Aquí se deja de aceptar conexiones nuevas, se drena el pool de
-// Postgres y se cierra Redis antes de salir. Un segundo SIGTERM/SIGINT fuerza
+// Postgres (closeDatabase()) y se cierra Redis antes de salir. Un segundo SIGTERM/SIGINT fuerza
 // la salida inmediata por si el drenado se atasca.
 let shuttingDown = false;
 async function shutdown(signal: string) {
@@ -61,7 +61,7 @@ async function shutdown(signal: string) {
     // (los necesita para drenar). Si no termina, no se pierde nada: el stream es
     // persistente y se drena al reiniciar.
     await requestLogWorker.stop();
-    await pool.end();
+    await closeDatabase();
     if (redis) redis.close();
     console.log("Apagado completado.");
     process.exit(0);

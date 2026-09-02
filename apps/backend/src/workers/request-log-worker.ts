@@ -143,7 +143,15 @@ async function purgeOldLogs(): Promise<void> {
   const cutoff = new Date(Date.now() - env.REQUEST_LOG_RETENTION_DAYS * MS_PER_DAY);
   // Postgres no admite LIMIT en DELETE: se limita vía subconsulta por PK.
   while (true) {
-    const result = await db.execute(sql`
+    // `returning 1` NO es decorativo: con el driver nativo de Bun, `db.execute`
+    // devuelve las FILAS del resultado, no un QueryResult con `.rowCount` como
+    // hacía `pg`. Un DELETE sin RETURNING devuelve un array vacío, así que sin
+    // esto el bucle creería haber borrado 0 filas y cortaría tras el PRIMER
+    // lote —en silencio—, dejando el backlog sin purgar. Con RETURNING, la
+    // longitud del array ES el número de filas borradas (semántica garantizada
+    // por Postgres, a diferencia de la propiedad `count` que Bun añade al array
+    // y que no forma parte de su API documentada).
+    const deleted = await db.execute(sql`
       delete from ${requestLog}
       where ${requestLog.id} in (
         select ${requestLog.id}
@@ -151,8 +159,9 @@ async function purgeOldLogs(): Promise<void> {
         where ${requestLog.ts} < ${cutoff}
         limit ${PURGE_BATCH_SIZE}
       )
+      returning 1
     `);
-    if ((result.rowCount ?? 0) < PURGE_BATCH_SIZE) return;
+    if (deleted.length < PURGE_BATCH_SIZE) return;
   }
 }
 
