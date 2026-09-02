@@ -18,13 +18,32 @@ WORKDIR /app
 # los que depende. Incluye apps/backend porque el panel depende de él como
 # devDependency para tipar su cliente RPC: solo se usa el TIPO, pero bun
 # necesita el manifiesto para resolver el enlace del workspace.
+#
+# El `ln` de después del install NO es cosmético: `nitro-nightly` (el paquete
+# real detrás del alias "nitro" de apps/frontend/package.json) se publica con
+# su propio package.json llamado literalmente "nitro-nightly", así que su
+# código NO puede auto-referenciarse — su `dist/vite.mjs` importa el bare
+# specifier "nitro/meta" esperando encontrar un symlink `node_modules/nitro`
+# subiendo por los ancestros del archivo. Con un `bun install` SIN `--filter`
+# (como el que corre en el host, o `bun install` a secas) bun hoistea ese
+# symlink hasta la RAÍZ del workspace (/app/node_modules/nitro) sin que haga
+# falta nada más. Pero `--filter @elineas/auth-frontend` deja el symlink
+# aislado en apps/frontend/node_modules/nitro y NUNCA lo sube a la raíz — y la
+# resolución de "nitro/meta" desde dentro del store compartido de bun
+# (node_modules/.bun/nitro-nightly@.../…) solo mira hacia /app/node_modules,
+# no hacia apps/frontend/node_modules. Sin este symlink, `vite dev`/`vite
+# build` fallan con "Cannot find package 'nitro'" y, bajo
+# `restart: unless-stopped` de compose, el contenedor entra en bucle de
+# reinicio. Verificado contra ambas rutas de resolución con `bun.lock`
+# reinstalado desde cero.
 FROM base AS deps
 COPY package.json bun.lock ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/auth-contracts/package.json ./packages/auth-contracts/
 RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
-    bun install --frozen-lockfile --filter @elineas/auth-frontend
+    bun install --frozen-lockfile --filter @elineas/auth-frontend && \
+    ln -sf ../apps/frontend/node_modules/nitro /app/node_modules/nitro
 
 # ---- dev: deps + código fuente, hot reload vía bind mount (ver docker-compose.yml) ----
 FROM deps AS dev
