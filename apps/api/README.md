@@ -5,15 +5,22 @@ integrarse con este Identity Server (en adelante **IS**) para autenticar y
 autorizar usuarios de forma segura. Está basada en el comportamiento real
 implementado en este repositorio (Hono + better-auth + Drizzle + Redis).
 
-Este repositorio contiene **únicamente la API** (`@elineas/auth`). Cualquier
-frontend/backend consumidor vive en su propio repositorio e integra contra
-este IS por red, siguiendo esta guía.
+Esta app (`@elineas/auth-api`) es la API del IS. Vive en el monorepo
+`elineas-auth` junto al panel de administración (`apps/admin`), que la consume
+igual que cualquier otro cliente: por red y siguiendo esta guía. El resto de
+consumidores (otros backends y frontends de la organización) viven en sus
+propios repositorios.
+
+Los comandos de esta sección se ejecutan **desde la raíz del monorepo**, no
+desde este directorio: allí están el lockfile, los `docker-compose*.yml` y los
+scripts que delegan en cada app. Ver el `README.md` de la raíz.
 
 ## 0. Cómo levantar la API
 
 ### Requisitos de configuración
 
-Copia `.env.example` a `.env.local` y rellena los secretos. `ALLOWED_ORIGIN`
+Copia `apps/api/.env.example` a `apps/api/.env.local` y rellena los secretos.
+`ALLOWED_ORIGIN`
 **debe** incluir el/los orígenes de los frontends/backends que consumirán
 este IS (lista separada por comas si son varios).
 
@@ -23,8 +30,8 @@ Necesitas Postgres y Redis accesibles (o levántalos con
 `docker compose up -d postgres redis`):
 
 ```bash
-bun install
-bun run dev
+bun install        # instala los tres workspaces del monorepo
+bun run dev:api    # solo la API; `bun run dev` levanta también el panel
 ```
 
 La API queda disponible en [http://localhost:8080](http://localhost:8080).
@@ -39,9 +46,9 @@ deshabilitado.
 
 ### B) Docker — desarrollo (hot reload)
 
-`docker-compose.yml` define `postgres`, `redis`, `maildev` y `api`, con las
-credenciales locales ya resueltas (no requiere secretos de infraestructura
-para levantarse):
+`docker-compose.yml` (en la raíz) define `postgres`, `redis`, `maildev`, `api`
+y `admin`, con las credenciales locales ya resueltas (no requiere secretos de
+infraestructura para levantarse):
 
 ```bash
 docker compose up --build
