@@ -7,6 +7,7 @@ import type {
 	SessionsRoutes,
 	SystemsRoutes,
 	UserRolesRoutes,
+	UsersAdminRoutes,
 	UsersRoutes,
 } from "@elineas/auth-backend/rpc";
 import { type ClientResponse, hc } from "hono/client";
@@ -50,6 +51,13 @@ const base = env.AUTH_API_URL;
 
 export const authRpc = hc<AuthRoutes>(`${base}/api/auth`, options);
 export const usersRpc = hc<UsersRoutes>(`${base}/api/users`, options);
+// Acciones administrativas sobre un usuario concreto. Sub-app aparte porque
+// exigen rol admin, mientras /api/users solo exige sesión (ver el comentario en
+// apps/backend/src/routes/users.routes.ts).
+export const usersAdminRpc = hc<UsersAdminRoutes>(
+	`${base}/api/users/admin`,
+	options,
+);
 export const sessionsRpc = hc<SessionsRoutes>(`${base}/api/sessions`, options);
 export const sessionsAdminRpc = hc<SessionsAdminRoutes>(
 	`${base}/api/sessions/admin`,

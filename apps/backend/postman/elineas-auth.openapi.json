@@ -432,6 +432,47 @@
           "currentPassword"
         ]
       },
+      "AdminChangePasswordResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          },
+          "revokedSessions": {
+            "type": "integer",
+            "example": 2
+          }
+        },
+        "required": [
+          "status",
+          "revokedSessions"
+        ]
+      },
+      "AdminChangePasswordBody": {
+        "type": "object",
+        "properties": {
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "description": "Entre 12 y 128 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.",
+            "example": "la-nueva-contraseña"
+          },
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "example": "tu-contraseña-de-admin"
+          },
+          "revokeSessions": {
+            "type": "boolean",
+            "default": true
+          }
+        },
+        "required": [
+          "newPassword",
+          "currentPassword"
+        ]
+      },
       "SafeSession": {
         "type": "object",
         "properties": {
@@ -1623,6 +1664,94 @@
           },
           "401": {
             "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/admin/{id}/change-password": {
+      "post": {
+        "operationId": "adminChangeUserPassword",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Cambiar la contraseña de otro usuario (requiere rol admin)",
+        "description": "Fija una contraseña nueva para el usuario indicado. El admin confirma con SU propia contraseña; la del usuario objetivo no se necesita. Por defecto cierra todas las sesiones de ese usuario.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChangePasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
             "content": {
               "application/json": {
                 "schema": {

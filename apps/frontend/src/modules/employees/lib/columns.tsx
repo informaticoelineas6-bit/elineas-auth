@@ -2,6 +2,7 @@ import {
 	Copy,
 	Eye,
 	KeyRound,
+	Lock,
 	Pencil,
 	Power,
 	PowerOff,
@@ -23,6 +24,7 @@ export function getEmployeeColumns({
 	onView,
 	onEdit,
 	onManageRoles,
+	onChangePassword,
 	onCopyEmail,
 	onToggleActive,
 	onDelete,
@@ -31,6 +33,7 @@ export function getEmployeeColumns({
 	onEdit: (employee: Employee) => void;
 	// Acciones sobre la cuenta de usuario enlazada; solo aplican si existe.
 	onManageRoles: (employee: Employee) => void;
+	onChangePassword: (employee: Employee) => void;
 	onCopyEmail: (employee: Employee) => void;
 	onToggleActive: (employee: Employee) => void;
 	onDelete: (employee: Employee) => void;
@@ -117,6 +120,11 @@ export function getEmployeeColumns({
 									label: "Gestionar roles",
 									icon: KeyRound,
 									onSelect: () => onManageRoles(employee),
+								} satisfies RowAction,
+								{
+									label: "Cambiar contraseña",
+									icon: Lock,
+									onSelect: () => onChangePassword(employee),
 								} satisfies RowAction,
 							]
 						: []),

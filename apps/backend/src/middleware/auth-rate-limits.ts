@@ -77,4 +77,12 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/users/me/change-email",
     rateLimit({ name: "change-email", windowMs: 60_000, max: 5 }),
   );
+  // Cambio de contraseña de OTRO usuario (admin). Mismo motivo que los dos
+  // anteriores y con más razón: verifica la contraseña DEL ADMIN, así que sin
+  // límite una sesión de admin robada podría forzarla por fuerza bruta aquí
+  // saltándose el límite del login.
+  app.use(
+    "/api/users/admin/:id/change-password",
+    rateLimit({ name: "admin-change-password", windowMs: 60_000, max: 5 }),
+  );
 }

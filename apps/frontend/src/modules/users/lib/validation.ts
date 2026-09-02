@@ -1,3 +1,4 @@
+import { currentPassword } from "@elineas/auth-contracts";
 import { z } from "zod";
 import {
 	companyEmailSchema,
@@ -27,7 +28,7 @@ export const profileFormSchema = z.object({
 // exige la contraseña actual (re-autenticación) en el IS.
 export const changePasswordSchema = z.object({
 	newPassword: passwordSchema,
-	currentPassword: z.string().min(1, "Este campo es obligatorio"),
+	currentPassword,
 	revokeOtherSessions: z.boolean().optional(),
 });
 
@@ -36,7 +37,7 @@ export const changePasswordSchema = z.object({
 // siempre presente para que el tipo del form case con el validador.
 export const changePasswordFormSchema = z
 	.object({
-		currentPassword: z.string().min(1, "Este campo es obligatorio"),
+		currentPassword,
 		newPassword: passwordSchema,
 		confirmNewPassword: z.string().min(1, "Confirma la nueva contraseña"),
 		revokeOtherSessions: z.boolean(),
@@ -50,6 +51,33 @@ export const changePasswordFormSchema = z
 // verificación por correo, así que es la única barrera ante una sesión robada.
 export const changeEmailSchema = z.object({
 	newEmail: companyEmailSchema,
-	currentPassword: z.string().min(1, "Este campo es obligatorio"),
+	currentPassword,
 	callbackURL: z.string().optional(),
 });
+
+// --- Cambio de contraseña de OTRO usuario (acción de admin) -----------------
+//
+// Es una operación distinta del cambio propio, no una variante: el admin no
+// conoce la contraseña del usuario, así que la re-autenticación se hace con la
+// contraseña DEL ADMIN. Espeja AdminChangePasswordBodySchema del servidor.
+export const adminChangePasswordSchema = z.object({
+	newPassword: passwordSchema,
+	// La del admin que ejecuta la acción.
+	currentPassword,
+	revokeSessions: z.boolean().optional(),
+});
+
+// Esquema del formulario (solo cliente): añade la confirmación —que no se envía
+// al IS— y fija `revokeSessions` como booleano siempre presente para que el
+// tipo del form case con el validador.
+export const adminChangePasswordFormSchema = z
+	.object({
+		currentPassword,
+		newPassword: passwordSchema,
+		confirmNewPassword: z.string().min(1, "Confirma la nueva contraseña"),
+		revokeSessions: z.boolean(),
+	})
+	.refine((value) => value.newPassword === value.confirmNewPassword, {
+		message: "Las contraseñas no coinciden",
+		path: ["confirmNewPassword"],
+	});

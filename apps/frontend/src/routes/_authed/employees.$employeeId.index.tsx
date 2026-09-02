@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { Pencil, Power, PowerOff, Trash2 } from "lucide-react";
+import { Lock, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
@@ -30,6 +30,7 @@ import {
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
 import type { Employee } from "@/modules/employees/shared/types.ts";
+import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/$employeeId/")({
 	// Prefetch del detalle (misma query key) para calentar hover/SSR. prefetchQuery
@@ -99,6 +100,7 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 	const [confirming, setConfirming] = useState<"deactivate" | "delete" | null>(
 		null,
 	);
+	const [changingPassword, setChangingPassword] = useState(false);
 
 	function toggleActive() {
 		if (employee.active) {
@@ -166,6 +168,17 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 							<Pencil />
 							Editar
 						</Button>
+						{/* Solo si la ficha tiene cuenta enlazada: `userId` es nullable
+						    (hay empleados sin usuario) y sin cuenta no hay contraseña. */}
+						{employee.userId && (
+							<Button
+								variant="outline"
+								onClick={() => setChangingPassword(true)}
+							>
+								<Lock />
+								Cambiar contraseña
+							</Button>
+						)}
 						<Button variant="outline" onClick={toggleActive}>
 							{employee.active ? <PowerOff /> : <Power />}
 							{employee.active ? "Desactivar" : "Activar"}
@@ -262,6 +275,15 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 				loading={deleteEmployee.isPending}
 				onConfirm={confirmDelete}
 			/>
+
+			{employee.userId && (
+				<ChangeUserPasswordDialog
+					open={changingPassword}
+					onOpenChange={setChangingPassword}
+					userId={employee.userId}
+					userLabel={`${employee.name} ${employee.lastName}`}
+				/>
+			)}
 		</>
 	);
 }

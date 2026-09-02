@@ -31,6 +31,7 @@ import type {
 	Employee,
 	EmployeeFilters,
 } from "@/modules/employees/shared/types.ts";
+import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/")({
 	// Búsqueda/filtro/página viajan en la URL con el mismo schema que el server fn.
@@ -53,6 +54,12 @@ function EmployeesPage() {
 
 	// Confirmaciones para las acciones destructivas/sensibles.
 	const [toDelete, setToDelete] = useState<Employee | null>(null);
+	// Empleado cuya contraseña se está cambiando; null = diálogo cerrado. Se
+	// guarda la ficha entera y no solo el id porque el diálogo también muestra
+	// su nombre.
+	const [changingPassword, setChangingPassword] = useState<Employee | null>(
+		null,
+	);
 	const [toDeactivate, setToDeactivate] = useState<Employee | null>(null);
 	const [importOpen, setImportOpen] = useState(false);
 
@@ -125,6 +132,10 @@ function EmployeesPage() {
 		onManageRoles: (employee) => {
 			if (!employee.userId) return;
 			navigate({ to: "/user-roles", search: { userId: employee.userId } });
+		},
+		onChangePassword: (employee) => {
+			if (!employee.userId) return;
+			setChangingPassword(employee);
 		},
 		onCopyEmail: async (employee) => {
 			const email = employee.user?.email;
@@ -222,6 +233,17 @@ function EmployeesPage() {
 			/>
 
 			<ImportDialog open={importOpen} onOpenChange={setImportOpen} />
+
+			{/* `userId` es nullable: el handler ya descarta las fichas sin cuenta,
+			    así que si hay empleado seleccionado, tiene cuenta. */}
+			{changingPassword?.userId && (
+				<ChangeUserPasswordDialog
+					open
+					onOpenChange={(open) => !open && setChangingPassword(null)}
+					userId={changingPassword.userId}
+					userLabel={`${changingPassword.name} ${changingPassword.lastName}`}
+				/>
+			)}
 		</div>
 	);
 }

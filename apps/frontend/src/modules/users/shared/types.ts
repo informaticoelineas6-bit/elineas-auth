@@ -1,7 +1,9 @@
 import type { InferResponseType } from "hono/client";
 import type { z } from "zod";
-import type { usersRpc } from "#/modules/common/lib/rpc.ts";
+import type { usersAdminRpc, usersRpc } from "#/modules/common/lib/rpc.ts";
 import type {
+	adminChangePasswordFormSchema,
+	adminChangePasswordSchema,
 	changeEmailSchema,
 	changePasswordFormSchema,
 	changePasswordSchema,
@@ -47,6 +49,13 @@ export type UpdateProfileResult = InferResponseType<
 	200
 >;
 
+// Resultado del cambio de contraseña de otro usuario (acción de admin). Trae
+// cuántas sesiones se cerraron, para poder decirlo en el aviso de éxito.
+export type AdminChangePasswordResult = InferResponseType<
+	(typeof usersAdminRpc)[":id"]["change-password"]["$post"],
+	200
+>;
+
 // Los tipos de ENTRADA sí salen de los esquemas zod del panel: son los que
 // validan el formulario antes de enviarlo. Sus reglas vienen de
 // `@elineas/auth-contracts`, así que coinciden con las del servidor.
@@ -54,3 +63,9 @@ export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
 export type ChangePasswordFormInput = z.infer<typeof changePasswordFormSchema>;
 export type ChangeEmailInput = z.infer<typeof changeEmailSchema>;
+export type AdminChangePasswordInput = z.infer<
+	typeof adminChangePasswordSchema
+>;
+export type AdminChangePasswordFormInput = z.infer<
+	typeof adminChangePasswordFormSchema
+>;

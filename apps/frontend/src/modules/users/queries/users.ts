@@ -3,13 +3,16 @@ import {
 	useMutation,
 	useQueryClient,
 } from "@tanstack/react-query";
+import { sessionKeys } from "#/modules/sessions/queries/sessions.ts";
 import {
+	adminChangeUserPasswordFn,
 	changeEmailFn,
 	changePasswordFn,
 	getMeFn,
 	updateMeFn,
 } from "../actions/users.ts";
 import type {
+	AdminChangePasswordInput,
 	ChangeEmailInput,
 	ChangePasswordInput,
 	UpdateProfileInput,
@@ -50,5 +53,21 @@ export function useChangeEmail() {
 	return useMutation({
 		mutationFn: (input: ChangeEmailInput) => changeEmailFn({ data: input }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: userKeys.me() }),
+	});
+}
+
+// Cambio de contraseña de OTRO usuario (acción de admin). Al revocar sus
+// sesiones cambia el listado de sesiones activas, así que se invalida: si no,
+// la página de sesiones seguiría mostrando las que acaban de cerrarse.
+export function useAdminChangeUserPassword() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: ({
+			userId,
+			...input
+		}: AdminChangePasswordInput & { userId: string }) =>
+			adminChangeUserPasswordFn({ data: { userId, ...input } }),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: sessionKeys.all }),
 	});
 }

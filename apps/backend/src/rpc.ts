@@ -23,6 +23,8 @@ export type { AppType } from "./app.ts";
 // `apps/frontend/src/modules/common/lib/rpc.ts`).
 export type AuthRoutes = typeof import("./routes/auth.routes.ts").authRoutes;
 export type UsersRoutes = typeof import("./routes/users.routes.ts").usersRoutes;
+export type UsersAdminRoutes =
+  typeof import("./routes/users.routes.ts").usersAdminRoutes;
 export type SessionsRoutes =
   typeof import("./routes/sessions.routes.ts").sessionsRoutes;
 export type SessionsAdminRoutes =

@@ -591,6 +591,7 @@ Endpoints con límite (`src/middleware/auth-rate-limits.ts`, `src/middleware/rat
 | `POST /api/auth/sign-up`             | 5/min             | IP                  |
 | `POST /api/users/me/change-password` | 5/min             | IP                  |
 | `POST /api/users/me/change-email`    | 5/min             | IP                  |
+| `POST /api/users/admin/{id}/change-password` | 5/min     | IP                  |
 | `GET /api/auth/jwks`                 | 60/min            | IP                  |
 | `GET /api/auth/token`                | 60/min            | IP                  |
 
@@ -628,6 +629,7 @@ ausente en sign-in/sign-up).
 | GET/PATCH  | `/api/users/me*`                                                  | Sesión           | Perfil propio; cambio de contraseña/email (ambos exigen la contraseña actual) |
 | GET        | `/api/user-roles/me`                                              | Sesión           | Mis roles, opcionalmente filtrados por `systemSlug`                           |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna)                                 |
+| POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
 | GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)                                    |
 | GET        | `/health/ready`                                                   | — (pública)      | Readiness: además comprueba la BD (`503` si no responde)                      |
 
@@ -709,6 +711,43 @@ está disponible en `GET /api/openapi.json` y Swagger UI en `GET /api/docs`
 (`src/app.ts`) — en producción se deshabilita intencionalmente. El fichero
 `postman/elineas-auth.openapi.json` se regenera con `bun run openapi:generate`
 tras cambiar rutas o esquemas.
+
+### 10.3 Cambiar la contraseña de otro usuario
+
+`POST /api/users/admin/{id}/change-password` (sesión + admin) fija una
+contraseña nueva para el usuario indicado. Es una operación distinta del cambio
+propio (`POST /api/users/me/change-password`), no una variante: el admin no
+conoce la contraseña del usuario, así que no se le puede pedir.
+
+```jsonc
+// POST /api/users/admin/9f8a2b3c-.../change-password
+{
+  "newPassword": "la-nueva-contraseña",
+  // La contraseña DEL ADMIN, no la del usuario objetivo.
+  "currentPassword": "tu-contraseña-de-admin",
+  // Opcional, por defecto true.
+  "revokeSessions": true
+}
+```
+
+Responde `{ "status": true, "revokedSessions": 2 }`.
+
+Detalles que conviene conocer:
+
+- **Re-autenticación del admin.** Se exige su propia contraseña porque, con solo
+  el rol admin, una sesión robada bastaría para apropiarse de cualquier cuenta
+  del IS. Si no coincide, responde `401 INVALID_PASSWORD`.
+- **Revocación de sesiones.** Por defecto cierra todas las sesiones del usuario:
+  un reseteo suele responder a una contraseña comprometida, y sin revocar, quien
+  ya estuviera dentro seguiría dentro. Si el admin se la cambia a sí mismo con
+  `revokeSessions: true`, queda desconectado él también.
+- **No envía ningún correo.** La contraseña hay que comunicarla por un canal
+  seguro; no hay flujo de "restablecer por email" en esta operación.
+- **Usuarios sin contraseña local.** Si el usuario no tiene cuenta de
+  credenciales, responde `409 NO_CREDENTIAL_ACCOUNT` en vez de dar un `200`
+  silencioso sin haber cambiado nada.
+- **Rate limit** de 5/min por IP (ver §8): verifica una contraseña, así que sin
+  límite sería un oráculo de fuerza bruta contra la del admin.
 
 ## 11. Checklist de seguridad para producción
 

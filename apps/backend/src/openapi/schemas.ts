@@ -188,6 +188,33 @@ export const ChangePasswordBodySchema = z
   })
   .openapi("ChangePasswordBody");
 
+// Cambio de contraseña de OTRO usuario, ejecutado por un admin. Es una acción
+// distinta del cambio propio (ChangePasswordBodySchema), no una variante: el
+// admin no conoce la contraseña actual del usuario, así que no se puede pedir.
+export const AdminChangePasswordBodySchema = z
+  .object({
+    newPassword: Password.openapi({ example: "la-nueva-contraseña" }),
+    // La contraseña del ADMIN que ejecuta la acción, NO la del usuario objetivo.
+    // Re-autenticación ante una acción sensible: con solo el rol admin, una
+    // sesión robada bastaría para apropiarse de cualquier cuenta del IS.
+    currentPassword: CurrentPassword.openapi({
+      example: "tu-contraseña-de-admin",
+    }),
+    // Cerrar las sesiones abiertas del usuario. Por defecto sí: un reseteo
+    // suele responder a una contraseña comprometida, y sin revocar, quien ya
+    // estuviera dentro seguiría dentro pese al cambio.
+    revokeSessions: z.boolean().optional().default(true),
+  })
+  .openapi("AdminChangePasswordBody");
+
+export const AdminChangePasswordResponseSchema = z
+  .object({
+    status: z.boolean(),
+    // Cuántas sesiones se cerraron (0 si no se pidió revocar o no había ninguna).
+    revokedSessions: z.number().int().openapi({ example: 2 }),
+  })
+  .openapi("AdminChangePasswordResponse");
+
 export const ChangePasswordResponseSchema = z
   .object({
     token: z.string().nullable().optional(),

@@ -1,5 +1,10 @@
-import { unwrap, usersRpc } from "#/modules/common/lib/rpc.ts";
+import {
+	unwrap,
+	usersAdminRpc,
+	usersRpc,
+} from "#/modules/common/lib/rpc.ts";
 import type {
+	AdminChangePasswordInput,
 	ChangeEmailInput,
 	ChangePasswordInput,
 	UpdateProfileInput,
@@ -33,4 +38,18 @@ export function changePassword(input: ChangePasswordInput) {
 
 export function changeEmail(input: ChangeEmailInput) {
 	return unwrap(usersRpc.me["change-email"].$post({ json: input }));
+}
+
+// Cambia la contraseña de OTRO usuario. Requiere rol admin en el IS; el
+// `currentPassword` del input es el del ADMIN, no el del usuario objetivo.
+export function adminChangeUserPassword(
+	userId: string,
+	input: AdminChangePasswordInput,
+) {
+	return unwrap(
+		usersAdminRpc[":id"]["change-password"].$post({
+			param: { id: userId },
+			json: input,
+		}),
+	);
 }
