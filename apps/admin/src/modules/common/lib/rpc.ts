@@ -77,11 +77,12 @@ export const requestLogsRpc = hc<RequestLogsRoutes>(
 //
 // Se distribuye sobre la unión porque `R` es un parámetro de tipo desnudo, así
 // que basta con descartar las ramas de error para quedarse con la buena.
-type SuccessBody<R> = R extends ClientResponse<infer T, infer S, "json">
-	? S extends 200 | 201
-		? T
-		: never
-	: never;
+type SuccessBody<R> =
+	R extends ClientResponse<infer T, infer S, "json">
+		? S extends 200 | 201
+			? T
+			: never
+		: never;
 
 // Extrae el cuerpo de una respuesta RPC conservando el manejo de errores del
 // panel: `readJson` lanza `AuthApiError` con status, code y retryAfter para
@@ -93,9 +94,9 @@ type SuccessBody<R> = R extends ClientResponse<infer T, infer S, "json">
 // que no hay ningún tipo escrito a mano en el camino. Las fechas llegan como
 // string ISO porque es lo que sobrevive a JSON, y eso ya está reflejado en el
 // tipo inferido.
-export async function unwrap<
-	R extends ClientResponse<unknown, number, "json">,
->(promise: Promise<R>): Promise<SuccessBody<R>> {
+export async function unwrap<R extends ClientResponse<unknown, number, "json">>(
+	promise: Promise<R>,
+): Promise<SuccessBody<R>> {
 	const response = await promise;
 	return (await readJson(response)) as SuccessBody<R>;
 }

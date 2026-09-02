@@ -1,0 +1,32 @@
+# El contexto de build de las dos apps es la RAÍZ del monorepo (ahí están el
+# lockfile y los workspaces), así que las exclusiones tienen que estar aquí:
+# un .dockerignore dentro de apps/* no se aplicaría.
+node_modules
+**/node_modules
+
+# artefactos de build
+dist
+**/dist
+**/dist-ssr
+**/.output
+**/.nitro
+**/.tanstack
+**/.vinxi
+
+# git y editor
+.git
+.gitignore
+.vscode
+.claude
+.codegraph
+
+# secretos: nunca entran en una imagen (las apps los reciben por env_file)
+**/.env
+**/.env.*
+!**/.env.example
+!**/.env.production.example
+
+# ruido
+**/*.log
+**/*.local
+**/.DS_Store
