@@ -1,12 +1,7 @@
-import type { ClassValue } from "clsx";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
 import type { StrengthResult } from "../shared/types";
 import { passwordSchema } from "./validation";
 
-export function cn(...inputs: ClassValue[]) {
-	return twMerge(clsx(inputs));
-}
+export { cn } from "cn";
 
 export function checkStrength(password: string): StrengthResult {
 	const parse = passwordSchema.safeParse(password);
