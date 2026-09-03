@@ -53,6 +53,16 @@ export const account = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     accountId: text("account_id").notNull(),
     providerId: text("provider_id").notNull(),
+    // Distingue credenciales locales de proveedores OAuth externos.
+    // better-auth@1.7.2 lo exige para el login (compara con
+    // `createLocalAccountIssuer("credential")` = "local:credential") — antes
+    // de esta migración la columna no existía y NINGÚN login funcionaba (el
+    // adaptador rechazaba cualquier cuenta de credenciales por no encontrar
+    // este campo). Nullable a propósito: better-auth siempre lo rellena
+    // explícitamente al crear/actualizar una cuenta, así que no hace falta un
+    // DEFAULT a nivel de columna; las filas existentes se rellenan en el
+    // backfill de la propia migración (ver migrations/).
+    issuer: text("issuer"),
     userId: uuid("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
