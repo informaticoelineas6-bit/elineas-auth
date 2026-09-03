@@ -1,0 +1,28 @@
+{
+  "name": "@elineas/auth-contracts",
+  "version": "1.0.0",
+  "description": "Reglas de validación compartidas entre el identity server y sus consumidores: fuente única de la política de contraseña, el dominio corporativo, la paginación y los campos de negocio.",
+  "type": "module",
+  "private": true,
+  "main": "./src/index.ts",
+  "module": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "typescript": "^7.0.2"
+  }
+}

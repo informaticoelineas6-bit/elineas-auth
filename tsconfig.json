@@ -1,21 +1,15 @@
 {
+  // Solo cubre packages/*: es código agnóstico del entorno, así que se puede
+  // comprobar desde la raíz con `bunx tsc --noEmit`.
+  //
+  // Las apps NO se incluyen aquí a propósito: api compila contra los tipos de
+  // Bun (sin DOM) y admin contra los del navegador, y además cada una fija su
+  // propia versión de TypeScript. `bun run typecheck` en la raíz delega en el
+  // script `typecheck` de cada workspace, que usa su tsconfig y su tsc.
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "target": "ES2022",
     "lib": ["ES2022"],
-    "module": "ESNext",
-    "moduleResolution": "Bundler",
-    "resolveJsonModule": true,
-    "forceConsistentCasingInFileNames": true,
-    "strict": true,
-    "esModuleInterop": true,
-    "skipLibCheck": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "types": ["bun"],
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "types": []
   },
-  "include": ["src", "scripts", "drizzle.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": ["packages/*/src"]
 }

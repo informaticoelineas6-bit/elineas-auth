@@ -1,0 +1,53 @@
+{
+  "name": "@elineas/auth-backend",
+  "version": "1.0.0",
+  "description": "Identity server de Mercado Elineas: autenticación, sesiones por sistema, roles y empleados sobre Hono + better-auth.",
+  "private": true,
+  "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    "./rpc": "./src/rpc.ts"
+  },
+  "scripts": {
+    "dev": "APP_ENV=local bun --env-file=.env.local --watch src/index.ts",
+    "dev:staging": "APP_ENV=staging bun --env-file=.env.staging --watch src/index.ts",
+    "db:generate:auth:schemas": "bunx --env-file=.env.local @better-auth/cli@latest generate --output ./src/db/auth-schema.ts",
+    "db:generate:migrations": "bun --env-file=.env.local node_modules/.bin/drizzle-kit generate",
+    "db:migrate:local": "APP_ENV=local bun --env-file=.env.local node_modules/.bin/drizzle-kit migrate",
+    "db:migrate:staging": "APP_ENV=staging bun --env-file=.env.staging node_modules/.bin/drizzle-kit migrate",
+    "db:seed:local": "APP_ENV=local bun --env-file=.env.local src/db/seed.ts",
+    "db:seed:staging": "APP_ENV=staging bun --env-file=.env.staging src/db/seed.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "build:prod": "bun build src/index.ts --target=bun --outdir=dist --minify",
+    "openapi:generate": "APP_ENV=local bun --env-file=.env.local scripts/generate-openapi.ts",
+    "start": "bun --env-file=.env.local src/index.ts"
+  },
+  "trustedDependencies": [
+    "esbuild"
+  ],
+  "dependencies": {
+    "@elineas/auth-contracts": "workspace:*",
+    "@hono/swagger-ui": "^0.6.1",
+    "@hono/zod-openapi": "^1.6.2",
+    "@react-email/components": "^1.0.12",
+    "@react-email/render": "^2.1.0",
+    "better-auth": "^1.7.2",
+    "drizzle-orm": "1.0.0-rc.4",
+    "evlog": "^2.28.0",
+    "hono": "^4.13.5",
+    "jose": "^6.2.10",
+    "nodemailer": "^9.1.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "resend": "^6.25.0",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.0",
+    "@types/nodemailer": "^8.0.1",
+    "@types/react": "^19.2.18",
+    "drizzle-kit": "1.0.0-rc.4",
+    "typescript": "^7.0.2"
+  }
+}

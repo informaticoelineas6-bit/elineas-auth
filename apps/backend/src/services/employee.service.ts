@@ -1,0 +1,241 @@
+import { and, count, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { z } from "@hono/zod-openapi";
+import { db } from "@backend/db/index.ts";
+import { employee } from "@backend/db/business-schema.ts";
+import { user } from "@backend/db/auth-schema.ts";
+import { auth } from "@backend/lib/auth.ts";
+import { HttpError } from "@backend/lib/http.ts";
+import { sendWelcomeEmail } from "@backend/lib/mail.ts";
+import { escapeLike } from "@backend/lib/search.ts";
+import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
+import type {
+  CreateEmployeeBodySchema,
+  UpdateEmployeeBodySchema,
+} from "@backend/openapi/business.schemas.ts";
+import type { CreateEmployeeWithUserBodySchema } from "@backend/openapi/schemas.ts";
+
+type CreateEmployeeInput = z.infer<typeof CreateEmployeeBodySchema>;
+type UpdateEmployeeInput = z.infer<typeof UpdateEmployeeBodySchema>;
+type CreateEmployeeWithUserInput = z.infer<typeof CreateEmployeeWithUserBodySchema>;
+
+export async function listEmployees(
+  filters: { active?: boolean; search?: string },
+  pagination: PaginationInput,
+) {
+  const conditions = [
+    filters.active === undefined ? undefined : eq(employee.active, filters.active),
+    filters.search
+      ? (() => {
+          const term = `%${escapeLike(filters.search)}%`;
+          return or(
+            ilike(employee.name, term),
+            ilike(employee.lastName, term),
+            ilike(employee.ci, term),
+            ilike(user.email, term),
+          );
+        })()
+      : undefined,
+  ].filter((c): c is NonNullable<typeof c> => c !== undefined);
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  // LEFT JOIN con user para embeber la cuenta enlazada (y permitir buscar por
+  // email). Filas de la página y total en paralelo: comparten `where` y el
+  // mismo join para que el total refleje los filtros aplicados.
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({
+        id: employee.id,
+        userId: employee.userId,
+        name: employee.name,
+        lastName: employee.lastName,
+        ci: employee.ci,
+        birthday: employee.birthday,
+        phoneNumber: employee.phoneNumber,
+        address: employee.address,
+        inDate: employee.inDate,
+        outDate: employee.outDate,
+        active: employee.active,
+        createdAt: employee.createdAt,
+        updatedAt: employee.updatedAt,
+        user: { id: user.id, name: user.name, email: user.email },
+      })
+      .from(employee)
+      .leftJoin(user, eq(employee.userId, user.id))
+      .where(where)
+      .orderBy(desc(employee.createdAt))
+      .limit(pagination.limit)
+      .offset(toOffset(pagination)),
+    // El conteo solo necesita el JOIN con user cuando hay búsqueda (el filtro
+    // puede referenciar user.email). Sin búsqueda, un LEFT JOIN contra una FK
+    // única no altera el total, así que se omite y el COUNT queda sobre una
+    // sola tabla.
+    filters.search
+      ? db
+          .select({ total: count() })
+          .from(employee)
+          .leftJoin(user, eq(employee.userId, user.id))
+          .where(where)
+      : db.select({ total: count() }).from(employee).where(where),
+  ]);
+
+  // El LEFT JOIN devuelve el objeto `user` con campos null cuando el empleado
+  // no tiene cuenta; lo normalizamos a `null` para respetar el contrato user | null.
+  const normalized = rows.map((row) => ({
+    ...row,
+    user: row.user?.id ? row.user : null,
+  }));
+
+  return { rows: normalized, total };
+}
+
+export async function getEmployee(id: string) {
+  const [row] = await db.select().from(employee).where(eq(employee.id, id)).limit(1);
+  if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+  return row;
+}
+
+export async function createEmployee(input: CreateEmployeeInput) {
+  // El CI es opcional: el pre-chequeo de unicidad solo aplica cuando se envía
+  // uno (igual que en `createEmployeeWithUser`). Sin esto, un CI duplicado
+  // solo se detectaba al chocar con la restricción UNIQUE de la BD, que cae en
+  // el mensaje genérico de `handleError` ("El recurso ya existe...") en vez del
+  // mensaje específico que espera el frontend para señalar el campo.
+  if (input.ci !== undefined) {
+    const [existing] = await db
+      .select({ id: employee.id })
+      .from(employee)
+      .where(eq(employee.ci, input.ci))
+      .limit(1);
+    if (existing) {
+      throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+    }
+  }
+
+  const [row] = await db.insert(employee).values(input).returning();
+  return row;
+}
+
+// Alta combinada: crea el usuario (vía better-auth) y el empleado enlazado en
+// una sola operación de cara al cliente.
+//
+// No hay una transacción única que abarque ambos pasos: `signUpEmail` escribe
+// en la BD por su cuenta (tablas user/account), fuera del control de una
+// transacción de Drizzle. Por eso se usa el patrón pre-chequeo + compensación:
+//   1. Se comprueba que el CI no exista ANTES de crear el usuario, para que el
+//      caso habitual de CI duplicado falle sin dejar rastro (409, sin usuario).
+//   2. Se crea el usuario.
+//   3. Se inserta el empleado; si ese insert falla (p. ej. una carrera contra
+//      el paso 1, o el userId ya ligado a otro empleado), se borra el usuario
+//      recién creado para no dejar cuentas huérfanas y se relanza el error.
+// El borrado del usuario cascadea a account/session (FK onDelete: cascade).
+export async function createEmployeeWithUser(
+  input: CreateEmployeeWithUserInput,
+  headers: Headers,
+) {
+  // El CI ahora es opcional: el pre-chequeo de unicidad solo aplica cuando se
+  // envía uno. Con múltiples empleados sin CI, la restricción UNIQUE de la BD
+  // no los rechaza (Postgres permite varios NULL en una columna UNIQUE).
+  if (input.employee.ci !== undefined) {
+    const [existing] = await db
+      .select({ id: employee.id })
+      .from(employee)
+      .where(eq(employee.ci, input.employee.ci))
+      .limit(1);
+    if (existing) {
+      throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+    }
+  }
+
+  const { response } = await auth.api.signUpEmail({
+    body: input.user,
+    headers,
+    returnHeaders: true,
+  });
+
+  try {
+    const [row] = await db
+      .insert(employee)
+      .values({ ...input.employee, userId: response.user.id })
+      .returning();
+    // El correo de credenciales se envía solo cuando el alta completa (usuario
+    // + empleado) tuvo éxito: si el insert falla, el usuario se compensa/borra
+    // y no debe recibir aviso. Sin await: un fallo del correo no aborta el alta
+    // (sendWelcomeEmail captura y loguea sus propios errores, nunca lanza).
+    void sendWelcomeEmail({
+      to: input.user.email,
+      name: input.user.name,
+      password: input.user.password,
+    });
+    return { user: response.user, employee: row };
+  } catch (error) {
+    // Compensación: borra el usuario recién creado para no dejar una cuenta
+    // huérfana. Su propio fallo (p. ej. BD caída a mitad) se registra pero NO
+    // se propaga: relanzar el error de compensación enmascararía el error real
+    // del insert, que es el que explica al cliente por qué falló la operación.
+    try {
+      await db.delete(user).where(eq(user.id, response.user.id));
+    } catch (cleanupError) {
+      console.error(
+        `No se pudo revertir el usuario huérfano ${response.user.id} tras fallar el alta del empleado:`,
+        cleanupError instanceof Error ? cleanupError.message : cleanupError,
+      );
+    }
+    throw error;
+  }
+}
+
+export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
+  if (Object.keys(input).length === 0) return getEmployee(id);
+
+  // Mismo pre-chequeo que en el alta, excluyendo el propio registro (si no,
+  // guardar sin cambiar el CI chocaría contra sí mismo).
+  if (input.ci !== undefined) {
+    const [existing] = await db
+      .select({ id: employee.id })
+      .from(employee)
+      .where(and(eq(employee.ci, input.ci), ne(employee.id, id)))
+      .limit(1);
+    if (existing) {
+      throw new HttpError(409, "Ya existe un empleado con ese CI", "CONFLICT");
+    }
+  }
+
+  const [row] = await db
+    .update(employee)
+    .set(input)
+    .where(eq(employee.id, id))
+    .returning();
+  if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+  return row;
+}
+
+// Elimina el empleado y, si tiene una cuenta enlazada, también esa cuenta.
+//
+// La FK employee.userId es `set null`, así que borrar solo el empleado dejaba
+// la cuenta viva con sus roles y sesiones: el usuario seguía apareciendo en las
+// asignaciones y podía seguir iniciando sesión pese a estar "eliminado". Borrar
+// el user cascadea a account/session (auth-schema) y a userRole/sessionSystem
+// (business-schema), que es lo que espera la acción "Eliminar usuario".
+//
+// Ambos borrados van en una transacción: si el del user falla, el empleado no
+// desaparece a medias.
+export async function deleteEmployee(id: string, currentUserId?: string) {
+  await db.transaction(async (tx) => {
+    const [row] = await tx
+      .delete(employee)
+      .where(eq(employee.id, id))
+      .returning({ userId: employee.userId });
+    if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+    if (!row.userId) return;
+    // Auto-borrado: eliminaría la cuenta de quien llama junto con su sesión
+    // actual. La excepción revierte también el borrado del empleado.
+    if (row.userId === currentUserId) {
+      throw new HttpError(
+        409,
+        "No puedes eliminar tu propio usuario",
+        "CONFLICT",
+      );
+    }
+    await tx.delete(user).where(eq(user.id, row.userId));
+  });
+}

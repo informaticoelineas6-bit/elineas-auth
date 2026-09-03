@@ -1,0 +1,30 @@
+{
+  // Ajustes de TypeScript comunes a todo el monorepo. Cada workspace lo
+  // extiende y añade SOLO lo propio de su entorno (`lib`/`types`/`paths`),
+  // porque api corre en Bun sin DOM y admin en el navegador: un único tsconfig
+  // para ambos obligaría a aflojar la comprobación en los dos.
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "moduleDetection": "force",
+    "resolveJsonModule": true,
+    "jsx": "react-jsx",
+    "noEmit": true,
+    // Bun y Vite resuelven la extensión .ts nativamente, así que se permite
+    // importarla explícitamente (packages/* la usa).
+    "allowImportingTsExtensions": true,
+    // Obliga a marcar los imports de solo-tipo con `import type`. Va en la base
+    // porque apps/frontend compila las fuentes de apps/backend con SUS opciones al
+    // tipar el cliente RPC: si solo admin lo activara, los incumplimientos del
+    // backend aparecerían como errores del panel en lugar de los suyos.
+    "verbatimModuleSyntax": true,
+
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "exclude": ["node_modules", "dist", ".output", ".nitro"]
+}
