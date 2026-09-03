@@ -1,15 +1,21 @@
+import { env } from "@backend/config/env.ts";
+import { authDb } from "@backend/db/auth-relational-shim.ts";
+import * as schema from "@backend/db/auth-schema.ts";
+import { sendChangeEmailVerification } from "@backend/lib/mail.ts";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { jwt, bearer } from "better-auth/plugins";
-import { db } from "@backend/db/index.ts";
-import * as schema from "@backend/db/auth-schema.ts";
-import { env } from "@backend/config/env.ts";
-import { sendChangeEmailVerification } from "@backend/lib/mail.ts";
+import { bearer, jwt } from "better-auth/plugins";
 
 export const auth = betterAuth({
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
-  database: drizzleAdapter(db, {
+  // `authDb` (no `db` a secas): mismo cliente/relaciones, pero con `db.query`
+  // parcheado para el adaptador de drizzle de better-auth. Ver
+  // db/auth-relational-shim.ts para el porqué — resumen: sin el parche,
+  // iniciar sesión falla siempre con "User not found" (independiente de la
+  // contraseña) por un bug conocido de better-auth con Relations v2 de
+  // drizzle-orm.
+  database: drizzleAdapter(authDb, {
     provider: "pg",
     schema,
   }),
@@ -73,7 +79,14 @@ export const auth = betterAuth({
   // esta opción y el `uuid(...).defaultRandom()` de auth-schema.ts van juntos;
   // cambiar una sin la otra rompe el alta de usuarios/sesiones.
   advanced: {
-    database: { generateId: "uuid" },
+    // `joins: true` es lo que hace que el login (findUserByEmail con
+    // includeAccounts) una user+account en una sola consulta en vez de
+    // devolver el usuario sin su cuenta de credenciales. Va junto con el
+    // parche de db/auth-relational-shim.ts: sin `joins:true` el login falla
+    // (sin cuenta que verificar); con `joins:true` pero sin el parche,
+    // revienta por un bug de better-auth con Relations v2 de drizzle-orm. Ver
+    // el comentario largo en auth-relational-shim.ts.
+    database: { generateId: "uuid", joins: true },
   },
   plugins: [jwt(), bearer()],
 });
