@@ -9,24 +9,33 @@ import type { CreateUserRoleBodySchema } from "@backend/openapi/business.schemas
 type CreateUserRoleInput = z.infer<typeof CreateUserRoleBodySchema>;
 
 export async function listUserRoles(
-  filters: { userId?: string; roleId?: string },
+  filters: { userId?: string; roleId?: string; systemId?: string },
   pagination: PaginationInput,
 ) {
   const conditions = [
     filters.userId ? eq(userRole.userId, filters.userId) : undefined,
     filters.roleId ? eq(userRole.roleId, filters.roleId) : undefined,
+    filters.systemId ? eq(role.systemId, filters.systemId) : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;
 
+  // El filtro por sistema requiere unir con `role` (userRole no tiene systemId
+  // propio); se aplica el mismo join incondicionalmente para mantener una sola
+  // consulta y evitar duplicar la lógica de `where` entre ambos casos.
   const [rows, [{ total }]] = await Promise.all([
     db
-      .select()
+      .select({ id: userRole.id, userId: userRole.userId, roleId: userRole.roleId, createdAt: userRole.createdAt })
       .from(userRole)
+      .innerJoin(role, eq(userRole.roleId, role.id))
       .where(where)
       .orderBy(desc(userRole.createdAt))
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
-    db.select({ total: count() }).from(userRole).where(where),
+    db
+      .select({ total: count() })
+      .from(userRole)
+      .innerJoin(role, eq(userRole.roleId, role.id))
+      .where(where),
   ]);
   return { rows, total };
 }

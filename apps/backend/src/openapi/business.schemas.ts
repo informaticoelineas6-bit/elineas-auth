@@ -229,6 +229,9 @@ export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
   roleId: z.uuid().optional().openapi({
     param: { name: "roleId", in: "query", required: false },
   }),
+  systemId: z.uuid().optional().openapi({
+    param: { name: "systemId", in: "query", required: false },
+  }),
 });
 
 // ---------------------------------------------------------------------------
