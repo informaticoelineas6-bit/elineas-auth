@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
 	DataTable,
+	DataTableFilterSelect,
 	useListControls,
 } from "@/modules/common/components/data-table";
 import { Combobox } from "@/modules/common/components/partials/combobox.tsx";
@@ -224,6 +225,16 @@ function UserRolesPage() {
 								emptyText="Sin roles"
 								allowClear
 								clearLabel="Todos los roles"
+							/>
+							<DataTableFilterSelect
+								value={filters.systemId}
+								onChange={(value) => setFilter("systemId", value)}
+								placeholder="Sistema"
+								allLabel="Todos los sistemas"
+								options={(systemsQuery.data?.systems ?? []).map((system) => ({
+									label: system.name,
+									value: system.id,
+								}))}
 							/>
 						</>
 					}

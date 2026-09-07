@@ -1,10 +1,13 @@
 import { z } from "zod";
 import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 
-// Filtros del listado administrativo: paginación + filtro por usuario o rol.
+// Filtros del listado administrativo: paginación + filtro por usuario, rol o
+// sistema (este último se resuelve en el backend mediante join con `role`, ya
+// que la asignación no tiene systemId propio).
 export const userRoleFiltersSchema = paginationQuerySchema.extend({
 	userId: z.string().optional(),
 	roleId: z.string().optional(),
+	systemId: z.string().optional(),
 });
 
 export const createUserRoleSchema = z.object({
