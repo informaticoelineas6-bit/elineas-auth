@@ -191,12 +191,51 @@
        reservar el gap de forma permanente, la scrollbar nunca desaparece
        realmente y esa compensación termina siendo 0.  */
     scrollbar-gutter: stable;
+    /* El hueco reservado por scrollbar-gutter queda fuera de la caja de
+       `body`, así que se pinta con el fondo por defecto del navegador (negro
+       en dark mode) si `html` no tiene su propio color de fondo. */
+    @apply bg-background;
+    /* Glow decorativo superior: iba en un div hijo de `body` (ver
+       _authed.tsx), pero esa caja no se extiende bajo el gutter reservado
+       arriba y dejaba una costura negra junto a la scrollbar. El área de
+       pintado del *background* de `html`, en cambio, sí cubre el gutter, así
+       que el efecto vive aquí en vez de en un div. */
+    background-image: linear-gradient(
+      to bottom,
+      color-mix(in oklch, var(--primary) 10%, transparent),
+      transparent
+    );
+    background-repeat: no-repeat;
+    background-size: 100% 24rem;
+    background-position: top;
   }
   body {
-    @apply bg-background text-foreground;
+    /* Sin bg-background aquí a propósito: `body` pintaría su fondo opaco
+       *encima* del de `html` en toda su caja, tapando el glow del gutter de
+       arriba en todo salvo la franja del gutter mismo (el problema inverso al
+       que se arregló). `body` se queda transparente y deja ver el fondo de
+       `html` por debajo, tanto dentro del contenido como en el gutter. */
+    @apply text-foreground;
   }
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+  }
+}
+
+/* Radix (react-remove-scroll-bar) añade su propio `margin-right` !important a
+   `body[data-scroll-locked]` al abrir cualquier Dropdown/Select/Dialog modal,
+   para compensar la scrollbar que "desaparece". Como el hueco ya está
+   reservado de forma permanente por `scrollbar-gutter: stable` (arriba), esa
+   compensación es una segunda reserva del mismo espacio: el <main
+   className="mx-auto"> se recalcula sobre un ancho más angosto y "salta" a
+   la izquierda en cada apertura. Radix inyecta su <style> sin capa (fuera de
+   cualquier @layer); con !important, una regla dentro de una capa nombrada
+   gana sobre una !important sin capa (la prioridad se invierte para
+   important), así que esta capa neutraliza esa compensación sin tocar la
+   reserva del gutter. */
+@layer scroll-lock-override {
+  body[data-scroll-locked] {
+    margin-right: 0 !important;
   }
 }
 

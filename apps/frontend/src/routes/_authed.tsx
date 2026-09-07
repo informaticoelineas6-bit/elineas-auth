@@ -40,7 +40,11 @@ function AuthedLayout() {
 
 	return (
 		<div className="relative min-h-screen bg-background text-foreground">
-			<div className="pointer-events-none absolute inset-x-0 top-0 h-96 bg-linear-to-b from-primary/10 to-transparent" />
+			{/* El glow superior vive como background-image de `html` (ver styles.css),
+			    no como div aquí: un div hijo de `body` no se extiende bajo el hueco
+			    reservado por `scrollbar-gutter`, y dejaba una costura negra visible
+			    junto a la scrollbar. La rejilla de puntos sí puede quedarse como div:
+			    su máscara radial ya la desvanece antes de llegar al borde. */}
 			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-size-[36px_36px] opacity-40 mask-[radial-gradient(ellipse_at_top,black,transparent_65%)]" />
 
 			<AdminHeader session={session} />
