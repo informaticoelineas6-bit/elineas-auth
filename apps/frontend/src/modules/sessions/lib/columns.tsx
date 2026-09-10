@@ -54,6 +54,18 @@ export function getAdminSessionColumns({
 			},
 		},
 		{
+			id: "system",
+			header: "Sistema",
+			cell: ({ row }) => {
+				const system = row.original.system;
+				return system ? (
+					<Badge variant="outline">{system.name}</Badge>
+				) : (
+					<span className="text-muted-foreground">—</span>
+				);
+			},
+		},
+		{
 			accessorKey: "ipAddress",
 			header: "IP",
 			cell: ({ row }) => row.original.ipAddress || "—",
@@ -68,6 +80,21 @@ export function getAdminSessionColumns({
 			accessorKey: "expiresAt",
 			header: "Expira",
 			cell: ({ row }) => formatDate(row.original.expiresAt),
+		},
+		{
+			id: "status",
+			header: "Estado",
+			// Derivado de `expiresAt`: la sesión no trae un campo `active` propio (a
+			// diferencia de `Employee`/`System`), se calcula igual que el filtro del
+			// backend (`expiresAt` vs. ahora).
+			cell: ({ row }) => {
+				const isActive = new Date(row.original.expiresAt) > new Date();
+				return (
+					<Badge variant={isActive ? "default" : "secondary"}>
+						{isActive ? "Activa" : "Expirada"}
+					</Badge>
+				);
+			},
 		},
 		{
 			id: "actions",

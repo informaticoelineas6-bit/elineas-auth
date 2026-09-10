@@ -1,7 +1,8 @@
-import { and, count, desc, eq, gt, ilike, or } from "drizzle-orm";
+import { and, count, desc, eq, gt, ilike, lte, or } from "drizzle-orm";
 import { auth } from "@backend/lib/auth.ts";
 import { db } from "@backend/db/index.ts";
 import { session, user } from "@backend/db/auth-schema.ts";
+import { sessionSystem, system } from "@backend/db/business-schema.ts";
 import { forwardAuthHeaders, handleAuthError, HttpError } from "@backend/lib/http.ts";
 import { escapeLike } from "@backend/lib/search.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
@@ -93,13 +94,18 @@ export const revokeOneFn = async (
 // A diferencia de lo anterior, esto NO pasa por `auth.api.listSessions`
 // (better-auth la acota siempre al usuario autenticado): consulta la tabla
 // `session` directamente con un JOIN a `user`, protegido por `requireAdmin` en
-// la ruta. Igual que `listSessionsFn`, se excluyen las sesiones ya expiradas.
+// la ruta. Sin `filters.active`, se listan tanto activas como expiradas (el
+// admin filtra a voluntad); antes esto excluía siempre las expiradas.
 export async function listAllSessions(
-  filters: { search?: string },
+  filters: { search?: string; active?: boolean },
   pagination: PaginationInput,
 ) {
   const conditions = [
-    gt(session.expiresAt, new Date()),
+    filters.active === undefined
+      ? undefined
+      : filters.active
+        ? gt(session.expiresAt, new Date())
+        : lte(session.expiresAt, new Date()),
     filters.search
       ? (() => {
           const term = `%${escapeLike(filters.search)}%`;
@@ -107,8 +113,11 @@ export async function listAllSessions(
         })()
       : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
-  const where = and(...conditions);
+  const where = conditions.length ? and(...conditions) : undefined;
 
+  // LEFT JOIN a `sessionSystem`/`system`: el sistema al que pertenece la
+  // sesión (ver session-system.service.ts). Puede faltar (`system: null`) si
+  // la sesión nunca llegó a enlazarse.
   const [rows, [{ total }]] = await Promise.all([
     db
       .select({
@@ -120,9 +129,12 @@ export async function listAllSessions(
         ipAddress: session.ipAddress,
         userAgent: session.userAgent,
         user: { id: user.id, name: user.name, email: user.email },
+        system: { id: system.id, name: system.name, slug: system.slug },
       })
       .from(session)
       .innerJoin(user, eq(session.userId, user.id))
+      .leftJoin(sessionSystem, eq(sessionSystem.sessionId, session.id))
+      .leftJoin(system, eq(sessionSystem.systemId, system.id))
       .where(where)
       .orderBy(desc(session.createdAt))
       .limit(pagination.limit)
@@ -134,7 +146,14 @@ export async function listAllSessions(
       .where(where),
   ]);
 
-  return { rows, total };
+  // El LEFT JOIN devuelve `system` con campos null cuando no hay enlace; se
+  // normaliza a `null` para respetar el contrato `system | null`.
+  const normalized = rows.map((row) => ({
+    ...row,
+    system: row.system?.id ? row.system : null,
+  }));
+
+  return { rows: normalized, total };
 }
 
 // Revoca por id la sesión de CUALQUIER usuario (a diferencia de `revokeOneFn`,

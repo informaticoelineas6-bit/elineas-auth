@@ -8,5 +8,10 @@ export const revokeSessionSchema = z.object({
 });
 
 // Filtros del listado administrativo: paginación + búsqueda libre por
-// nombre/email del usuario dueño de la sesión.
-export const sessionFiltersSchema = listSearchSchema;
+// nombre/email del usuario dueño de la sesión + estado. `active` se acepta
+// como boolean y buildQuery lo serializa a "true"/"false", que es lo que el
+// IS espera en la query string (igual que `employeeFiltersSchema`). Sin
+// indicar, el IS devuelve tanto sesiones activas como expiradas.
+export const sessionFiltersSchema = listSearchSchema.extend({
+	active: z.boolean().optional(),
+});

@@ -147,12 +147,13 @@ const listAllSessionsRoute = createRoute({
   path: "/",
   operationId: "listAllSessions",
   tags: ["Sessions"],
-  summary: "Listar las sesiones activas de todos los usuarios (admin)",
+  summary: "Listar las sesiones de todos los usuarios (admin)",
   security: bearerAuthSecurity,
   request: { query: SessionListQuerySchema },
   responses: {
     200: {
-      description: "Sesiones activas de todos los usuarios",
+      description:
+        "Sesiones de todos los usuarios (activas y expiradas, según el filtro `active`)",
       content: {
         "application/json": {
           schema: z.object({
@@ -206,8 +207,11 @@ sessionsAdminRoutesBase.use("*", requireAdmin);
 
 export const sessionsAdminRoutes = sessionsAdminRoutesBase
   .openapi(listAllSessionsRoute, async (c) => {
-    const { page, limit, search } = c.req.valid("query");
-    const { rows, total } = await listAllSessions({ search }, { page, limit });
+    const { page, limit, search, active } = c.req.valid("query");
+    const { rows, total } = await listAllSessions(
+      { search, active: active === undefined ? undefined : active === "true" },
+      { page, limit },
+    );
     return c.json(
       { sessions: rows, pagination: paginationMeta({ page, limit }, total) },
       200,

@@ -92,12 +92,22 @@ export const SafeSessionSchema = SessionSchema.omit({ token: true }).openapi(
 // Sesión + datos mínimos del usuario dueño, para el listado administrativo
 // (un admin ve sesiones de todos los usuarios y necesita saber de quién es
 // cada una). Igual que en `Employee.user`, solo id/name/email.
+// `system` es a qué sistema pertenece la sesión (ver `sessionSystem`):
+// `null` si la sesión no llegó a enlazarse (p. ej. sesiones previas a esta
+// función).
 export const AdminSafeSessionSchema = SafeSessionSchema.extend({
   user: z.object({
     id: z.uuid(),
     name: z.string(),
     email: z.email(),
   }),
+  system: z
+    .object({
+      id: z.uuid(),
+      name: z.string(),
+      slug: z.string(),
+    })
+    .nullable(),
 }).openapi("AdminSafeSession");
 
 export const ErrorResponseSchema = z

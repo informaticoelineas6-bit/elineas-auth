@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { signOutFn } from "@/modules/auth/actions/auth.ts";
 import {
 	DataTable,
+	DataTableFilterSelect,
 	useListControls,
 } from "@/modules/common/components/data-table";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
@@ -59,7 +60,7 @@ function SessionsPage() {
 	const revokeOthers = useRevokeOtherSessions();
 	const revokeAll = useRevokeAllSessions();
 
-	const { filters, controls } = useListControls<SessionFilters>();
+	const { filters, controls, setFilter } = useListControls<SessionFilters>();
 	const allSessions = useQuery(sessionsQueries.allList(filters));
 
 	// Confirmaciones: revocar una concreta, o una acción masiva sobre las propias.
@@ -129,7 +130,7 @@ function SessionsPage() {
 			<PageBreadcrumb items={[{ label: "Sesiones" }]} />
 			<PageHeader
 				title="Sesiones"
-				description='Revisa y revoca las sesiones activas de todos los usuarios. Las tuyas están marcadas con "Tú".'
+				description='Revisa y revoca las sesiones de todos los usuarios. Las tuyas están marcadas con "Tú".'
 				actions={
 					hasOwnSessions && (
 						<div className="flex flex-wrap gap-2">
@@ -181,7 +182,19 @@ function SessionsPage() {
 					getRowId={(session) => session.id}
 					searchPlaceholder="Buscar por nombre o correo…"
 					emptyTitle="Sin sesiones"
-					emptyDescription="No hay sesiones activas."
+					emptyDescription="No se encontraron sesiones."
+					filters={
+						<DataTableFilterSelect
+							value={filters.active}
+							onChange={(value) => setFilter("active", value)}
+							placeholder="Estado"
+							allLabel="Todas"
+							options={[
+								{ label: "Activas", value: true },
+								{ label: "Expiradas", value: false },
+							]}
+						/>
+					}
 				/>
 			)}
 

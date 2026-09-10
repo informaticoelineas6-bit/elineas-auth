@@ -244,6 +244,11 @@ export const SessionListQuerySchema = PaginationQuerySchema.extend({
     param: { name: "search", in: "query", required: false },
     example: "Ada",
   }),
+  // Sin indicar, se listan todas las sesiones (activas y expiradas). "true"
+  // acota a las que aún no expiraron, "false" a las ya expiradas.
+  active: z.enum(["true", "false"]).optional().openapi({
+    param: { name: "active", in: "query", required: false },
+  }),
 });
 
 // Rol propio (vista de solo lectura para el usuario autenticado, no un admin):
