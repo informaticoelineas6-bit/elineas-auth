@@ -6,6 +6,8 @@ import {
   loginEmail as LoginEmail,
   password as Password,
   signInPassword as SignInPassword,
+  tkcPassword as TkcPassword,
+  tkcUsername as TkcUsername,
 } from "@elineas/auth-contracts";
 import { z } from "@hono/zod-openapi";
 import {
@@ -24,6 +26,36 @@ import {
 // Aquí solo se les añade la metadata de OpenAPI (`.openapi({ example })`), que
 // es documentación y no validación.
 
+// ---------------------------------------------------------------------------
+// Credenciales del sistema externo TKC
+// ---------------------------------------------------------------------------
+// El IS no autentica contra TKC: custodia las credenciales de cada persona y se
+// las entrega a SU cliente al iniciar sesión, para que pueda autenticarse allí
+// sin volver a pedírselas.
+export const TkcCredentialsBodySchema = z
+  .object({
+    username: TkcUsername.openapi({ example: "ada.lovelace" }),
+    password: TkcPassword.openapi({ example: "la-contraseña-de-tkc" }),
+  })
+  .openapi("TkcCredentialsBody");
+
+// Vista administrativa: SIN la contraseña. Un admin necesita saber qué usuario
+// de TKC tiene asignado cada persona y poder reemplazarlo, pero no leerlo en
+// claro. Así la contraseña sale del servidor por un único camino —el login de
+// su propio dueño— y no queda al alcance de cualquier sesión de admin.
+export const TkcKeySummarySchema = z
+  .object({
+    id: z.uuid(),
+    username: z.string().openapi({ example: "ada.lovelace" }),
+    linkedAt: z.date(),
+    updatedAt: z.date(),
+  })
+  .openapi("TkcKeySummary");
+
+export const TkcKeySummaryResponseSchema = z
+  .object({ tkc: TkcKeySummarySchema.nullable() })
+  .openapi("TkcKeySummaryResponse");
+
 export const SignUpBodySchema = z
   .object({
     name: DisplayName.openapi({ example: "Ada Lovelace" }),
@@ -36,6 +68,9 @@ export const SignUpBodySchema = z
     rememberMe: z.boolean().optional(),
     // Opcional en el registro: si se indica, enlaza la sesión al sistema.
     systemSlug: z.string().optional().openapi({ example: "pos" }),
+    // Credenciales del sistema externo TKC, opcionales: si se indican, se
+    // enlazan al usuario recién creado.
+    tkc: TkcCredentialsBodySchema.optional(),
   })
   .openapi("SignUpBody");
 
@@ -134,6 +169,11 @@ export const AuthResultSchema = z
     user: UserSchema,
     token: z.string().nullable(),
     system: SystemSchema.nullable().optional(),
+    // Credenciales de TKC del usuario que acaba de entrar, en claro y solo
+    // aquí. `null` si no tiene ninguna enlazada (el caso habitual): el campo
+    // está siempre presente para que el cliente no tenga que distinguir entre
+    // "sin credenciales" y "campo ausente".
+    tkc: TkcCredentialsBodySchema.nullable(),
   })
   .openapi("AuthResult");
 
@@ -151,6 +191,9 @@ export const CreateEmployeeWithUserBodySchema = z
       image: true,
     }),
     employee: CreateEmployeeBodySchema.omit({ userId: true }),
+    // Opcional: la mayoría de las altas no tiene credenciales de TKC. Si se
+    // indican, se enlazan al usuario recién creado en la misma operación.
+    tkc: TkcCredentialsBodySchema.optional(),
   })
   .openapi("CreateEmployeeWithUserBody");
 
@@ -158,6 +201,9 @@ export const EmployeeWithUserResultSchema = z
   .object({
     user: UserSchema,
     employee: EmployeeSchema,
+    // Sin la contraseña, igual que el resto de respuestas administrativas:
+    // confirma qué usuario de TKC quedó enlazado. `null` si no se enviaron.
+    tkc: TkcKeySummarySchema.nullable(),
   })
   .openapi("EmployeeWithUserResult");
 
@@ -306,5 +352,12 @@ export const notFoundResponse = {
 
 export const conflictResponse = {
   description: "Conflicto de unicidad",
+  content: { "application/json": { schema: ErrorResponseSchema } },
+};
+
+export const serviceUnavailableResponse = {
+  description:
+    "Función no disponible por configuración del servidor (p. ej. falta " +
+    "TKC_SECRET_KEY para operar con credenciales de TKC)",
   content: { "application/json": { schema: ErrorResponseSchema } },
 };

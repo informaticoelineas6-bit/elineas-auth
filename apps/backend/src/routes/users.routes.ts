@@ -12,7 +12,10 @@ import {
   ChangePasswordResponseSchema,
   forbiddenResponse,
   notFoundResponse,
+  serviceUnavailableResponse,
   StatusResponseSchema,
+  TkcCredentialsBodySchema,
+  TkcKeySummaryResponseSchema,
   UpdateUserBodySchema,
   UserSchema,
   unauthorizedResponse,
@@ -24,7 +27,13 @@ import {
   getMeFn,
   updateMeFn,
 } from "@backend/services/user.service.ts";
+import {
+  getUserTkcKeySummary,
+  removeUserTkcCredentials,
+  setUserTkcCredentials,
+} from "@backend/services/tkc-key.service.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
+import { HttpError } from "@backend/lib/http.ts";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 const getMeRoute = createRoute({
@@ -169,13 +178,95 @@ const adminChangePasswordRoute = createRoute({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Credenciales del sistema externo TKC de un usuario
+// ---------------------------------------------------------------------------
+// Ninguna de las tres devuelve la contraseña de TKC, ni siquiera la de lectura.
+// Un admin necesita saber QUÉ usuario de TKC tiene asignado cada persona y
+// poder reemplazarlo; leer la contraseña no le hace falta para eso. Dejándola
+// fuera, el secreto sale del servidor por un solo camino —el login de su
+// propio dueño, ver POST /api/auth/sign-in— en vez de estar al alcance de
+// cualquier sesión de admin que se comprometa.
+const getTkcRoute = createRoute({
+  method: "get",
+  path: "/{id}/tkc",
+  operationId: "getUserTkcKey",
+  tags: ["Users"],
+  summary: "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)",
+  description:
+    "Devuelve el usuario de TKC enlazado, SIN su contraseña. La contraseña " +
+    "solo se entrega a su propio dueño al iniciar sesión.",
+  security: bearerAuthSecurity,
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "Credencial enlazada (o null si no tiene)",
+      content: {
+        "application/json": { schema: TkcKeySummaryResponseSchema },
+      },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+  },
+});
+
+const setTkcRoute = createRoute({
+  method: "put",
+  path: "/{id}/tkc",
+  operationId: "setUserTkcKey",
+  tags: ["Users"],
+  summary: "Fijar las credenciales de TKC de un usuario (requiere admin)",
+  description:
+    "Crea o reemplaza las credenciales. PUT y no PATCH porque la operación es " +
+    "un reemplazo completo: usuario y contraseña van siempre juntos (una " +
+    "contraseña sin su usuario no identifica ninguna cuenta de TKC).",
+  security: bearerAuthSecurity,
+  request: {
+    params: IdParamSchema,
+    body: {
+      content: { "application/json": { schema: TkcCredentialsBodySchema } },
+    },
+  },
+  responses: {
+    200: {
+      description: "Credenciales guardadas (se devuelven sin la contraseña)",
+      content: {
+        "application/json": { schema: TkcKeySummaryResponseSchema },
+      },
+    },
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+    503: serviceUnavailableResponse,
+  },
+});
+
+const deleteTkcRoute = createRoute({
+  method: "delete",
+  path: "/{id}/tkc",
+  operationId: "deleteUserTkcKey",
+  tags: ["Users"],
+  summary: "Desvincular las credenciales de TKC de un usuario (requiere admin)",
+  security: bearerAuthSecurity,
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "Credenciales desvinculadas",
+      content: { "application/json": { schema: StatusResponseSchema } },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+  },
+});
+
 const usersAdminRoutesBase = new OpenAPIHono<AppEnv>();
 usersAdminRoutesBase.use("*", requireSession);
 usersAdminRoutesBase.use("*", requireAdmin);
 
-export const usersAdminRoutes = usersAdminRoutesBase.openapi(
-  adminChangePasswordRoute,
-  async (c) => {
+export const usersAdminRoutes = usersAdminRoutesBase
+  .openapi(adminChangePasswordRoute, async (c) => {
     const { id } = c.req.valid("param");
     const { newPassword, currentPassword, revokeSessions } =
       c.req.valid("json");
@@ -187,5 +278,25 @@ export const usersAdminRoutes = usersAdminRoutesBase.openapi(
       revokeSessions,
     });
     return c.json({ status: true, revokedSessions }, 200);
-  },
-);
+  })
+  .openapi(getTkcRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    return c.json({ tkc: await getUserTkcKeySummary(id) }, 200);
+  })
+  .openapi(setTkcRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const tkc = await setUserTkcCredentials(id, c.req.valid("json"));
+    return c.json({ tkc }, 200);
+  })
+  .openapi(deleteTkcRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const removed = await removeUserTkcCredentials(id);
+    if (!removed) {
+      throw new HttpError(
+        404,
+        "El usuario no tiene credenciales de TKC enlazadas",
+        "NOT_FOUND",
+      );
+    }
+    return c.json({ status: true }, 200);
+  });

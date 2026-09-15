@@ -8,6 +8,10 @@ import { HttpError } from "@backend/lib/http.ts";
 import { sendWelcomeEmail } from "@backend/lib/mail.ts";
 import { escapeLike } from "@backend/lib/search.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
+import {
+  assertTkcCredentialsUsable,
+  setUserTkcCredentials,
+} from "@backend/services/tkc-key.service.ts";
 import type {
   CreateEmployeeBodySchema,
   UpdateEmployeeBodySchema,
@@ -146,6 +150,12 @@ export async function createEmployeeWithUser(
     }
   }
 
+  // Tercer pre-chequeo del mismo patrón: si el alta trae credenciales de TKC,
+  // se verifica ANTES de crear al usuario que el servidor puede cifrarlas. Un
+  // servidor sin TKC_SECRET_KEY debe rechazar el alta entera de entrada, no
+  // fallar a mitad y obligar a compensar.
+  if (input.tkc) assertTkcCredentialsUsable();
+
   const { response } = await auth.api.signUpEmail({
     body: input.user,
     headers,
@@ -157,6 +167,12 @@ export async function createEmployeeWithUser(
       .insert(employee)
       .values({ ...input.employee, userId: response.user.id })
       .returning();
+    // Las credenciales de TKC entran en el mismo try que el empleado: si fallan,
+    // la compensación de abajo borra el usuario y el alta no queda a medias (el
+    // vínculo con TKC se va por cascade al borrar el usuario).
+    const tkc = input.tkc
+      ? await setUserTkcCredentials(response.user.id, input.tkc)
+      : null;
     // El correo de credenciales se envía solo cuando el alta completa (usuario
     // + empleado) tuvo éxito: si el insert falla, el usuario se compensa/borra
     // y no debe recibir aviso. Sin await: un fallo del correo no aborta el alta
@@ -166,7 +182,9 @@ export async function createEmployeeWithUser(
       name: input.user.name,
       password: input.user.password,
     });
-    return { user: response.user, employee: row };
+    // `tkc` va SIN contraseña (es un TkcKeySummary): confirma qué usuario de TKC
+    // quedó enlazado sin devolver el secreto que el llamante acaba de enviar.
+    return { user: response.user, employee: row, tkc };
   } catch (error) {
     // Compensación: borra el usuario recién creado para no dejar una cuenta
     // huérfana. Su propio fallo (p. ej. BD caída a mitad) se registra pero NO
