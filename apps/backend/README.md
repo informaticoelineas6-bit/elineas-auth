@@ -630,6 +630,7 @@ ausente en sign-in/sign-up).
 | GET        | `/api/user-roles/me`                                              | Sesión           | Mis roles, opcionalmente filtrados por `systemSlug`                           |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna)                                 |
 | POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
+| GET/PUT/DELETE | `/api/users/admin/{id}/tkc`                                   | Sesión + admin   | Credenciales del sistema externo TKC (ver §10.4); nunca devuelven la contraseña |
 | GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)                                    |
 | GET        | `/health/ready`                                                   | — (pública)      | Readiness: además comprueba la BD (`503` si no responde)                      |
 
@@ -748,6 +749,70 @@ Detalles que conviene conocer:
   silencioso sin haber cambiado nada.
 - **Rate limit** de 5/min por IP (ver §8): verifica una contraseña, así que sin
   límite sería un oráculo de fuerza bruta contra la del admin.
+
+### 10.4 Credenciales del sistema externo TKC
+
+TKC es un sistema **externo**: el IS no autentica contra él. Lo que hace es
+custodiar las credenciales que cada persona usa allí y entregárselas a su
+cliente al iniciar sesión, para no tener que pedírselas otra vez.
+
+Esto invierte el tratamiento habitual de una contraseña. Las del propio IS se
+**hashean** y no se recuperan jamás; la de TKC tiene que devolverse literal,
+porque es el sistema externo quien la comprueba. Un hash no serviría, así que
+se guarda **cifrada** con AES-256-GCM y una clave que no vive en la base de
+datos (`TKC_SECRET_KEY`). Lo que eso protege es el caso realista —un volcado de
+la BD (backup, réplica, acceso de solo lectura) no entrega ninguna credencial—
+y no un atacante que ya controle el proceso, donde la clave está en memoria por
+definición.
+
+Alrededor de eso, el resto del diseño se ocupa de que el secreto salga del
+servidor por **un solo camino**:
+
+- **Solo el login lo devuelve**, y a su propio dueño recién autenticado. La
+  respuesta va con `Cache-Control: no-store`.
+- **Ninguna ruta de administración devuelve la contraseña**, ni siquiera la de
+  lectura: un admin ve qué usuario de TKC tiene asignado cada persona y puede
+  reemplazarlo, que es lo que necesita para administrarlo.
+- El middleware de logging **enmascara** cualquier clave que case con `/pass/`,
+  así que no llega a la tabla de peticiones.
+
+```jsonc
+// POST /api/auth/sign-in → 200
+{
+  "user": { /* User */ },
+  "token": "eyJhbGciOi...",
+  "system": { /* System */ },
+  // null si no tiene credenciales enlazadas (el caso habitual)
+  "tkc": { "username": "ada.lovelace", "password": "la-contraseña-de-tkc" },
+}
+```
+
+Se enlazan al crear el usuario (`tkc` opcional en `POST /api/auth/sign-up` y en
+`POST /api/employees/with-user`) o después, sobre un usuario existente:
+
+```jsonc
+// PUT /api/users/admin/{id}/tkc   (sesión + admin)
+{ "username": "ada.lovelace", "password": "la-contraseña-de-tkc" }
+// 200 → { "tkc": { "id": "...", "username": "ada.lovelace", "linkedAt": "...", "updatedAt": "..." } }
+```
+
+`PUT` y no `PATCH` porque es un **reemplazo completo**: usuario y contraseña van
+siempre juntos, ya que una contraseña sin su usuario no identifica ninguna
+cuenta de TKC. `DELETE` deshace el enlace (la cuenta en TKC no se toca) y `GET`
+devuelve `{ "tkc": null }` si no hay ninguna.
+
+Dos usuarios que declaren el **mismo** usuario de TKC comparten la misma fila:
+es una sola cuenta en el sistema externo, y guardar contraseñas distintas para
+ella dejaría a alguien con una que ya no funciona. Por eso, actualizar la
+contraseña desde uno la actualiza para todos. Al desvincular, la credencial solo
+se borra cuando no queda nadie usándola.
+
+**`TKC_SECRET_KEY` es opcional.** Sin ella el IS arranca y sirve todo lo demás
+con normalidad; solo fallan, con `503` y un mensaje que dice qué falta, las
+operaciones con credenciales de TKC. El login nunca falla por esto: si la clave
+no está o una fila quedó cifrada con otra, devuelve `"tkc": null` y se registra.
+Cambiar la clave **inutiliza** las credenciales ya guardadas: hay que volver a
+introducirlas.
 
 ## 11. Checklist de seguridad para producción
 

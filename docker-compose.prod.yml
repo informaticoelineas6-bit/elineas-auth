@@ -32,7 +32,7 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: prod
-    image: elineas-auth-backend:2.5.0
+    image: elineas-auth-backend:2.6.0
     container_name: elineas-auth-backend
     restart: unless-stopped
     ports:
@@ -50,6 +50,9 @@ services:
       # NATea, así que Postgres lo ve con una IP origen que no cae en
       # 10.0.5.0/24 — la única subred que su `pg_hba.conf` acepta.
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      # TKC_SECRET_KEY (cifrado de las credenciales del sistema externo TKC) va
+      # en `.env.production`, no aquí: es un secreto, como DATABASE_URL. Sin
+      # ella el IS arranca igual y solo fallan las operaciones con TKC.
     networks:
       - elineas-auth-net
       - elineas-db
@@ -72,7 +75,7 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
       target: prod
-    image: elineas-auth-frontend:3.5.0
+    image: elineas-auth-frontend:3.6.0
     container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:

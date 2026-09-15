@@ -33,11 +33,15 @@
           },
           "system": {
             "$ref": "#/components/schemas/System"
+          },
+          "tkc": {
+            "$ref": "#/components/schemas/TkcCredentialsBody"
           }
         },
         "required": [
           "user",
-          "token"
+          "token",
+          "tkc"
         ]
       },
       "User": {
@@ -139,6 +143,28 @@
           "updatedAt"
         ]
       },
+      "TkcCredentialsBody": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "username": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "example": "ada.lovelace"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "example": "la-contraseña-de-tkc"
+          }
+        },
+        "required": [
+          "username",
+          "password"
+        ]
+      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -190,6 +216,9 @@
           "systemSlug": {
             "type": "string",
             "example": "pos"
+          },
+          "tkc": {
+            "$ref": "#/components/schemas/TkcCredentialsBody"
           }
         },
         "required": [
@@ -473,6 +502,45 @@
           "currentPassword"
         ]
       },
+      "TkcKeySummaryResponse": {
+        "type": "object",
+        "properties": {
+          "tkc": {
+            "$ref": "#/components/schemas/TkcKeySummary"
+          }
+        },
+        "required": [
+          "tkc"
+        ]
+      },
+      "TkcKeySummary": {
+        "type": "object",
+        "nullable": true,
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "username": {
+            "type": "string",
+            "example": "ada.lovelace"
+          },
+          "linkedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "username",
+          "linkedAt",
+          "updatedAt"
+        ]
+      },
       "SafeSession": {
         "type": "object",
         "properties": {
@@ -549,10 +617,32 @@
                   "name",
                   "email"
                 ]
+              },
+              "system": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "slug": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "slug"
+                ]
               }
             },
             "required": [
-              "user"
+              "user",
+              "system"
             ]
           }
         ]
@@ -742,11 +832,15 @@
           },
           "employee": {
             "$ref": "#/components/schemas/Employee"
+          },
+          "tkc": {
+            "$ref": "#/components/schemas/TkcKeySummary"
           }
         },
         "required": [
           "user",
-          "employee"
+          "employee",
+          "tkc"
         ]
       },
       "CreateEmployeeWithUserBody": {
@@ -836,6 +930,9 @@
               "name",
               "lastName"
             ]
+          },
+          "tkc": {
+            "$ref": "#/components/schemas/TkcCredentialsBody"
           }
         },
         "required": [
@@ -1763,6 +1860,227 @@
         }
       }
     },
+    "/api/users/admin/{id}/tkc": {
+      "get": {
+        "operationId": "getUserTkcKey",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)",
+        "description": "Devuelve el usuario de TKC enlazado, SIN su contraseña. La contraseña solo se entrega a su propio dueño al iniciar sesión.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Credencial enlazada (o null si no tiene)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TkcKeySummaryResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setUserTkcKey",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Fijar las credenciales de TKC de un usuario (requiere admin)",
+        "description": "Crea o reemplaza las credenciales. PUT y no PATCH porque la operación es un reemplazo completo: usuario y contraseña van siempre juntos (una contraseña sin su usuario no identifica ninguna cuenta de TKC).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TkcCredentialsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Credenciales guardadas (se devuelven sin la contraseña)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TkcKeySummaryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deleteUserTkcKey",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Desvincular las credenciales de TKC de un usuario (requiere admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Credenciales desvinculadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sessions/session": {
       "get": {
         "operationId": "getCurrentSession",
@@ -2003,7 +2321,7 @@
         "tags": [
           "Sessions"
         ],
-        "summary": "Listar las sesiones activas de todos los usuarios (admin)",
+        "summary": "Listar las sesiones de todos los usuarios (admin)",
         "security": [
           {
             "bearerAuth": []
@@ -2042,11 +2360,23 @@
             "required": false,
             "name": "search",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "true",
+                "false"
+              ]
+            },
+            "required": false,
+            "name": "active",
+            "in": "query"
           }
         ],
         "responses": {
           "200": {
-            "description": "Sesiones activas de todos los usuarios",
+            "description": "Sesiones de todos los usuarios (activas y expiradas, según el filtro `active`)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3662,6 +3992,15 @@
             },
             "required": false,
             "name": "roleId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "systemId",
             "in": "query"
           }
         ],

@@ -57,7 +57,7 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: dev
-    image: elineas-auth-backend:2.5.0
+    image: elineas-auth-backend:2.6.0
     container_name: elineas-auth-backend
     restart: unless-stopped
     ports:
@@ -70,6 +70,10 @@ services:
       REDIS_URL: redis://redis:6379
       SMTP_HOST: maildev
       SMTP_PORT: 1025
+      # TKC_SECRET_KEY (cifrado de las credenciales de TKC) NO se declara aquí:
+      # llega por el `env_file` de arriba. Repetirla en `environment` la pisaría
+      # con cadena vacía cuando no está en el shell, porque `environment` gana
+      # sobre `env_file` y compose sí define la variable (vacía) al expandirla.
     volumes:
       # Se montan los tres workspaces que la API compila, y se preservan los
       # node_modules de la imagen (los del host son de otra plataforma y, con
@@ -89,7 +93,7 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
       target: dev
-    image: elineas-auth-frontend:3.5.0
+    image: elineas-auth-frontend:3.6.0
     container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:
