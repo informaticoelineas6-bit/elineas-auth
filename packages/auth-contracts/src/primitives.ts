@@ -151,3 +151,43 @@ export const phoneNumber = z
 export const address = z
   .string()
   .max(300, "Debe tener menos de 300 caracteres");
+
+// --- Credenciales TKC --------------------------------------------------------
+
+// TKC es un sistema EXTERNO: el IS no autentica contra él, solo custodia las
+// credenciales que una persona usa allí y se las entrega a su cliente al
+// iniciar sesión aquí. De ahí las dos diferencias con `password`:
+//
+//   - La contraseña TKC NO se hashea: tiene que poder devolverse en claro al
+//     cliente, así que se guarda CIFRADA (AES-256-GCM, ver
+//     `apps/backend/src/lib/secret-box.ts`). Es un secreto recuperable, no un
+//     verificador.
+//   - No se le aplica la política de `password` (12 caracteres, mayúscula,
+//     minúscula, especial): la fija TKC, no este IS. Imponerla aquí impediría
+//     registrar credenciales que en TKC son válidas, que es justo lo contrario
+//     de lo que este campo debe permitir. Solo se acotan longitudes, como
+//     cortafuegos de entrada.
+export const TKC_USERNAME_MAX_LENGTH = 100;
+export const TKC_PASSWORD_MAX_LENGTH = 200;
+
+export const tkcUsername = z
+  .string()
+  .min(1, "Este campo es obligatorio")
+  .max(
+    TKC_USERNAME_MAX_LENGTH,
+    `Debe tener menos de ${TKC_USERNAME_MAX_LENGTH} caracteres`,
+  )
+  // Sin espacios al principio/final: un usuario TKC con espacios pegados es
+  // casi siempre un error de copiado, y fallaría al autenticar en el sistema
+  // externo con un mensaje que no apunta a la causa.
+  .refine((value) => value === value.trim(), {
+    message: "No puede empezar ni terminar con espacios",
+  });
+
+export const tkcPassword = z
+  .string()
+  .min(1, "Este campo es obligatorio")
+  .max(
+    TKC_PASSWORD_MAX_LENGTH,
+    `Debe tener menos de ${TKC_PASSWORD_MAX_LENGTH} caracteres`,
+  );

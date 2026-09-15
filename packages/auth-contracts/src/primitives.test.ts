@@ -7,6 +7,8 @@ import {
   password,
   signInPassword,
   slug,
+  tkcPassword,
+  tkcUsername,
 } from "./primitives.ts";
 
 // Estas pruebas fijan los cuatro puntos en los que el servidor y el panel
@@ -106,5 +108,23 @@ describe("slug", () => {
     expect(slug.safeParse("punto-de-venta").success).toBe(true);
     expect(slug.safeParse("Punto-De-Venta").success).toBe(false);
     expect(slug.safeParse("punto_de_venta").success).toBe(false);
+  });
+});
+
+describe("credenciales TKC", () => {
+  test("el usuario no admite espacios pegados ni cadena vacía", () => {
+    expect(tkcUsername.safeParse("ada.lovelace").success).toBe(true);
+    expect(tkcUsername.safeParse(" ada").success).toBe(false);
+    expect(tkcUsername.safeParse("ada ").success).toBe(false);
+    expect(tkcUsername.safeParse("").success).toBe(false);
+  });
+
+  test("la contraseña TKC NO aplica la política del IS", () => {
+    // Deliberado: la política la fija TKC (sistema externo). Exigir aquí las 12
+    // caracteres + clases de carácter de `password` impediría registrar
+    // credenciales que en TKC son perfectamente válidas.
+    expect(password.safeParse("abc").success).toBe(false);
+    expect(tkcPassword.safeParse("abc").success).toBe(true);
+    expect(tkcPassword.safeParse("").success).toBe(false);
   });
 });
