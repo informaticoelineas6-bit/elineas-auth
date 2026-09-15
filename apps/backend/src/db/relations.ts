@@ -6,6 +6,8 @@ import {
   system,
   userRole,
   sessionSystem,
+  tkcKey,
+  userTkcKey,
 } from "@backend/db/business-schema.ts";
 import { requestLog } from "@backend/db/log-schema.ts";
 
@@ -20,6 +22,8 @@ export const schema = {
   role,
   userRole,
   sessionSystem,
+  tkcKey,
+  userTkcKey,
   // Sin relaciones: no se declara en defineRelations más abajo. Se incluye aquí
   // para que drizzle conozca la tabla (db.insert/select) y por consistencia.
   requestLog,
@@ -32,6 +36,8 @@ export const relations = defineRelations(schema, (r) => ({
     employee: r.one.employee(),
     userRole: r.many.userRole(),
     sessionSystem: r.many.sessionSystem(),
+    // Una como mucho: `userTkcKey.userId` es UNIQUE.
+    tkcKey: r.one.userTkcKey(),
   },
   session: {
     user: r.one.user({
@@ -71,6 +77,19 @@ export const relations = defineRelations(schema, (r) => ({
     role: r.one.role({
       from: r.userRole.roleId,
       to: r.role.id,
+    }),
+  },
+  tkcKey: {
+    userTkcKey: r.many.userTkcKey(),
+  },
+  userTkcKey: {
+    user: r.one.user({
+      from: r.userTkcKey.userId,
+      to: r.user.id,
+    }),
+    tkcKey: r.one.tkcKey({
+      from: r.userTkcKey.tkcKeyId,
+      to: r.tkcKey.id,
     }),
   },
   sessionSystem: {

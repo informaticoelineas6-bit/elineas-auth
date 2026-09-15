@@ -134,3 +134,66 @@ export const sessionSystem = pgTable(
     ),
   ],
 );
+
+// Credenciales de TKC, un sistema EXTERNO al que la persona accede con un
+// usuario/contraseña propios, distintos de los de este IS. El IS no autentica
+// contra TKC: solo custodia esas credenciales y se las entrega a su dueño al
+// iniciar sesión, para que el cliente pueda autenticarse allí sin volver a
+// pedírselas.
+//
+// `password` NO es un hash: se guarda CIFRADA (AES-256-GCM con clave de
+// entorno, ver `src/lib/secret-box.ts`). Tiene que poder descifrarse, porque el
+// sistema externo necesita la contraseña en claro; un hash sería irreversible y
+// no serviría para nada aquí. El cifrado protege el caso realista: un volcado
+// de la base de datos (backup, réplica, acceso de solo lectura) no entrega las
+// credenciales de TKC de nadie, porque la clave no vive en la BD.
+export const tkcKey = pgTable("tkc_key", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  username: text("username").notNull().unique(),
+  // Texto cifrado, con el formato que produce `sealSecret` ("v1.iv.tag.ct").
+  // Nunca se escribe ni se lee en claro fuera de src/lib/secret-box.ts.
+  password: text("password").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
+// Tabla puente usuario ↔ credencial TKC. Es una tabla aparte y no un par de
+// columnas en `user` por dos motivos:
+//   - El vínculo es OPCIONAL: la mayoría de usuarios no tiene credenciales TKC,
+//     y una fila ausente lo expresa mejor que dos columnas nulas en la tabla
+//     que más se consulta.
+//   - Una credencial de TKC es una identidad en OTRO sistema, con su propio
+//     ciclo de vida: desvincularla de un usuario no tiene por qué borrarla.
+//
+// El UNIQUE sobre `userId` limita el vínculo a una credencial por usuario (que
+// es lo que el login puede devolver sin ambigüedad). La dirección contraria NO
+// se restringe a propósito: una misma cuenta de TKC puede estar asignada a
+// varias personas si así lo decide quien administra TKC.
+export const userTkcKey = pgTable(
+  "user_tkc_key",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    userId: uuid("user_id")
+      .notNull()
+      .unique()
+      .references(() => user.id, { onDelete: "cascade" }),
+    tkcKeyId: uuid("tkc_key_id")
+      .notNull()
+      .references(() => tkcKey.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => /* @__PURE__ */ new Date())
+      .notNull(),
+  },
+  (table) => [
+    index("userTkcKey_tkcKeyId_idx").on(table.tkcKeyId),
+    uniqueIndex("userTkcKey_userId_tkcKeyId_uidx").on(
+      table.userId,
+      table.tkcKeyId,
+    ),
+  ],
+);
