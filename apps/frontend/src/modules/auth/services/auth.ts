@@ -14,6 +14,12 @@ export async function signIn(input: {
 		headers: { "Content-Type": "application/json" },
 		body: JSON.stringify(input),
 	});
+	// El cuerpo del IS trae además un `tkc` con las credenciales de la persona en
+	// el sistema externo TKC. NO se declara aquí ni se propaga a propósito: este
+	// panel administra el IS, no consume TKC, así que no tiene nada que hacer con
+	// ese secreto. Reenviarlo al navegador (p. ej. devolviendo el `result` entero
+	// desde `signInFn`) lo dejaría en el payload de la página, que es justo lo que
+	// el IS evita entregándolo una sola vez y con `Cache-Control: no-store`.
 	const body = (await readJson(response)) as {
 		user: AuthApiUser;
 		token: string | null;

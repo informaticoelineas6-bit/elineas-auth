@@ -6,6 +6,7 @@ import type {
 	Employee,
 	UpdateEmployeeInput,
 } from "../shared/types.ts";
+import { toTkcPayload } from "#/modules/tkc/lib/validation.ts";
 import {
 	createEmployeeWithUserFormSchema,
 	editEmployeeFormSchema,
@@ -27,6 +28,8 @@ export const employeeWithUserFormDefaults: CreateEmployeeWithUserFormInput = {
 		outDate: "",
 		active: true,
 	},
+	// Vacías = el usuario no tendrá credenciales de TKC (el caso habitual).
+	tkc: { username: "", password: "" },
 };
 
 // Hook del formulario de alta: fija defaults + validación cliente y expone solo
@@ -145,12 +148,19 @@ export function toCreateEmployeeWithUserPayload(
 		active,
 	} = value.employee;
 
+	// `toTkcPayload` devuelve undefined si no se rellenó ninguno de los dos
+	// campos, y el spread condicional omite entonces la clave entera: el IS
+	// espera la ausencia de `tkc`, no un objeto con cadenas vacías (que daría
+	// 400 al no cumplir las primitivas del contrato).
+	const tkc = toTkcPayload(value.tkc);
+
 	return {
 		user: {
 			name: value.user.name,
 			email: value.user.email,
 			password: value.user.password,
 		},
+		...(tkc ? { tkc } : {}),
 		employee: {
 			name,
 			lastName,

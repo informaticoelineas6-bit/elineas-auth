@@ -22,6 +22,7 @@ import {
 	useEmployeeWithUserForm,
 } from "@/modules/employees/lib/form.ts";
 import { useCreateEmployeeWithUser } from "@/modules/employees/queries/employees.ts";
+import { TkcFields } from "@/modules/tkc/components/tkc-fields.tsx";
 import { UserAccountFields } from "@/modules/users/components/user-account-fields.tsx";
 
 export const Route = createFileRoute("/_authed/employees/new")({
@@ -63,6 +64,20 @@ function NewEmployeePage() {
 				} else {
 					setFieldErrors({ email: message });
 				}
+			} else if (status === 503) {
+				// El alta trae credenciales de TKC pero el servidor no tiene con qué
+				// cifrarlas. El IS rechaza la operación entera antes de crear nada,
+				// así que no queda ningún usuario a medio configurar.
+				toast.error(
+					getErrorMessage(
+						error,
+						"El servidor no puede guardar credenciales de TKC ahora mismo.",
+					),
+					{
+						description:
+							"Crea el usuario sin ellas y enlázalas después desde su ficha.",
+					},
+				);
 			} else if (status === 429) {
 				toast.error(
 					"Demasiados intentos. Espera unos segundos antes de reintentar.",
@@ -94,12 +109,16 @@ function NewEmployeePage() {
 					<TabsList>
 						<TabsTrigger value="user">Cuenta de usuario</TabsTrigger>
 						<TabsTrigger value="employee">Datos personales</TabsTrigger>
+						<TabsTrigger value="tkc">Credenciales TKC</TabsTrigger>
 					</TabsList>
 					<TabsContent value="user">
 						<UserAccountFields form={form} emailError={fieldErrors.email} />
 					</TabsContent>
 					<TabsContent value="employee">
 						<EmployeeFields form={form} ciError={fieldErrors.ci} />
+					</TabsContent>
+					<TabsContent value="tkc">
+						<TkcFields form={form} />
 					</TabsContent>
 				</Tabs>
 

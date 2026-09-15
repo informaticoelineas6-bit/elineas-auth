@@ -30,6 +30,7 @@ import {
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
 import type { Employee } from "@/modules/employees/shared/types.ts";
+import { TkcCredentialsCard } from "@/modules/tkc/components/tkc-credentials-card.tsx";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/$employeeId/")({
@@ -252,6 +253,11 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 					userId={employee.userId}
 					userLabel={`${employee.name} ${employee.lastName}`}
 				/>
+
+				<TkcCredentialsCard
+					userId={employee.userId}
+					userLabel={`${employee.name} ${employee.lastName}`}
+				/>
 			</div>
 
 			<ConfirmDialog
@@ -317,6 +323,7 @@ function EmployeeDetailSkeleton() {
 			<div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
 				<Skeleton className="h-56 rounded-xl" />
 				<Skeleton className="h-56 rounded-xl" />
+				<Skeleton className="h-32 rounded-xl" />
 				<Skeleton className="h-32 rounded-xl" />
 			</div>
 		</div>

@@ -5,6 +5,10 @@ import {
 	isNotFutureDate,
 	passwordSchema,
 } from "#/modules/common/lib/validation.ts";
+import {
+	tkcCredentialsSchema,
+	tkcSectionSchema,
+} from "#/modules/tkc/lib/validation.ts";
 
 // `employeeFiltersSchema` vive en `./filters.ts` (sin dependencias pesadas)
 // para que el `validateSearch` de la ruta no arrastre phoneSchema/libphonenumber.
@@ -121,6 +125,10 @@ export const createEmployeeWithUserSchema = z.object({
 		image: z.string().optional(),
 	}),
 	employee: employeeSectionSchema,
+	// Credenciales del sistema externo TKC. Opcionales: la mayoría de las altas
+	// no las tiene. Se omiten del payload cuando el formulario las deja en
+	// blanco (ver `toCreateEmployeeWithUserPayload`), nunca se envían vacías.
+	tkc: tkcCredentialsSchema.optional(),
 });
 
 // Esquema del formulario de alta (solo cliente): espeja las reglas del servidor
@@ -128,6 +136,11 @@ export const createEmployeeWithUserSchema = z.object({
 export const createEmployeeWithUserFormSchema = createEmployeeWithUserSchema
 	.extend({
 		confirmPassword: z.string().min(1, "Confirma la contraseña"),
+		// En el FORMULARIO los dos campos existen siempre (arrancan vacíos), a
+		// diferencia del payload, donde `tkc` se omite por completo si no se
+		// rellenó. `tkcSectionSchema` acepta ambos vacíos y exige los dos en
+		// cuanto se escribe en uno.
+		tkc: tkcSectionSchema,
 	})
 	.refine((value) => value.user.password === value.confirmPassword, {
 		message: "Las contraseñas no coinciden",
