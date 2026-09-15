@@ -70,6 +70,20 @@ export const env = {
   // dominio del remitente debe estar verificado en su panel.
   EMAIL_FROM:
     process.env.EMAIL_FROM ?? "Mercado Elineas <no-reply@mercadoelineas.com>",
+  // Clave de cifrado de las credenciales del sistema externo TKC (32 bytes en
+  // base64 o hex; `openssl rand -base64 32`). Esas contraseñas se guardan
+  // CIFRADAS, no hasheadas, porque hay que devolverlas en claro al iniciar
+  // sesión (ver lib/secret-box.ts).
+  //
+  // Opcional a propósito, igual que REDIS_URL o el mailer: sin ella el IS
+  // arranca y sirve todo lo demás con normalidad, y solo fallan —con un
+  // mensaje que dice qué falta— las operaciones con credenciales TKC. Exigirla
+  // en el arranque convertiría una función opcional en un requisito para todos
+  // los despliegues, incluidos los que no usan TKC.
+  //
+  // CAMBIARLA INUTILIZA las credenciales ya guardadas: quedan cifradas con la
+  // clave anterior y habrá que volver a introducirlas.
+  TKC_SECRET_KEY: process.env.TKC_SECRET_KEY,
   // Nº de proxies de confianza por delante de la API. Determina cuántos saltos
   // de X-Forwarded-For son fiables al calcular la IP del cliente para el rate
   // limiting. 0 (por defecto) = ignorar XFF y usar solo la IP del socket, que
