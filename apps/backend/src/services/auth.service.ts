@@ -6,6 +6,11 @@ import {
   resolveActiveSystem,
 } from "@backend/services/session-system.service.ts";
 import { userHasRoleInSystem } from "@backend/services/user-role.service.ts";
+import {
+  assertTkcCredentialsUsable,
+  getUserTkcCredentials,
+  setUserTkcCredentials,
+} from "@backend/services/tkc-key.service.ts";
 import type { z } from "@hono/zod-openapi";
 import type {
   SignInBodySchema,
@@ -27,8 +32,13 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     // usuario, su token y el sistema en el cuerpo, sin tocar la sesión del admin.
     // Se usa el body ya validado por Zod (valid("json")), que descarta campos
     // desconocidos y evita reenviar propiedades no previstas a better-auth.
-    const { systemSlug, ...credentials } = c.req.valid("json");
+    const { systemSlug, tkc, ...credentials } = c.req.valid("json");
     const sys = systemSlug ? await resolveActiveSystem(systemSlug) : null;
+    // Si el alta trae credenciales de TKC, se comprueba ANTES de crear nada que
+    // el servidor puede cifrarlas. Sin esto, un servidor sin TKC_SECRET_KEY
+    // crearía el usuario y fallaría después, dejando una cuenta a medio
+    // configurar que el llamante cree que no existe.
+    if (tkc) assertTkcCredentialsUsable();
     const { response } = await auth.api.signUpEmail({
       body: credentials,
       headers: c.req.raw.headers,
@@ -41,6 +51,7 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
         systemId: sys.id,
       });
     }
+    if (tkc) await setUserTkcCredentials(response.user.id, tkc);
     const token = await issueJwt(response.token);
     // Envío de credenciales sin await: un fallo del correo no debe hacer
     // fallar un alta que ya se completó (sendWelcomeEmail captura y loguea
@@ -50,7 +61,12 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
       name: credentials.name,
       password: credentials.password,
     });
-    return c.json({ user: response.user, token, system: sys }, 200);
+    // `tkc: null` a propósito, aunque el alta las haya guardado: esta respuesta
+    // va al ADMIN que crea la cuenta, no a su dueño. Devolvérselas solo le
+    // repetiría lo que acaba de enviar, a cambio de que el secreto viaje una
+    // vez más y quede en una respuesta que no lo necesita. Las credenciales se
+    // entregan en el login de su dueño (ver signInFn).
+    return c.json({ user: response.user, token, system: sys, tkc: null }, 200);
   } catch (error) {
     return handleError(error, c);
   }
@@ -91,7 +107,24 @@ export const signInFn = async (c: Context<any, string, SignInInput>) => {
       systemId: sys.id,
     });
     const token = await issueJwt(response.token);
-    return c.json({ user: response.user, token, system: sys }, 200);
+
+    // Credenciales del sistema externo TKC, en claro y SOLO aquí: este es el
+    // único punto de la API que las devuelve, y se las lleva su propio dueño
+    // recién autenticado, no un tercero (las rutas de administración exponen el
+    // usuario de TKC pero nunca su contraseña).
+    //
+    // `getUserTkcCredentials` no lanza nunca: si faltara la clave de cifrado o
+    // una fila estuviera alterada, devuelve null y el login sigue funcionando.
+    // TKC es una comodidad, no un requisito para entrar al IS.
+    const tkc = await getUserTkcCredentials(response.user.id);
+
+    // La respuesta lleva un secreto reutilizable, así que no debe quedarse en
+    // ninguna caché intermedia ni en el historial del navegador. `no-store` es
+    // el único valor que lo impide en todas ellas (`no-cache` permite
+    // almacenar y revalidar, que aquí no basta).
+    c.header("Cache-Control", "no-store");
+
+    return c.json({ user: response.user, token, system: sys, tkc }, 200);
   } catch (error) {
     return handleError(error, c);
   }
