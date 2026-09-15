@@ -12,6 +12,7 @@ import {
 	TabsTrigger,
 } from "@/modules/common/components/ui/tabs.tsx";
 import {
+	getErrorCode,
 	getErrorMessage,
 	getErrorStatus,
 	reportError,
@@ -36,6 +37,7 @@ function NewEmployeePage() {
 	const [fieldErrors, setFieldErrors] = useState<{
 		email?: string;
 		ci?: string;
+		tkcUsername?: string;
 	}>({});
 
 	const form = useEmployeeWithUserForm(async (value) => {
@@ -57,9 +59,14 @@ function NewEmployeePage() {
 		} catch (error) {
 			const status = getErrorStatus(error);
 			if (status === 409) {
-				// CI o email duplicado: se muestra sobre el campo, sin perder lo tecleado.
+				// Duplicado: se muestra sobre el campo, sin perder lo tecleado. El
+				// usuario de TKC se distingue por `code` y no por el texto —el IS lo
+				// devuelve explícitamente— porque la heurística sobre el mensaje solo
+				// sabe separar CI de email.
 				const message = getErrorMessage(error);
-				if (message.toUpperCase().includes("CI")) {
+				if (getErrorCode(error) === "TKC_USERNAME_TAKEN") {
+					setFieldErrors({ tkcUsername: message });
+				} else if (message.toUpperCase().includes("CI")) {
 					setFieldErrors({ ci: message });
 				} else {
 					setFieldErrors({ email: message });
@@ -118,7 +125,7 @@ function NewEmployeePage() {
 						<EmployeeFields form={form} ciError={fieldErrors.ci} />
 					</TabsContent>
 					<TabsContent value="tkc">
-						<TkcFields form={form} />
+						<TkcFields form={form} usernameError={fieldErrors.tkcUsername} />
 					</TabsContent>
 				</Tabs>
 

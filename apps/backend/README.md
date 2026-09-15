@@ -801,11 +801,22 @@ siempre juntos, ya que una contraseña sin su usuario no identifica ninguna
 cuenta de TKC. `DELETE` deshace el enlace (la cuenta en TKC no se toca) y `GET`
 devuelve `{ "tkc": null }` si no hay ninguna.
 
-Dos usuarios que declaren el **mismo** usuario de TKC comparten la misma fila:
-es una sola cuenta en el sistema externo, y guardar contraseñas distintas para
-ella dejaría a alguien con una que ya no funciona. Por eso, actualizar la
-contraseña desde uno la actualiza para todos. Al desvincular, la credencial solo
-se borra cuando no queda nadie usándola.
+**Un usuario de TKC pertenece a una sola persona.** Intentar enlazar uno que ya
+tiene dueño responde `409` con code `TKC_USERNAME_TAKEN`, sin tocar nada: la
+primera persona conserva sus credenciales. La regla la sostienen dos `UNIQUE` de
+la base de datos —`tkc_key.username` y `user_tkc_key.tkc_key_id`—, no solo la
+comprobación previa del servicio: dos altas simultáneas con el mismo usuario de
+TKC pasarían ambas comprobaciones y solo Postgres puede rechazar la segunda (ahí
+el `409` es el genérico de unicidad, menos explícito pero igual de correcto).
+
+El `409` también lo pueden devolver `POST /api/auth/sign-up` y
+`POST /api/employees/with-user` cuando su `tkc` opcional trae un usuario ya
+tomado.
+
+Al cambiar el usuario de TKC de una persona, o al desvincularlo, la credencial
+anterior se **borra**: es suya y de nadie más, así que quedaría inservible, y
+además su `username` seguiría ocupado bloqueando a quien lo necesitara de
+verdad.
 
 **`TKC_SECRET_KEY` es opcional.** Sin ella el IS arranca y sirve todo lo demás
 con normalidad; solo fallan, con `503` y un mensaje que dice qué falta, las

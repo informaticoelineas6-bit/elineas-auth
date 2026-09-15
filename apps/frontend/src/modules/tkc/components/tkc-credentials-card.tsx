@@ -235,7 +235,10 @@ function TkcForm({
 							"El servidor no puede guardar credenciales de TKC ahora mismo.",
 						),
 					);
-				} else if (status === 400) {
+				} else if (status === 409 || status === 400) {
+					// 409: ese usuario de TKC ya está enlazado a otra persona (una cuenta
+					// del sistema externo pertenece a una sola). 400: no cumple el
+					// formato. En ambos casos el problema está en este campo.
 					setUsernameError(getErrorMessage(error));
 				} else {
 					reportError(error, "No se pudieron guardar las credenciales.");

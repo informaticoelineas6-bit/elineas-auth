@@ -141,6 +141,10 @@ export const sessionSystem = pgTable(
 // iniciar sesión, para que el cliente pueda autenticarse allí sin volver a
 // pedírselas.
 //
+// `username` es UNIQUE: identifica la cuenta en TKC, y el UNIQUE de
+// `user_tkc_key.tkcKeyId` completa la regla de que no la compartan dos
+// personas.
+//
 // `password` NO es un hash: se guarda CIFRADA (AES-256-GCM con clave de
 // entorno, ver `src/lib/secret-box.ts`). Tiene que poder descifrarse, porque el
 // sistema externo necesita la contraseña en claro; un hash sería irreversible y
@@ -161,39 +165,32 @@ export const tkcKey = pgTable("tkc_key", {
 });
 
 // Tabla puente usuario ↔ credencial TKC. Es una tabla aparte y no un par de
-// columnas en `user` por dos motivos:
-//   - El vínculo es OPCIONAL: la mayoría de usuarios no tiene credenciales TKC,
-//     y una fila ausente lo expresa mejor que dos columnas nulas en la tabla
-//     que más se consulta.
-//   - Una credencial de TKC es una identidad en OTRO sistema, con su propio
-//     ciclo de vida: desvincularla de un usuario no tiene por qué borrarla.
+// columnas en `user` porque el vínculo es OPCIONAL: la mayoría de usuarios no
+// tiene credenciales TKC, y una fila ausente lo expresa mejor que dos columnas
+// nulas en la tabla que más se consulta.
 //
-// El UNIQUE sobre `userId` limita el vínculo a una credencial por usuario (que
-// es lo que el login puede devolver sin ambigüedad). La dirección contraria NO
-// se restringe a propósito: una misma cuenta de TKC puede estar asignada a
-// varias personas si así lo decide quien administra TKC.
-export const userTkcKey = pgTable(
-  "user_tkc_key",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    userId: uuid("user_id")
-      .notNull()
-      .unique()
-      .references(() => user.id, { onDelete: "cascade" }),
-    tkcKeyId: uuid("tkc_key_id")
-      .notNull()
-      .references(() => tkcKey.id, { onDelete: "cascade" }),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-    updatedAt: timestamp("updated_at")
-      .defaultNow()
-      .$onUpdate(() => /* @__PURE__ */ new Date())
-      .notNull(),
-  },
-  (table) => [
-    index("userTkcKey_tkcKeyId_idx").on(table.tkcKeyId),
-    uniqueIndex("userTkcKey_userId_tkcKeyId_uidx").on(
-      table.userId,
-      table.tkcKeyId,
-    ),
-  ],
-);
+// La relación es UNO A UNO, con UNIQUE en las dos columnas:
+//   - `userId`: un usuario tiene como mucho una credencial, que es lo que el
+//     login puede devolver sin ambigüedad.
+//   - `tkcKeyId`: una credencial pertenece como mucho a un usuario. Junto con
+//     el UNIQUE de `tkc_key.username`, esto es lo que impide que dos personas
+//     declaren la misma cuenta de TKC. La restricción vive en la BD y no solo
+//     en el servicio: una carrera entre dos altas simultáneas con el mismo
+//     usuario de TKC pasaría cualquier comprobación previa en la aplicación,
+//     y aquí Postgres rechaza la segunda.
+export const userTkcKey = pgTable("user_tkc_key", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .unique()
+    .references(() => user.id, { onDelete: "cascade" }),
+  tkcKeyId: uuid("tkc_key_id")
+    .notNull()
+    .unique()
+    .references(() => tkcKey.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});

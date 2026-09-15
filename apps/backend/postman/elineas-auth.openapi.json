@@ -1368,6 +1368,26 @@
                 }
               }
             }
+          },
+          "409": {
+            "description": "Conflicto de unicidad",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
           }
         }
       }
@@ -1924,7 +1944,7 @@
           "Users"
         ],
         "summary": "Fijar las credenciales de TKC de un usuario (requiere admin)",
-        "description": "Crea o reemplaza las credenciales. PUT y no PATCH porque la operación es un reemplazo completo: usuario y contraseña van siempre juntos (una contraseña sin su usuario no identifica ninguna cuenta de TKC).",
+        "description": "Crea o reemplaza las credenciales. PUT y no PATCH porque la operación es un reemplazo completo: usuario y contraseña van siempre juntos (una contraseña sin su usuario no identifica ninguna cuenta de TKC). Responde 409 si ese usuario de TKC ya está enlazado a otra persona: una cuenta del sistema externo pertenece a una sola.",
         "security": [
           {
             "bearerAuth": []
@@ -1994,6 +2014,16 @@
           },
           "404": {
             "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto de unicidad",
             "content": {
               "application/json": {
                 "schema": {
@@ -2950,6 +2980,7 @@
           "Employees"
         ],
         "summary": "Crear un usuario y su empleado enlazado en una sola operación",
+        "description": "Acepta además un `tkc` opcional con las credenciales del sistema externo, que quedan enlazadas al usuario recién creado.",
         "security": [
           {
             "bearerAuth": []
@@ -3007,6 +3038,16 @@
           },
           "409": {
             "description": "Conflicto de unicidad",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
             "content": {
               "application/json": {
                 "schema": {

@@ -57,7 +57,7 @@ services:
       context: .
       dockerfile: apps/backend/Dockerfile
       target: dev
-    image: elineas-auth-backend:2.6.0
+    image: elineas-auth-backend:2.6.1
     container_name: elineas-auth-backend
     restart: unless-stopped
     ports:
@@ -93,7 +93,7 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
       target: dev
-    image: elineas-auth-frontend:3.6.0
+    image: elineas-auth-frontend:3.6.1
     container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:

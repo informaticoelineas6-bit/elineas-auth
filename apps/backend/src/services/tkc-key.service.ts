@@ -20,13 +20,18 @@ export type TkcKeySummary = {
   updatedAt: Date;
 };
 
-// Una credencial de TKC es una identidad en un sistema EXTERNO, así que la
-// unicidad la marca el `username` de allí: dos usuarios del IS que declaren el
-// mismo usuario de TKC están declarando LA MISMA cuenta, y por eso comparten la
-// fila de `tkc_key`. La consecuencia, deliberada, es que actualizar la
-// contraseña desde uno de ellos la actualiza para todos: es una sola cuenta en
-// TKC, y guardar contraseñas distintas para la misma dejaría a alguien con una
-// que ya no funciona.
+// Una credencial de TKC es una identidad en un sistema EXTERNO y pertenece a
+// UNA sola persona: dos usuarios del IS no pueden declarar el mismo usuario de
+// TKC. La regla se apoya en dos UNIQUE de la BD —`tkc_key.username` y
+// `user_tkc_key.tkcKeyId`—, y aquí se comprueba antes para devolver un 409 con
+// un mensaje que dice qué pasa, en vez del error genérico de unicidad que
+// produciría chocar contra la restricción.
+//
+// La comprobación previa no sustituye a la restricción: dos altas simultáneas
+// con el mismo usuario de TKC pasarían las dos comprobaciones y solo Postgres
+// puede rechazar la segunda. Ese caso cae en el 409 genérico de `handleError`,
+// que es correcto aunque menos explícito; es una carrera rara y el resultado
+// —no se guarda el duplicado— es el mismo.
 
 // `.returning()` devuelve siempre una fila en un INSERT/UPDATE que afectó a
 // una, pero el tipo es un array: sin esta comprobación habría que afirmar con
@@ -52,10 +57,13 @@ function requireSecretBox() {
 /**
  * Fija (crea o reemplaza) las credenciales de TKC de un usuario.
  *
+ * Lanza 409 si ese usuario de TKC ya está enlazado a otra persona: una cuenta
+ * del sistema externo pertenece a una sola.
+ *
  * Todo ocurre en una transacción porque son hasta tres escrituras acopladas
- * —crear/actualizar la credencial, mover el vínculo y limpiar la credencial
- * que queda huérfana— y a medias dejarían al usuario enlazado a una cuenta que
- * ya no es la suya.
+ * —crear/actualizar la credencial, mover el vínculo y borrar la credencial que
+ * queda huérfana— y a medias dejarían al usuario enlazado a una cuenta que ya
+ * no es la suya.
  */
 export async function setUserTkcCredentials(
   userId: string,
@@ -73,18 +81,31 @@ export async function setUserTkcCredentials(
       throw new HttpError(404, "Usuario no encontrado", "NOT_FOUND");
     }
 
+    // La credencial se busca por `username` junto con su dueño actual (LEFT
+    // JOIN: puede no tener ninguno si un borrado anterior dejó la fila suelta).
     const [existingKey] = await tx
       .select({
         id: tkcKey.id,
-        username: tkcKey.username,
         password: tkcKey.password,
+        ownerId: userTkcKey.userId,
       })
       .from(tkcKey)
+      .leftJoin(userTkcKey, eq(userTkcKey.tkcKeyId, tkcKey.id))
       .where(eq(tkcKey.username, input.username))
       .limit(1);
 
     let keyId: string;
     if (existingKey) {
+      // Ese usuario de TKC ya es de otra persona. Se rechaza sin tocar nada:
+      // reasignarlo dejaría a dos cuentas del IS compartiendo una identidad del
+      // sistema externo, y a la primera sin credenciales sin previo aviso.
+      if (existingKey.ownerId !== null && existingKey.ownerId !== userId) {
+        throw new HttpError(
+          409,
+          `El usuario de TKC "${input.username}" ya está enlazado a otro usuario`,
+          "TKC_USERNAME_TAKEN",
+        );
+      }
       keyId = existingKey.id;
       // Se descifra solo para no reescribir (ni tocar `updated_at`) cuando la
       // contraseña no cambió. Si la fila viniera cifrada con otra clave, el
@@ -133,11 +154,13 @@ export async function setUserTkcCredentials(
           updatedAt: userTkcKey.updatedAt,
         });
       link = requireRow(updated, "el vínculo con la credencial de TKC");
-      // La credencial anterior, si ya no la usa nadie, se borra: si no, cada
-      // corrección de un usuario de TKC mal tecleado dejaría para siempre una
-      // fila con una contraseña cifrada que nadie puede consultar ni limpiar.
+      // La credencial anterior se borra: al ser la relación 1 a 1, mover el
+      // vínculo la deja sin dueño posible. Si no se borrara, cada corrección de
+      // un usuario de TKC mal tecleado dejaría para siempre una fila con una
+      // contraseña cifrada que nadie puede consultar ni limpiar — y, peor, su
+      // `username` seguiría ocupado, bloqueando a quien lo necesitara de verdad.
       if (currentLink.tkcKeyId !== keyId) {
-        await deleteOrphanKey(tx, currentLink.tkcKeyId);
+        await tx.delete(tkcKey).where(eq(tkcKey.id, currentLink.tkcKeyId));
       }
     } else {
       const [created] = await tx
@@ -172,26 +195,14 @@ export async function removeUserTkcCredentials(
       .where(eq(userTkcKey.userId, userId))
       .returning({ tkcKeyId: userTkcKey.tkcKeyId });
     if (!removed) return false;
-    await deleteOrphanKey(tx, removed.tkcKeyId);
+    // Borrado incondicional: la credencial era de este usuario y de nadie más
+    // (UNIQUE sobre `tkcKeyId`), así que al quitar el vínculo queda huérfana.
+    // Dejarla mantendría su `username` ocupado y bloquearía enlazar esa misma
+    // cuenta de TKC a otra persona, que es justo lo que se suele querer hacer
+    // después de desvincularla.
+    await tx.delete(tkcKey).where(eq(tkcKey.id, removed.tkcKeyId));
     return true;
   });
-}
-
-// Borra la credencial si ya no queda ningún usuario enlazado a ella. Se hace
-// con un DELETE condicionado por un NOT EXISTS implícito (comprobación +
-// borrado dentro de la misma transacción) en vez de un borrado a ciegas, para
-// no arrastrarse las credenciales que otros usuarios siguen compartiendo.
-async function deleteOrphanKey(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
-  tkcKeyId: string,
-) {
-  const [stillUsed] = await tx
-    .select({ id: userTkcKey.id })
-    .from(userTkcKey)
-    .where(eq(userTkcKey.tkcKeyId, tkcKeyId))
-    .limit(1);
-  if (stillUsed) return;
-  await tx.delete(tkcKey).where(eq(tkcKey.id, tkcKeyId));
 }
 
 /**

@@ -10,6 +10,7 @@ import {
   ChangeEmailResponseSchema,
   ChangePasswordBodySchema,
   ChangePasswordResponseSchema,
+  conflictResponse,
   forbiddenResponse,
   notFoundResponse,
   serviceUnavailableResponse,
@@ -219,7 +220,9 @@ const setTkcRoute = createRoute({
   description:
     "Crea o reemplaza las credenciales. PUT y no PATCH porque la operación es " +
     "un reemplazo completo: usuario y contraseña van siempre juntos (una " +
-    "contraseña sin su usuario no identifica ninguna cuenta de TKC).",
+    "contraseña sin su usuario no identifica ninguna cuenta de TKC). " +
+    "Responde 409 si ese usuario de TKC ya está enlazado a otra persona: una " +
+    "cuenta del sistema externo pertenece a una sola.",
   security: bearerAuthSecurity,
   request: {
     params: IdParamSchema,
@@ -238,6 +241,7 @@ const setTkcRoute = createRoute({
     401: unauthorizedResponse,
     403: forbiddenResponse,
     404: notFoundResponse,
+    409: conflictResponse,
     503: serviceUnavailableResponse,
   },
 });

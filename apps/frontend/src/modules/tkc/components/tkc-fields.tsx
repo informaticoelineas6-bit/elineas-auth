@@ -19,7 +19,16 @@ import type { EmployeeWithUserFormApi } from "@/modules/employees/lib/form.ts";
 // credenciales de TKC. Lo que no vale es rellenar solo uno de los dos campos
 // —lo impide `tkcSectionSchema`— porque medio par no sirve para autenticar en
 // ningún sitio.
-export function TkcFields({ form }: { form: EmployeeWithUserFormApi }) {
+//
+// `usernameError` recibe el 409 del IS cuando ese usuario de TKC ya está
+// enlazado a otra persona, para mostrarlo sobre el campo.
+export function TkcFields({
+	form,
+	usernameError,
+}: {
+	form: EmployeeWithUserFormApi;
+	usernameError?: string;
+}) {
 	return (
 		<FieldSet>
 			<FieldLegend>Credenciales TKC</FieldLegend>
@@ -34,7 +43,7 @@ export function TkcFields({ form }: { form: EmployeeWithUserFormApi }) {
 						const isInvalid =
 							field.state.meta.isTouched && !field.state.meta.isValid;
 						return (
-							<Field data-invalid={isInvalid}>
+							<Field data-invalid={isInvalid || Boolean(usernameError)}>
 								<FieldLabel htmlFor={field.name}>Usuario de TKC</FieldLabel>
 								<Input
 									id={field.name}
@@ -42,14 +51,16 @@ export function TkcFields({ form }: { form: EmployeeWithUserFormApi }) {
 									value={field.state.value}
 									onBlur={field.handleBlur}
 									onChange={(e) => field.handleChange(e.target.value)}
-									aria-invalid={isInvalid}
+									aria-invalid={isInvalid || Boolean(usernameError)}
 									placeholder="ada.lovelace"
 									autoComplete="off"
 								/>
 								<FieldDescription>
-									Tal cual se escribe en TKC, sin espacios alrededor.
+									Tal cual se escribe en TKC, sin espacios alrededor. Cada
+									cuenta de TKC pertenece a una sola persona.
 								</FieldDescription>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+								{usernameError && <FieldError>{usernameError}</FieldError>}
 							</Field>
 						);
 					}}
