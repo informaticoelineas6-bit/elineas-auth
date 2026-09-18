@@ -190,7 +190,6 @@
        centrado (mx-auto) recalcula su centro y "salta" a la izquierda. Al
        reservar el gap de forma permanente, la scrollbar nunca desaparece
        realmente y esa compensación termina siendo 0.  */
-    scrollbar-gutter: stable;
     /* El hueco reservado por scrollbar-gutter queda fuera de la caja de
        `body`, así que se pinta con el fondo por defecto del navegador (negro
        en dark mode) si `html` no tiene su propio color de fondo. */

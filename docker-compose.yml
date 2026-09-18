@@ -1,5 +1,6 @@
-# Stack de desarrollo completo: base de datos, redis, SMTP falso, la API y el
-# panel. Un solo `docker compose up` levanta todo.
+# Stack de desarrollo completo: base de datos, Dragonfly (compatible con
+# Redis), SMTP falso, la API y el panel. Un solo `docker compose up` levanta
+# todo.
 #
 # Antes eran dos compose en dos repos: el del panel se enganchaba a
 # `elineas-auth_default`, una red EXTERNA que solo existía si el compose de la
@@ -25,8 +26,19 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    # Dragonfly es compatible con el protocolo de Redis (mismos comandos que
+    # usa la API: INCR/PEXPIRE/EVAL, GET/SETEX, XADD/XRANGE/XDEL), pero
+    # multi-hilo y más eficiente en memoria. El nombre del servicio se deja
+    # como `redis` para no tocar REDIS_URL ni el resto del compose.
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
     restart: unless-stopped
+    # Sin esto, Dragonfly reserva 256MiB por hilo de I/O (uno por CPU del
+    # host) y si el host anda justo de RAM libre en ese momento, no arranca
+    # ("hay N threads, se requieren N*256MiB"). Para desarrollo local, unos
+    # pocos hilos y un límite de memoria fijo sobran de sobra.
+    command: ["dragonfly", "--proactor_threads=2", "--maxmemory=512mb"]
+    ulimits:
+      memlock: -1
     ports:
       - "6379:6379" # expuesto para correr la API en el host (bun run dev:backend)
     volumes:

@@ -1,16 +1,27 @@
-# Stack de producción: la API, el panel y el redis que comparten. La base de
-# datos NO se define aquí: vive en el proyecto `elineas` y se alcanza por la red
-# `elineas-db` (ver la nota al final).
+# Stack de producción: la API, el panel y el Dragonfly (compatible con Redis)
+# que comparten. La base de datos NO se define aquí: vive en el proyecto
+# `elineas` y se alcanza por la red `elineas-db` (ver la nota al final).
 services:
   redis:
-    image: redis:7-alpine
+    # Dragonfly es compatible con el protocolo de Redis (mismos comandos que
+    # usa la API: INCR/PEXPIRE/EVAL, GET/SETEX, XADD/XRANGE/XDEL), pero
+    # multi-hilo y más eficiente en memoria. El nombre del servicio se deja
+    # como `redis` para no tocar REDIS_URL ni el resto del compose.
+    image: docker.dragonflydb.io/dragonflydb/dragonfly
     restart: unless-stopped
+    ulimits:
+      memlock: -1
     command:
       [
-        "redis-server",
-        "--save",
-        "60",
-        "1",
+        "dragonfly",
+        # Sin esto, Dragonfly reserva 256MiB por hilo de I/O (uno por CPU del
+        # host) y si el host anda justo de RAM libre, no arranca. En este
+        # stack Redis solo hace rate limiting/caché/logs: no necesita más.
+        "--proactor_threads=2",
+        "--maxmemory=512mb",
+        # Snapshot cada minuto, similar al `save 60 1` que tenía Redis.
+        "--snapshot_cron",
+        "* * * * *",
         "--requirepass",
         "${REDIS_PASSWORD}",
       ]
@@ -21,7 +32,7 @@ services:
     networks:
       - elineas-auth-net
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
