@@ -81,6 +81,7 @@ export async function getSessionSystem(sessionId: string) {
       name: system.name,
       slug: system.slug,
       description: system.description,
+      url: system.url,
       active: system.active,
       createdAt: system.createdAt,
       updatedAt: system.updatedAt,

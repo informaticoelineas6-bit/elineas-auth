@@ -1,0 +1,1 @@
+ALTER TABLE "system" ADD COLUMN "url" text;

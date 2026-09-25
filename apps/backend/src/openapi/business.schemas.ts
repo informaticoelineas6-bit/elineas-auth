@@ -8,6 +8,7 @@ import {
   phoneNumber as PhoneNumber,
   searchTerm as SearchTerm,
   slug as Slug,
+  url as Url,
 } from "@elineas/auth-contracts";
 import { z } from "@hono/zod-openapi";
 
@@ -131,6 +132,7 @@ export const SystemSchema = z
     name: z.string(),
     slug: z.string(),
     description: z.string().nullable(),
+    url: z.string().nullable(),
     active: z.boolean(),
     createdAt: z.date(),
     updatedAt: z.date(),
@@ -142,6 +144,7 @@ export const CreateSystemBodySchema = z
     name: DisplayName.openapi({ example: "Punto de Venta" }),
     slug: Slug.openapi({ example: "pos" }),
     description: Description.optional(),
+    url: Url.optional().openapi({ example: "https://pos.mercadoelineas.com" }),
     active: z.boolean().optional(),
   })
   .openapi("CreateSystemBody");

@@ -121,6 +121,10 @@
             "type": "string",
             "nullable": true
           },
+          "url": {
+            "type": "string",
+            "nullable": true
+          },
           "active": {
             "type": "boolean"
           },
@@ -138,6 +142,7 @@
           "name",
           "slug",
           "description",
+          "url",
           "active",
           "createdAt",
           "updatedAt"
@@ -1012,6 +1017,12 @@
             "type": "string",
             "maxLength": 500
           },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https?:\\/\\//i",
+            "example": "https://pos.mercadoelineas.com"
+          },
           "active": {
             "type": "boolean"
           }
@@ -1040,6 +1051,12 @@
           "description": {
             "type": "string",
             "maxLength": 500
+          },
+          "url": {
+            "type": "string",
+            "maxLength": 2048,
+            "pattern": "^https?:\\/\\//i",
+            "example": "https://pos.mercadoelineas.com"
           },
           "active": {
             "type": "boolean"

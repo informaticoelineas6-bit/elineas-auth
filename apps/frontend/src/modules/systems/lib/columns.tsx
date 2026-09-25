@@ -39,6 +39,29 @@ export function getSystemColumns({
 			),
 		},
 		{
+			accessorKey: "url",
+			header: "URL",
+			cell: ({ row }) =>
+				row.original.url ? (
+					<div className="flex items-center gap-1">
+						<a
+							href={row.original.url}
+							target="_blank"
+							rel="noreferrer"
+							className="line-clamp-1 max-w-40 text-primary underline-offset-2 hover:underline"
+						>
+							{row.original.url}
+						</a>
+						<CopyButton
+							value={row.original.url}
+							label={`Copiar URL "${row.original.url}"`}
+						/>
+					</div>
+				) : (
+					<span className="text-muted-foreground">—</span>
+				),
+		},
+		{
 			accessorKey: "description",
 			header: "Descripción",
 			cell: ({ row }) =>

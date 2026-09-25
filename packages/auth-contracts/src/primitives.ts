@@ -100,6 +100,15 @@ export const imageUrl = z
   .max(2048, "Debe tener menos de 2048 caracteres")
   .regex(/^https?:\/\//i, "Debe ser una URL http(s)");
 
+// URL de acceso a un sistema (enlace a la propia aplicación). Misma
+// restricción que `imageUrl` (solo http(s), tope de longitud) para no
+// almacenar un `javascript:`/`data:` que dispare XSS al renderizarse como
+// enlace en el panel.
+export const url = z
+  .string()
+  .max(2048, "Debe tener menos de 2048 caracteres")
+  .regex(/^https?:\/\//i, "Debe ser una URL http(s)");
+
 // Identificador legible de un sistema. El slug entra en URLs y en las claves de
 // sesión por sistema, de ahí el juego de caracteres restringido.
 export const slug = z

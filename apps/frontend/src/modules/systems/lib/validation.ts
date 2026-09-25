@@ -1,3 +1,4 @@
+import { url as Url } from "@elineas/auth-contracts";
 import { z } from "zod";
 import { listSearchSchema } from "#/modules/common/lib/validation.ts";
 
@@ -21,6 +22,7 @@ export const createSystemSchema = z.object({
 		.string()
 		.max(500, "Debe tener menos de 500 caracteres")
 		.optional(),
+	url: Url.optional(),
 	active: z.boolean().optional(),
 });
 
@@ -35,5 +37,8 @@ export const systemFormSchema = z.object({
 	name: createSystemSchema.shape.name,
 	slug: createSystemSchema.shape.slug,
 	description: z.string().max(500, "Debe tener menos de 500 caracteres"),
+	// Igual que la URL del alta, pero admitiendo "" (el form arranca vacío):
+	// se valida como URL http(s) solo si el usuario escribió algo.
+	url: z.literal("").or(Url),
 	active: z.boolean(),
 });

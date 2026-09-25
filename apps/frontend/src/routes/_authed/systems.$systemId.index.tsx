@@ -197,6 +197,27 @@ function SystemDetail({ system }: { system: System }) {
 								}
 							/>
 							<DetailItem
+								label="URL"
+								value={
+									system.url && (
+										<span className="flex items-center gap-1">
+											<a
+												href={system.url}
+												target="_blank"
+												rel="noreferrer"
+												className="text-primary underline-offset-2 hover:underline"
+											>
+												{system.url}
+											</a>
+											<CopyButton
+												value={system.url}
+												label={`Copiar URL "${system.url}"`}
+											/>
+										</span>
+									)
+								}
+							/>
+							<DetailItem
 								label="Estado"
 								value={
 									<Badge variant={system.active ? "default" : "secondary"}>

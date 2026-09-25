@@ -133,6 +133,34 @@ export function SystemFields({
 					)}
 				</form.Field>
 
+				<form.Field name="url">
+					{(field) => {
+						const isInvalid =
+							field.state.meta.isTouched && !field.state.meta.isValid;
+						return (
+							<Field data-invalid={isInvalid} className="md:col-span-2">
+								<FieldLabel htmlFor={field.name}>URL</FieldLabel>
+								<Input
+									id={field.name}
+									name={field.name}
+									type="url"
+									value={field.state.value ?? ""}
+									onBlur={field.handleBlur}
+									onChange={(e) => field.handleChange(e.target.value)}
+									aria-invalid={isInvalid}
+									placeholder="https://portal-de-ventas.mercadoelineas.com"
+									autoComplete="off"
+								/>
+								<FieldDescription>
+									Enlace a la aplicación, para acceder rápido desde la tabla de
+									sistemas.
+								</FieldDescription>
+								{isInvalid && <FieldError errors={field.state.meta.errors} />}
+							</Field>
+						);
+					}}
+				</form.Field>
+
 				<form.Field name="active">
 					{(field) => (
 						<Field orientation="horizontal" className="md:col-span-2">

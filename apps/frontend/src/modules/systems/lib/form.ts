@@ -16,6 +16,7 @@ export const systemFormDefaults: SystemFormValues = {
 	name: "",
 	slug: "",
 	description: "",
+	url: "",
 	active: true,
 };
 
@@ -57,6 +58,7 @@ export function systemToFormValues(system: System): SystemFormValues {
 		name: system.name,
 		slug: system.slug,
 		description: system.description ?? "",
+		url: system.url ?? "",
 		active: system.active,
 	};
 }
@@ -86,11 +88,12 @@ export type SystemFormApi = CreateSystemFormApi | EditSystemFormApi;
 export function toSystemPayload(
 	value: SystemFormValues,
 ): CreateSystemInput & UpdateSystemInput {
-	const { name, slug, description, active } = value;
+	const { name, slug, description, url, active } = value;
 	return {
 		name,
 		slug,
 		active,
 		...(description ? { description } : {}),
+		...(url ? { url } : {}),
 	};
 }

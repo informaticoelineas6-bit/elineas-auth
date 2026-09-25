@@ -11,6 +11,7 @@ export type System = {
 	name: string;
 	slug: string;
 	description: string | null;
+	url: string | null;
 	active: boolean;
 	createdAt: string;
 	updatedAt: string;
