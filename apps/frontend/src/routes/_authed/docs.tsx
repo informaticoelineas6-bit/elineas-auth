@@ -24,8 +24,17 @@ import {
 	CardHeader,
 	CardTitle,
 } from "@/modules/common/components/ui/card.tsx";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 
+// Documentación de integración: cómo dar de alta un sistema consumidor,
+// registrar sus roles y verificar el JWT. Es contenido admin-only aunque no
+// llame a ningún endpoint (así que no hay ningún 403 del IS que lo bloquee
+// por su cuenta, a diferencia del resto de páginas): un rol delegado como
+// "rrhh" no gestiona sistemas ni necesita esta guía. `beforeLoad` cancela la
+// navegación en vez de dejar montar la página y mostrar un estado "sin
+// permisos" después.
 export const Route = createFileRoute("/_authed/docs")({
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	component: DocsPage,
 });
 

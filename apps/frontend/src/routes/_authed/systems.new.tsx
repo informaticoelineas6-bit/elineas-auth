@@ -10,6 +10,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { SystemFields } from "@/modules/systems/components/system-fields.tsx";
 import {
 	toSystemPayload,
@@ -18,6 +19,7 @@ import {
 import { useCreateSystem } from "@/modules/systems/queries/systems.ts";
 
 export const Route = createFileRoute("/_authed/systems/new")({
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	component: NewSystemPage,
 });
 

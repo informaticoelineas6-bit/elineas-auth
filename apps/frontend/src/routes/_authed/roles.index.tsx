@@ -18,6 +18,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getRoleColumns } from "@/modules/roles/lib/columns.tsx";
 import { roleFiltersSchema } from "@/modules/roles/lib/validation.ts";
 import { rolesQueries, useDeleteRole } from "@/modules/roles/queries/roles.ts";
@@ -27,6 +28,7 @@ import type { System } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/roles/")({
 	validateSearch: roleFiltersSchema,
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del listado + catálogo de sistemas (misma query key que el
 	// componente) para calentar hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,

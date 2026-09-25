@@ -14,6 +14,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { RoleFields } from "@/modules/roles/components/role-fields.tsx";
 import {
 	roleToFormValues,
@@ -25,6 +26,7 @@ import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 
 export const Route = createFileRoute("/_authed/roles/$roleId/edit")({
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del detalle + catálogo de sistemas (mismas query keys) para
 	// calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>

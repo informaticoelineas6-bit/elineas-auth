@@ -13,7 +13,12 @@ import { ForbiddenState } from "@/modules/common/components/partials/forbidden-s
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
-import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
+import {
+	getErrorMessage,
+	getErrorStatus,
+	reportError,
+} from "@/modules/common/lib/errors.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getSystemColumns } from "@/modules/systems/lib/columns.tsx";
 import { systemFiltersSchema } from "@/modules/systems/lib/validation.ts";
 import {
@@ -24,6 +29,9 @@ import type { System, SystemFilters } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/systems/")({
 	validateSearch: systemFiltersSchema,
+	// Admin-only: cancela la navegación (no solo oculta el enlace) para quien
+	// no tenga el rol admin.
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del listado (misma query key que el componente) para calentar
 	// hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,

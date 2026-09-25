@@ -24,6 +24,7 @@ import {
 	reportError,
 } from "@/modules/common/lib/errors.ts";
 import { formatDate } from "@/modules/common/lib/format.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { SystemRolesPanel } from "@/modules/systems/components/system-roles-panel.tsx";
 import {
 	systemsQueries,
@@ -33,6 +34,7 @@ import {
 import type { System } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/systems/$systemId/")({
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del detalle (misma query key) para calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>
 		queryClient.prefetchQuery(systemsQueries.detail(params.systemId)),

@@ -20,6 +20,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getAdminSessionColumns } from "@/modules/sessions/lib/columns.tsx";
 import { sessionFiltersSchema } from "@/modules/sessions/lib/validation.ts";
 import {
@@ -35,6 +36,7 @@ import type {
 
 export const Route = createFileRoute("/_authed/sessions")({
 	validateSearch: sessionFiltersSchema,
+	beforeLoad: ({ context }) => requireResourceAccess("sessions", context),
 	// Prefetch de las 3 queries de la página (listado admin + sesiones propias +
 	// sesión actual) con las mismas query keys, para calentar hover/SSR.
 	loaderDeps: ({ search }) => search,
@@ -47,10 +49,10 @@ export const Route = createFileRoute("/_authed/sessions")({
 	component: SessionsPage,
 });
 
-// El layout `_authed` ya bloquea a quien no tenga rol admin (ForbiddenScreen
-// en línea, ver AuthedLayout): esta página nunca se monta para un usuario sin
-// ese rol, así que aquí se asume siempre admin y se listan las sesiones de
-// TODOS los usuarios, distinguiendo la propia con la insignia "Tú".
+// El `beforeLoad` de la ruta ya exige el permiso "sessions" (admin lo tiene
+// siempre, comodín): esta página nunca se monta para quien no lo tenga, así
+// que aquí se listan directamente las sesiones de TODOS los usuarios,
+// distinguiendo la propia con la insignia "Tú".
 function SessionsPage() {
 	const navigate = useNavigate();
 	const signOut = useServerFn(signOutFn);

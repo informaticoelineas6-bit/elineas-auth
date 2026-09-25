@@ -20,6 +20,7 @@ import {
 	reportError,
 } from "@/modules/common/lib/errors.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
@@ -45,6 +46,7 @@ const ADMIN_ROLE_NAME = "admin";
 
 export const Route = createFileRoute("/_authed/user-roles")({
 	validateSearch: userRoleFiltersSchema,
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del listado + las 3 fuentes (empleados/roles/sistemas) que la
 	// página usa para resolver ids, con las mismas query keys, para calentar
 	// hover/SSR y evitar el waterfall montaje→fetch.

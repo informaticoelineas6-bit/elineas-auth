@@ -15,6 +15,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { SystemFields } from "@/modules/systems/components/system-fields.tsx";
 import {
 	systemToFormValues,
@@ -28,6 +29,7 @@ import {
 import type { System } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/systems/$systemId/edit")({
+	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del detalle (misma query key) para calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>
 		queryClient.prefetchQuery(systemsQueries.detail(params.systemId)),
