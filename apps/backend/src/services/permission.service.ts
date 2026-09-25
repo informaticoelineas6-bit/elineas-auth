@@ -8,7 +8,7 @@ import {
 } from "@backend/db/business-schema.ts";
 import { db } from "@backend/db/index.ts";
 import { HttpError } from "@backend/lib/http.ts";
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, or } from "drizzle-orm";
 
 // Catálogo completo (no paginado: es una tabla de referencia pequeña y
 // estable, pensada para poblar un selector en el panel de administración).
@@ -19,14 +19,28 @@ export async function listPermissions() {
     .orderBy(asc(permission.resource), asc(permission.action));
 }
 
-// Permisos efectivos del usuario dentro del sistema `auth` (comodín incluido:
-// si tiene el rol admin, se le devuelve el catálogo completo, igual que lo
-// trata requirePermission). Es lo que el panel usa para decidir qué mostrar:
-// no hay lista separada de "capacidades de UI", son las mismas resource:action
-// que protegen la API, para que nunca se desincronicen.
-export async function listMyPermissions(userId: string) {
+// Permisos efectivos del usuario dentro de `systemSlug` (por defecto, el
+// propio sistema `auth`, para no romper a quien ya llamaba a esto sin
+// argumento). Cualquier sistema consumidor puede pedir los suyos: es la
+// misma idea que `listMyRoles(userId, systemSlug)`, pero resolviendo también
+// el `resource:action` de cada rol.
+//
+// Hay DOS comodines, ambos devuelven el catálogo completo:
+//   - Rol admin en el sistema `auth` (env.ADMIN_SYSTEM_SLUG): superusuario
+//     global del IS, ve/puede todo en cualquier sistema (igual que
+//     requireAdmin).
+//   - Rol admin dentro del propio `systemSlug` consultado: comodín LOCAL,
+//     pensado para que un sistema nuevo no tenga que asignar manualmente
+//     cada permiso a su propio rol admin.
+// Fuera de esos dos casos, solo se devuelven los permisos explícitamente
+// unidos vía role_permission a un rol de `systemSlug`.
+export async function listMyPermissions(
+  userId: string,
+  systemSlug: string = env.ADMIN_SYSTEM_SLUG,
+) {
   const rows = await db
     .select({
+      systemSlug: system.slug,
       roleName: role.name,
       resource: permission.resource,
       action: permission.action,
@@ -37,10 +51,17 @@ export async function listMyPermissions(userId: string) {
     .leftJoin(rolePermission, eq(rolePermission.roleId, role.id))
     .leftJoin(permission, eq(permission.id, rolePermission.permissionId))
     .where(
-      and(eq(userRole.userId, userId), eq(system.slug, env.ADMIN_SYSTEM_SLUG)),
+      and(
+        eq(userRole.userId, userId),
+        or(eq(system.slug, systemSlug), eq(system.slug, env.ADMIN_SYSTEM_SLUG)),
+      ),
     );
 
-  const isAdmin = rows.some((r) => r.roleName === env.ADMIN_ROLE_NAME);
+  const isAdmin = rows.some(
+    (r) =>
+      r.roleName === env.ADMIN_ROLE_NAME &&
+      (r.systemSlug === systemSlug || r.systemSlug === env.ADMIN_SYSTEM_SLUG),
+  );
   if (isAdmin) {
     return (await listPermissions()).map(({ resource, action }) => ({
       resource,
@@ -51,6 +72,7 @@ export async function listMyPermissions(userId: string) {
   const seen = new Set<string>();
   const result: Array<{ resource: string; action: string }> = [];
   for (const r of rows) {
+    if (r.systemSlug !== systemSlug) continue;
     if (!r.resource || !r.action) continue;
     const key = `${r.resource}:${r.action}`;
     if (seen.has(key)) continue;

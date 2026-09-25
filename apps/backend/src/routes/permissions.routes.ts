@@ -3,6 +3,7 @@ import { requireIdentity } from "@backend/middleware/identity.ts";
 import { requireSession } from "@backend/middleware/session.ts";
 import {
   MyPermissionSchema,
+  MyPermissionsQuerySchema,
   PermissionSchema,
 } from "@backend/openapi/business.schemas.ts";
 import {
@@ -23,15 +24,20 @@ const meRoute = createRoute({
   operationId: "listMyPermissions",
   tags: ["Permissions"],
   summary:
-    "Listar los permisos efectivos del usuario autenticado en el sistema auth",
+    "Listar los permisos efectivos del usuario autenticado en un sistema",
   description:
-    "Si el usuario tiene el rol admin, devuelve el catálogo completo (comodín). " +
-    "Es lo que el panel usa para decidir qué secciones mostrar/ocultar.",
+    "Sin `systemSlug`, resuelve los permisos en el sistema `auth`. Cualquier " +
+    "sistema consumidor puede pedir los suyos, igual que en GET " +
+    "/api/user-roles/me. Si el usuario tiene el rol admin en el sistema `auth` " +
+    "o en el propio `systemSlug` consultado, devuelve el catálogo completo " +
+    "(comodín global y comodín local, respectivamente). Es lo que cada panel " +
+    "usa para decidir qué secciones mostrar/ocultar.",
   security: bearerAuthSecurity,
   // Acepta sesión O JWT propio del IS, igual que GET /api/user-roles/me: es
   // información sobre uno mismo, de riesgo bajo, y los backends consumidores
   // también pueden necesitarla.
   middleware: [requireIdentity] as const,
+  request: { query: MyPermissionsQuerySchema },
   responses: {
     200: {
       description: "Permisos efectivos del usuario",
@@ -73,7 +79,8 @@ const permissionsRoutesBase = new OpenAPIHono<AppEnv>();
 
 export const permissionsRoutes = permissionsRoutesBase
   .openapi(meRoute, async (c) => {
-    const permissions = await listMyPermissions(c.get("user").id);
+    const { systemSlug } = c.req.valid("query");
+    const permissions = await listMyPermissions(c.get("user").id, systemSlug);
     return c.json({ permissions }, 200);
   })
   .openapi(listRoute, async (c) => {

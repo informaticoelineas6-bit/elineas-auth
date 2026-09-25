@@ -16,12 +16,19 @@ import type { Context, Next } from "hono";
 // permiso (o el rol que lo lleva) tarde como mucho esto en reflejarse.
 const PERMISSION_CACHE_TTL_SECONDS = 30;
 
-// ¿Tiene el usuario, dentro del sistema que representa a este identity
-// server, el permiso "resource:action"? El rol admin es un comodín: pasa
-// siempre, sin necesidad de filas en role_permission (es el superusuario del
-// IS, igual que en requireAdmin).
+// ¿Tiene el usuario el permiso "resource:action" dentro de `systemSlug`? Hay
+// DOS comodines que pasan sin necesidad de filas en role_permission:
+//   - Rol admin en el sistema `auth` (env.ADMIN_SYSTEM_SLUG): superusuario
+//     global del IS, igual que en requireAdmin.
+//   - Rol admin dentro del propio `systemSlug` consultado: comodín LOCAL de
+//     ese sistema, para que cada app consumidora no tenga que asignar
+//     manualmente cada permiso a su propio rol admin.
+// Ver la misma lógica, ya generalizada, en permission.service.ts#listMyPermissions
+// (usada por /api/permissions/me): ambas deben coincidir, o un panel podría
+// mostrar un botón que luego el 403 de este middleware rechaza.
 async function queryHasPermission(
   userId: string,
+  systemSlug: string,
   resource: string,
   action: string,
 ): Promise<boolean> {
@@ -35,10 +42,17 @@ async function queryHasPermission(
     .where(
       and(
         eq(userRole.userId, userId),
-        eq(system.slug, env.ADMIN_SYSTEM_SLUG),
         or(
-          eq(role.name, env.ADMIN_ROLE_NAME),
-          and(eq(permission.resource, resource), eq(permission.action, action)),
+          and(
+            eq(system.slug, env.ADMIN_SYSTEM_SLUG),
+            eq(role.name, env.ADMIN_ROLE_NAME),
+          ),
+          and(eq(system.slug, systemSlug), eq(role.name, env.ADMIN_ROLE_NAME)),
+          and(
+            eq(system.slug, systemSlug),
+            eq(permission.resource, resource),
+            eq(permission.action, action),
+          ),
         ),
       ),
     )
@@ -48,10 +62,11 @@ async function queryHasPermission(
 
 async function hasPermission(
   userId: string,
+  systemSlug: string,
   resource: string,
   action: string,
 ): Promise<boolean> {
-  const cacheKey = `perm:${userId}:${resource}:${action}`;
+  const cacheKey = `perm:${systemSlug}:${userId}:${resource}:${action}`;
 
   if (redis) {
     try {
@@ -63,7 +78,7 @@ async function hasPermission(
     }
   }
 
-  const result = await queryHasPermission(userId, resource, action);
+  const result = await queryHasPermission(userId, systemSlug, resource, action);
 
   if (redis) {
     try {
@@ -83,11 +98,22 @@ async function hasPermission(
   return result;
 }
 
-// Exige que el usuario autenticado tenga el permiso "resource:action" (o el
-// rol admin, que es comodín) dentro del sistema que representa a este
-// identity server. Debe ejecutarse DESPUÉS de requireSession (que puebla
-// c.get("user")), igual que requireAdmin.
-export function requirePermission(resource: string, action: string) {
+// Exige que el usuario autenticado tenga el permiso "resource:action" (o
+// alguno de los dos comodines admin, ver queryHasPermission) dentro de
+// `systemSlug`. Sin ese tercer argumento, comprueba el sistema que
+// representa a este propio identity server (env.ADMIN_SYSTEM_SLUG) — el
+// caso de todas las rutas de este backend (employees, sessions, users,
+// tkc, request-logs), que no cambian de comportamiento con esta
+// generalización. Un sistema consumidor externo que delegue su
+// autorización fina en el IS pasa aquí su propio slug.
+//
+// Debe ejecutarse DESPUÉS de requireSession (que puebla c.get("user")),
+// igual que requireAdmin.
+export function requirePermission(
+  resource: string,
+  action: string,
+  systemSlug: string = env.ADMIN_SYSTEM_SLUG,
+) {
   return async function requirePermissionMiddleware(
     c: Context<AppEnv>,
     next: Next,
@@ -95,7 +121,7 @@ export function requirePermission(resource: string, action: string) {
     const user = c.get("user");
     if (!user) return c.json({ error: "No autorizado" }, 401);
 
-    if (!(await hasPermission(user.id, resource, action))) {
+    if (!(await hasPermission(user.id, systemSlug, resource, action))) {
       return c.json(
         {
           error: `Requiere el permiso "${resource}:${action}"`,

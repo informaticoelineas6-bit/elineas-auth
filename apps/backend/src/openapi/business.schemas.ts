@@ -249,6 +249,18 @@ export const MyPermissionSchema = z
   })
   .openapi("MyPermission");
 
+// Igual que MyUserRolesQuerySchema (mismo shape, propósito idéntico): sin
+// `systemSlug`, GET /api/permissions/me resuelve los permisos del usuario en
+// el sistema `auth`; con él, cualquier sistema consumidor pide los suyos.
+export const MyPermissionsQuerySchema = z.object({
+  systemSlug: z
+    .string()
+    .optional()
+    .openapi({
+      param: { name: "systemSlug", in: "query" },
+    }),
+});
+
 export const SetRolePermissionsBodySchema = z
   .object({
     permissionIds: z
