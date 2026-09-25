@@ -47,10 +47,16 @@ import {
 export function TkcCredentialsCard({
 	userId,
 	userLabel,
+	canWrite,
+	canDelete,
 }: {
 	/** Cuenta del IS a la que se enlazan las credenciales. `null` si la ficha no tiene cuenta. */
 	userId: string | null;
 	userLabel: string;
+	// tkc:write / tkc:delete (ver users.routes.ts): credenciales especialmente
+	// sensibles, con su propio permiso separado de employees/users.
+	canWrite: boolean;
+	canDelete: boolean;
 }) {
 	const [editing, setEditing] = useState(false);
 	const [confirmingRemove, setConfirmingRemove] = useState(false);
@@ -77,6 +83,8 @@ export function TkcCredentialsCard({
 			setEditing={setEditing}
 			confirmingRemove={confirmingRemove}
 			setConfirmingRemove={setConfirmingRemove}
+			canWrite={canWrite}
+			canDelete={canDelete}
 		/>
 	);
 }
@@ -90,6 +98,8 @@ function TkcCard({
 	setEditing,
 	confirmingRemove,
 	setConfirmingRemove,
+	canWrite,
+	canDelete,
 }: {
 	userId: string;
 	userLabel: string;
@@ -97,6 +107,8 @@ function TkcCard({
 	setEditing: (value: boolean) => void;
 	confirmingRemove: boolean;
 	setConfirmingRemove: (value: boolean) => void;
+	canWrite: boolean;
+	canDelete: boolean;
 }) {
 	const query = useQuery(tkcQueries.byUser(userId));
 	const removeTkc = useRemoveUserTkc();
@@ -120,17 +132,19 @@ function TkcCard({
 					Server las guarda cifradas y solo se las entrega a ella al iniciar
 					sesión: desde aquí no se pueden consultar.
 				</CardDescription>
-				{!editing && (
+				{!editing && (canWrite || (query.data && canDelete)) && (
 					<CardAction className="flex gap-2">
-						<Button
-							variant="outline"
-							size="sm"
-							onClick={() => setEditing(true)}
-						>
-							{query.data ? <Pencil /> : <KeyRound />}
-							{query.data ? "Reemplazar" : "Enlazar"}
-						</Button>
-						{query.data && (
+						{canWrite && (
+							<Button
+								variant="outline"
+								size="sm"
+								onClick={() => setEditing(true)}
+							>
+								{query.data ? <Pencil /> : <KeyRound />}
+								{query.data ? "Reemplazar" : "Enlazar"}
+							</Button>
+						)}
+						{query.data && canDelete && (
 							<Button
 								variant="ghost"
 								size="sm"

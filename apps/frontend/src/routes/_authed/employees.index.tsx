@@ -31,6 +31,7 @@ import type {
 	Employee,
 	EmployeeFilters,
 } from "@/modules/employees/shared/types.ts";
+import { hasPermission } from "@/modules/permissions/lib/access.ts";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/")({
@@ -47,6 +48,11 @@ export const Route = createFileRoute("/_authed/employees/")({
 
 function EmployeesPage() {
 	const navigate = useNavigate();
+	const { isAdmin, permissions } = Route.useRouteContext();
+	const access = { isAdmin, permissions };
+	const canWrite = hasPermission("employees", "write", access);
+	const canDelete = hasPermission("employees", "delete", access);
+	const canChangePassword = hasPermission("users", "write", access);
 	const { filters, controls, setFilter } = useListControls<EmployeeFilters>();
 	const query = useQuery(employeesQueries.list(filters));
 	const updateEmployee = useUpdateEmployee();
@@ -149,6 +155,10 @@ function EmployeesPage() {
 		},
 		onToggleActive: toggleActive,
 		onDelete: (employee) => setToDelete(employee),
+		canManageRoles: isAdmin,
+		canWrite,
+		canChangePassword,
+		canDelete,
 	});
 
 	return (
@@ -160,14 +170,21 @@ function EmployeesPage() {
 				actions={
 					<>
 						<ExportMenu filters={filters} />
-						<Button variant="outline" onClick={() => setImportOpen(true)}>
-							<Upload />
-							Importar
-						</Button>
-						<Button onClick={() => navigate({ to: "/employees/new" })}>
-							<UserPlus />
-							Nuevo usuario
-						</Button>
+						{canWrite && (
+							<>
+								<Button
+									variant="outline"
+									onClick={() => setImportOpen(true)}
+								>
+									<Upload />
+									Importar
+								</Button>
+								<Button onClick={() => navigate({ to: "/employees/new" })}>
+									<UserPlus />
+									Nuevo usuario
+								</Button>
+							</>
+						)}
 					</>
 				}
 			/>

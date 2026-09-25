@@ -30,6 +30,8 @@ import {
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
 import type { Employee } from "@/modules/employees/shared/types.ts";
+import { hasPermission } from "@/modules/permissions/lib/access.ts";
+import type { MyPermission } from "@/modules/permissions/shared/types.ts";
 import { TkcCredentialsCard } from "@/modules/tkc/components/tkc-credentials-card.tsx";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
@@ -43,6 +45,7 @@ export const Route = createFileRoute("/_authed/employees/$employeeId/")({
 
 function EmployeeDetailPage() {
 	const { employeeId } = Route.useParams();
+	const { isAdmin, permissions } = Route.useRouteContext();
 	const query = useQuery(employeesQueries.detail(employeeId));
 
 	const status = getErrorStatus(query.error);
@@ -85,14 +88,30 @@ function EmployeeDetailPage() {
 			) : query.isPending ? (
 				<EmployeeDetailSkeleton />
 			) : (
-				<EmployeeDetail employee={query.data} />
+				<EmployeeDetail
+					employee={query.data}
+					isAdmin={isAdmin}
+					permissions={permissions}
+				/>
 			)}
 		</div>
 	);
 }
 
-function EmployeeDetail({ employee }: { employee: Employee }) {
+function EmployeeDetail({
+	employee,
+	isAdmin,
+	permissions,
+}: {
+	employee: Employee;
+	isAdmin: boolean;
+	permissions: MyPermission[];
+}) {
 	const navigate = useNavigate();
+	const access = { isAdmin, permissions };
+	const canWrite = hasPermission("employees", "write", access);
+	const canDelete = hasPermission("employees", "delete", access);
+	const canChangePassword = hasPermission("users", "write", access);
 	const updateEmployee = useUpdateEmployee();
 	const deleteEmployee = useDeleteEmployee();
 
@@ -158,20 +177,22 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 				description={employee.ci ? `CI ${employee.ci}` : undefined}
 				actions={
 					<>
-						<Button
-							onClick={() =>
-								navigate({
-									to: "/employees/$employeeId/edit",
-									params: { employeeId: employee.id },
-								})
-							}
-						>
-							<Pencil />
-							Editar
-						</Button>
+						{canWrite && (
+							<Button
+								onClick={() =>
+									navigate({
+										to: "/employees/$employeeId/edit",
+										params: { employeeId: employee.id },
+									})
+								}
+							>
+								<Pencil />
+								Editar
+							</Button>
+						)}
 						{/* Solo si la ficha tiene cuenta enlazada: `userId` es nullable
 						    (hay empleados sin usuario) y sin cuenta no hay contraseña. */}
-						{employee.userId && (
+						{employee.userId && canChangePassword && (
 							<Button
 								variant="outline"
 								onClick={() => setChangingPassword(true)}
@@ -180,17 +201,21 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 								Cambiar contraseña
 							</Button>
 						)}
-						<Button variant="outline" onClick={toggleActive}>
-							{employee.active ? <PowerOff /> : <Power />}
-							{employee.active ? "Desactivar" : "Activar"}
-						</Button>
-						<Button
-							variant="destructive"
-							onClick={() => setConfirming("delete")}
-						>
-							<Trash2 />
-							Eliminar
-						</Button>
+						{canWrite && (
+							<Button variant="outline" onClick={toggleActive}>
+								{employee.active ? <PowerOff /> : <Power />}
+								{employee.active ? "Desactivar" : "Activar"}
+							</Button>
+						)}
+						{canDelete && (
+							<Button
+								variant="destructive"
+								onClick={() => setConfirming("delete")}
+							>
+								<Trash2 />
+								Eliminar
+							</Button>
+						)}
 					</>
 				}
 			/>
@@ -252,11 +277,14 @@ function EmployeeDetail({ employee }: { employee: Employee }) {
 				<EmployeeRolesCard
 					userId={employee.userId}
 					userLabel={`${employee.name} ${employee.lastName}`}
+					canManage={isAdmin}
 				/>
 
 				<TkcCredentialsCard
 					userId={employee.userId}
 					userLabel={`${employee.name} ${employee.lastName}`}
+					canWrite={hasPermission("tkc", "write", access)}
+					canDelete={hasPermission("tkc", "delete", access)}
 				/>
 			</div>
 

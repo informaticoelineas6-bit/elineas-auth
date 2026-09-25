@@ -25,8 +25,11 @@ import {
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
 import type { Employee } from "@/modules/employees/shared/types.ts";
+import { requirePermissionAccess } from "@/modules/permissions/lib/guard.ts";
 
 export const Route = createFileRoute("/_authed/employees/$employeeId/edit")({
+	beforeLoad: ({ context }) =>
+		requirePermissionAccess("employees", "write", context),
 	// Prefetch del detalle (misma query key) para calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>
 		queryClient.prefetchQuery(employeesQueries.detail(params.employeeId)),

@@ -23,10 +23,13 @@ import {
 	useEmployeeWithUserForm,
 } from "@/modules/employees/lib/form.ts";
 import { useCreateEmployeeWithUser } from "@/modules/employees/queries/employees.ts";
+import { requirePermissionAccess } from "@/modules/permissions/lib/guard.ts";
 import { TkcFields } from "@/modules/tkc/components/tkc-fields.tsx";
 import { UserAccountFields } from "@/modules/users/components/user-account-fields.tsx";
 
 export const Route = createFileRoute("/_authed/employees/new")({
+	beforeLoad: ({ context }) =>
+		requirePermissionAccess("employees", "write", context),
 	component: NewEmployeePage,
 });
 

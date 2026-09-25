@@ -12,9 +12,14 @@ import { parseUserAgent } from "./user-agent.ts";
 export function getAdminSessionColumns({
 	currentId,
 	onRevoke,
+	canRevoke,
 }: {
 	currentId: string | undefined;
 	onRevoke: (session: AdminSafeSession) => void;
+	// sessions:write (sessions.routes.ts): la página en sí solo exige
+	// sessions:read, así que un rol de solo lectura vería la tabla pero no debe
+	// ver el botón de revocar sesiones ajenas.
+	canRevoke: boolean;
 }): DataTableColumn<AdminSafeSession>[] {
 	return [
 		{
@@ -100,20 +105,21 @@ export function getAdminSessionColumns({
 			id: "actions",
 			header: "Acciones",
 			meta: { className: "text-right", headerClassName: "text-right" },
-			cell: ({ row }) => (
-				<DataTableRowActions
-					actions={[
-						{
-							label:
-								row.original.id === currentId
-									? "Cerrar esta sesión"
-									: "Revocar",
-							destructive: true,
-							onSelect: () => onRevoke(row.original),
-						},
-					]}
-				/>
-			),
+			cell: ({ row }) =>
+				canRevoke ? (
+					<DataTableRowActions
+						actions={[
+							{
+								label:
+									row.original.id === currentId
+										? "Cerrar esta sesión"
+										: "Revocar",
+								destructive: true,
+								onSelect: () => onRevoke(row.original),
+							},
+						]}
+					/>
+				) : null,
 		},
 	];
 }

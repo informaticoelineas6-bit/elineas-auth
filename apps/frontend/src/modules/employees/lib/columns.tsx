@@ -28,6 +28,10 @@ export function getEmployeeColumns({
 	onCopyEmail,
 	onToggleActive,
 	onDelete,
+	canManageRoles,
+	canWrite,
+	canChangePassword,
+	canDelete,
 }: {
 	onView: (employee: Employee) => void;
 	onEdit: (employee: Employee) => void;
@@ -37,6 +41,14 @@ export function getEmployeeColumns({
 	onCopyEmail: (employee: Employee) => void;
 	onToggleActive: (employee: Employee) => void;
 	onDelete: (employee: Employee) => void;
+	// Cada flag refleja el permiso exacto que exige el endpoint correspondiente
+	// (ver apps/backend/src/routes/{employees,users,user-roles}.routes.ts): sin
+	// esto, un rol con solo employees:read vería botones de editar/borrar que
+	// solo descubriría inválidos al recibir el 403 de la API.
+	canManageRoles: boolean;
+	canWrite: boolean;
+	canChangePassword: boolean;
+	canDelete: boolean;
 }): DataTableColumn<Employee>[] {
 	return [
 		{
@@ -108,19 +120,27 @@ export function getEmployeeColumns({
 						icon: Eye,
 						onSelect: () => onView(employee),
 					},
-					{
-						label: "Editar",
-						icon: Pencil,
-						onSelect: () => onEdit(employee),
-					},
+					...(canWrite
+						? [
+								{
+									label: "Editar",
+									icon: Pencil,
+									onSelect: () => onEdit(employee),
+								} satisfies RowAction,
+							]
+						: []),
 					// Acciones sobre la cuenta de usuario enlazada.
-					...(hasAccount
+					...(hasAccount && canManageRoles
 						? [
 								{
 									label: "Gestionar roles",
 									icon: KeyRound,
 									onSelect: () => onManageRoles(employee),
 								} satisfies RowAction,
+							]
+						: []),
+					...(hasAccount && canChangePassword
+						? [
 								{
 									label: "Cambiar contraseña",
 									icon: Lock,
@@ -137,17 +157,25 @@ export function getEmployeeColumns({
 								} satisfies RowAction,
 							]
 						: []),
-					{
-						label: employee.active ? "Desactivar" : "Activar",
-						icon: employee.active ? PowerOff : Power,
-						onSelect: () => onToggleActive(employee),
-					},
-					{
-						label: "Eliminar",
-						icon: Trash2,
-						destructive: true,
-						onSelect: () => onDelete(employee),
-					},
+					...(canWrite
+						? [
+								{
+									label: employee.active ? "Desactivar" : "Activar",
+									icon: employee.active ? PowerOff : Power,
+									onSelect: () => onToggleActive(employee),
+								} satisfies RowAction,
+							]
+						: []),
+					...(canDelete
+						? [
+								{
+									label: "Eliminar",
+									icon: Trash2,
+									destructive: true,
+									onSelect: () => onDelete(employee),
+								} satisfies RowAction,
+							]
+						: []),
 				];
 				return <DataTableRowActions actions={actions} />;
 			},
