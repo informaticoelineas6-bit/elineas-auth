@@ -4,11 +4,19 @@ import { NAV_ITEMS } from "../shared/navigation.ts";
 
 // Lista de enlaces de sección, reutilizada en la barra de escritorio y en la
 // fila desplazable de móvil. El estado activo se pinta con data-[status=active]
-// que TanStack Router añade al enlace de la ruta actual.
-export function NavLinks({ className }: { className?: string }) {
+// que TanStack Router añade al enlace de la ruta actual. `items` viene ya
+// filtrado por permisos (ver `visibleNavItems` en shared/navigation.ts); por
+// defecto es la lista completa, para quien no necesite filtrar.
+export function NavLinks({
+	className,
+	items = NAV_ITEMS,
+}: {
+	className?: string;
+	items?: readonly (typeof NAV_ITEMS)[number][];
+}) {
 	return (
 		<>
-			{NAV_ITEMS.map((item) => (
+			{items.map((item) => (
 				<Link
 					key={item.to}
 					to={item.to}

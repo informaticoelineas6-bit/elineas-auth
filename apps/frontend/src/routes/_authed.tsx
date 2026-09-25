@@ -21,7 +21,12 @@ export const Route = createFileRoute("/_authed")({
 		if (!ctx.session) {
 			throw redirect({ to: "/", search: { redirect: location.href } });
 		}
-		return { session: ctx.session, roles: ctx.roles, isAdmin: ctx.isAdmin };
+		return {
+			session: ctx.session,
+			roles: ctx.roles,
+			permissions: ctx.permissions,
+			isAdmin: ctx.isAdmin,
+		};
 	},
 	pendingComponent: AdminShellSkeleton,
 	errorComponent: AdminRolesError,
@@ -29,14 +34,18 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
-	const { session, isAdmin } = Route.useRouteContext();
+	const { session, isAdmin, permissions } = Route.useRouteContext();
 	// Clave para reiniciar el boundary de sección al navegar (un error de una
 	// sección no debe quedar "pegado" al cambiar de ruta).
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
 
-	// Autenticado pero sin rol admin: "Sin permisos" reutilizable (no se redirige,
-	// para no entrar en bucle con el guard del login).
-	if (!isAdmin) return <ForbiddenScreen />;
+	// Autenticado pero sin rol admin NI ningún permiso delegado (employees,
+	// sessions, ...): "Sin permisos" reutilizable (no se redirige, para no
+	// entrar en bucle con el guard del login). Un usuario CON algún permiso
+	// entra igual: verá solo las secciones habilitadas (ver navigation.ts) y
+	// las que no pueda tocar responden 403, ya manejado por cada página
+	// (ver ForbiddenState).
+	if (!isAdmin && permissions.length === 0) return <ForbiddenScreen />;
 
 	return (
 		<div className="relative min-h-screen bg-background text-foreground">
@@ -47,7 +56,11 @@ function AuthedLayout() {
 			    su máscara radial ya la desvanece antes de llegar al borde. */}
 			<div className="pointer-events-none absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-size-[36px_36px] opacity-40 mask-[radial-gradient(ellipse_at_top,black,transparent_65%)]" />
 
-			<AdminHeader session={session} />
+			<AdminHeader
+				session={session}
+				isAdmin={isAdmin}
+				permissions={permissions}
+			/>
 
 			<main className="relative z-10 mx-auto w-full md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 py-8">
 				{/* Boundary por sección: un error de una página se contiene aquí sin

@@ -19,6 +19,8 @@ import { PageHeader } from "@/modules/common/components/partials/page-header.tsx
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
+import { canAccessResource } from "@/modules/permissions/lib/access.ts";
+import type { MyPermission } from "@/modules/permissions/shared/types.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import { userRolesQueries } from "@/modules/user-roles/queries/user-roles.ts";
@@ -38,18 +40,32 @@ export const Route = createFileRoute("/_authed/dashboard")({
 	// cursor y en SSR viajan con la página, evitando el waterfall montaje→fetch.
 	// prefetchQuery (no ensureQueryData) no lanza en error: cada tarjeta sigue
 	// gestionando su propio estado de carga/error.
-	loader: ({ context: { queryClient } }) =>
-		Promise.all([
-			queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
-			queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
-			queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
-			queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
-		]),
+	// Solo se prefetchea lo que el usuario puede realmente ver: para un rol
+	// delegado (rrhh, ...) sin permiso sobre systems/roles/user-roles, pedirlos
+	// solo generaría 403 de sobra (el IS ya los rechaza, ver requireAdmin en
+	// esos endpoints).
+	loader: ({ context: { queryClient, isAdmin, permissions } }) => {
+		const access = { isAdmin, permissions };
+		return Promise.all([
+			canAccessResource("employees", access) &&
+				queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
+			canAccessResource(undefined, access) &&
+				queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
+			canAccessResource(undefined, access) &&
+				queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
+			canAccessResource(undefined, access) &&
+				queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
+		]);
+	},
 	component: Dashboard,
 });
 
 function Dashboard() {
-	const { session } = Route.useRouteContext();
+	const { session, isAdmin, permissions } = Route.useRouteContext();
+	const access: { isAdmin: boolean; permissions: MyPermission[] } = {
+		isAdmin,
+		permissions,
+	};
 
 	// Contadores en vivo a partir del `total` de paginación (limit=1 para no
 	// traer filas). Cada tarjeta gestiona su propia carga/error sin bloquear.
@@ -70,26 +86,62 @@ function Dashboard() {
 		select: (data) => data.pagination.total,
 	});
 
+	// `resource: undefined` = admin-only (mismo criterio que navigation.ts);
+	// sin `resource` en el objeto de filtro = siempre visible (perfil, docs).
 	const stats = [
-		{ to: "/employees", label: "Usuarios", icon: Users, query: employees },
-		{ to: "/systems", label: "Sistemas", icon: Boxes, query: systems },
-		{ to: "/roles", label: "Roles", icon: ShieldCheck, query: roles },
+		{
+			to: "/employees",
+			label: "Usuarios",
+			icon: Users,
+			query: employees,
+			resource: "employees",
+		},
+		{
+			to: "/systems",
+			label: "Sistemas",
+			icon: Boxes,
+			query: systems,
+			resource: undefined,
+		},
+		{
+			to: "/roles",
+			label: "Roles",
+			icon: ShieldCheck,
+			query: roles,
+			resource: undefined,
+		},
 		{
 			to: "/user-roles",
 			label: "Asignaciones",
 			icon: UserCog,
 			query: userRoles,
+			resource: undefined,
 		},
-	] as const;
+	].filter((stat) => canAccessResource(stat.resource, access));
 
 	// Atajos de creación: el destino habitual tras revisar el Resumen es dar de
 	// alta algo. Separados de "Accesos rápidos" (navegación) porque son
 	// acciones, no vistas.
 	const quickActions = [
-		{ to: "/employees/new", label: "Nuevo usuario", icon: UserPlus },
-		{ to: "/systems/new", label: "Nuevo sistema", icon: Boxes },
-		{ to: "/roles/new", label: "Nuevo rol", icon: ShieldPlus },
-	] as const;
+		{
+			to: "/employees/new",
+			label: "Nuevo usuario",
+			icon: UserPlus,
+			resource: "employees",
+		},
+		{
+			to: "/systems/new",
+			label: "Nuevo sistema",
+			icon: Boxes,
+			resource: undefined,
+		},
+		{
+			to: "/roles/new",
+			label: "Nuevo rol",
+			icon: ShieldPlus,
+			resource: undefined,
+		},
+	].filter((action) => canAccessResource(action.resource, access));
 
 	const quickLinks = [
 		{
@@ -98,20 +150,26 @@ function Dashboard() {
 			description:
 				"Revisa y revoca las sesiones activas de todos los usuarios.",
 			icon: MonitorSmartphone,
+			resource: "sessions",
 		},
 		{
 			to: "/profile",
 			label: "Mi perfil",
 			description: "Edita tus datos, contraseña y correo.",
 			icon: CircleUser,
+			resource: null,
 		},
 		{
 			to: "/docs",
 			label: "Documentación",
 			description: "Cómo integrar un nuevo backend con Elineas.",
 			icon: BookOpen,
+			resource: undefined,
 		},
-	] as const;
+	].filter(
+		(link) =>
+			link.resource === null || canAccessResource(link.resource, access),
+	);
 
 	const firstName = (session.name ?? session.email ?? "").split(/\s+/)[0];
 
@@ -214,41 +272,45 @@ function Dashboard() {
 				</div>
 			</section>
 
-			<section className="space-y-3">
-				<h2 className="text-sm font-medium text-muted-foreground">
-					Conectar un nuevo backend
-				</h2>
-				<div className="rounded-2xl border border-border bg-card p-5">
-					<ol className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-						<li className="flex items-start gap-3">
-							<Layers className="mt-0.5 size-4 shrink-0 text-primary" />
-							<span className="text-sm text-muted-foreground">
-								Registra el sistema y sus roles.
-							</span>
-						</li>
-						<li className="flex items-start gap-3">
-							<KeyRound className="mt-0.5 size-4 shrink-0 text-primary" />
-							<span className="text-sm text-muted-foreground">
-								Haz login contra /api/auth/sign-in y verifica el JWT con el JWKS
-								del IS.
-							</span>
-						</li>
-						<li className="flex items-start gap-3">
-							<ShieldQuestion className="mt-0.5 size-4 shrink-0 text-primary" />
-							<span className="text-sm text-muted-foreground">
-								Autoriza consultando /api/user-roles/me.
-							</span>
-						</li>
-					</ol>
-					<Link
-						to="/docs"
-						className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
-					>
-						Ver la guía completa con ejemplos por stack
-						<ArrowRight className="size-3.5" />
-					</Link>
-				</div>
-			</section>
+			{/* Onboarding de sistemas consumidores: solo relevante para admin (quien
+			    de hecho puede registrar sistemas y roles). */}
+			{isAdmin && (
+				<section className="space-y-3">
+					<h2 className="text-sm font-medium text-muted-foreground">
+						Conectar un nuevo backend
+					</h2>
+					<div className="rounded-2xl border border-border bg-card p-5">
+						<ol className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+							<li className="flex items-start gap-3">
+								<Layers className="mt-0.5 size-4 shrink-0 text-primary" />
+								<span className="text-sm text-muted-foreground">
+									Registra el sistema y sus roles.
+								</span>
+							</li>
+							<li className="flex items-start gap-3">
+								<KeyRound className="mt-0.5 size-4 shrink-0 text-primary" />
+								<span className="text-sm text-muted-foreground">
+									Haz login contra /api/auth/sign-in y verifica el JWT con el
+									JWKS del IS.
+								</span>
+							</li>
+							<li className="flex items-start gap-3">
+								<ShieldQuestion className="mt-0.5 size-4 shrink-0 text-primary" />
+								<span className="text-sm text-muted-foreground">
+									Autoriza consultando /api/user-roles/me.
+								</span>
+							</li>
+						</ol>
+						<Link
+							to="/docs"
+							className="mt-4 inline-flex items-center gap-1 text-sm font-medium text-primary underline-offset-4 hover:underline"
+						>
+							Ver la guía completa con ejemplos por stack
+							<ArrowRight className="size-3.5" />
+						</Link>
+					</div>
+				</section>
+			)}
 		</div>
 	);
 }

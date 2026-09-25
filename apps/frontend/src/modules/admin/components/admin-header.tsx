@@ -9,13 +9,23 @@ import {
 	DropdownMenuTrigger,
 } from "@/modules/common/components/ui/dropdown-menu.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
+import type { MyPermission } from "@/modules/permissions/shared/types.ts";
 import { useScrolled } from "../lib/use-scrolled.ts";
-import { NAV_ITEMS } from "../shared/navigation.ts";
+import { visibleNavItems } from "../shared/navigation.ts";
 import { NavLinks } from "./nav-links.tsx";
 import { UserMenu } from "./user-menu.tsx";
 
-export function AdminHeader({ session }: { session: AuthSession }) {
+export function AdminHeader({
+	session,
+	isAdmin,
+	permissions,
+}: {
+	session: AuthSession;
+	isAdmin: boolean;
+	permissions: MyPermission[];
+}) {
 	const scrolled = useScrolled();
+	const navItems = visibleNavItems({ isAdmin, permissions });
 
 	return (
 		// El padding del <header> (0 en el top) es lo que separa la barra de los
@@ -48,7 +58,7 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 				</Link>
 
 				<nav className="ml-2 hidden min-w-0 items-center gap-1 overflow-x-auto lg:flex">
-					<NavLinks />
+					<NavLinks items={navItems} />
 				</nav>
 
 				<div className="ml-auto flex items-center gap-2">
@@ -67,7 +77,7 @@ export function AdminHeader({ session }: { session: AuthSession }) {
 							</Button>
 						</DropdownMenuTrigger>
 						<DropdownMenuContent align="end" className="w-56 p-2">
-							{NAV_ITEMS.map((item) => (
+							{navItems.map((item) => (
 								<DropdownMenuItem key={item.to} asChild>
 									<Link
 										to={item.to}
