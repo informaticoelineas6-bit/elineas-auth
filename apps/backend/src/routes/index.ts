@@ -1,13 +1,17 @@
-import type { OpenAPIHono } from "@hono/zod-openapi";
 import { authRoutes } from "@backend/routes/auth.routes.ts";
-import { usersAdminRoutes, usersRoutes } from "@backend/routes/users.routes.ts";
-import { sessionsAdminRoutes, sessionsRoutes } from "@backend/routes/sessions.routes.ts";
 import { employeesRoutes } from "@backend/routes/employees.routes.ts";
-import { systemsRoutes } from "@backend/routes/systems.routes.ts";
-import { rolesRoutes } from "@backend/routes/roles.routes.ts";
-import { userRolesRoutes } from "@backend/routes/user-roles.routes.ts";
+import { permissionsRoutes } from "@backend/routes/permissions.routes.ts";
 import { requestLogsRoutes } from "@backend/routes/request-logs.routes.ts";
+import { rolesRoutes } from "@backend/routes/roles.routes.ts";
+import {
+  sessionsAdminRoutes,
+  sessionsRoutes,
+} from "@backend/routes/sessions.routes.ts";
+import { systemsRoutes } from "@backend/routes/systems.routes.ts";
+import { userRolesRoutes } from "@backend/routes/user-roles.routes.ts";
+import { usersAdminRoutes, usersRoutes } from "@backend/routes/users.routes.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
+import type { OpenAPIHono } from "@hono/zod-openapi";
 
 // Tabla de montaje de la API: cada familia de endpoints bajo su prefijo. Es el
 // único sitio que hay que tocar para añadir o quitar un grupo de rutas, de modo
@@ -28,5 +32,6 @@ export function registerRoutes(app: OpenAPIHono<AppEnv>) {
     .route("/api/systems", systemsRoutes)
     .route("/api/roles", rolesRoutes)
     .route("/api/user-roles", userRolesRoutes)
-    .route("/api/request-logs", requestLogsRoutes);
+    .route("/api/request-logs", requestLogsRoutes)
+    .route("/api/permissions", permissionsRoutes);
 }

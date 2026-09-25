@@ -1,15 +1,19 @@
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { paginationMeta } from "@backend/lib/pagination.ts";
+import { requirePermission } from "@backend/middleware/permission.ts";
 import { requireSession } from "@backend/middleware/session.ts";
-import { requireAdmin } from "@backend/middleware/admin.ts";
-import type { AppEnv } from "@backend/types/hono-env.ts";
 import { PaginationSchema } from "@backend/openapi/business.schemas.ts";
 import {
   RequestLogListQuerySchema,
   RequestLogSchema,
 } from "@backend/openapi/logs.schemas.ts";
-import { paginationMeta } from "@backend/lib/pagination.ts";
-import { bearerAuthSecurity, forbiddenResponse, unauthorizedResponse } from "@backend/openapi/schemas.ts";
+import {
+  bearerAuthSecurity,
+  forbiddenResponse,
+  unauthorizedResponse,
+} from "@backend/openapi/schemas.ts";
 import { listRequestLogs } from "@backend/services/request-log.service.ts";
+import type { AppEnv } from "@backend/types/hono-env.ts";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 const listRoute = createRoute({
   method: "get",
@@ -19,6 +23,10 @@ const listRoute = createRoute({
   summary:
     "Listar logs de peticiones (paginado; filtrable por fecha, usuario, status, método y path)",
   security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("request-logs", "read"),
+  ] as const,
   request: { query: RequestLogListQuerySchema },
   responses: {
     200: {
@@ -37,12 +45,11 @@ const listRoute = createRoute({
   },
 });
 
-// Solo admin (mismo patrón que systems.routes.ts): requireSession puebla el user
-// y requireAdmin comprueba el rol. Se registran sobre la instancia base para no
-// romper la inferencia de tipos del cliente RPC.
+// Requiere el permiso "request-logs:read" (o el rol admin, comodín): permite
+// delegar auditoría de seguridad a un rol de solo lectura sin darle privilegios
+// de administrador. Declarado por ruta (ver nota en employees.routes.ts sobre
+// por qué no se usa `.use("*", ...)` sobre la base).
 const requestLogsRoutesBase = new OpenAPIHono<AppEnv>();
-requestLogsRoutesBase.use("*", requireSession);
-requestLogsRoutesBase.use("*", requireAdmin);
 
 export const requestLogsRoutes = requestLogsRoutesBase.openapi(
   listRoute,

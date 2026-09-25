@@ -1,7 +1,6 @@
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { paginationMeta } from "@backend/lib/pagination.ts";
+import { requirePermission } from "@backend/middleware/permission.ts";
 import { requireSession } from "@backend/middleware/session.ts";
-import { requireAdmin } from "@backend/middleware/admin.ts";
-import type { AppEnv } from "@backend/types/hono-env.ts";
 import {
   CreateEmployeeBodySchema,
   EmployeeListQuerySchema,
@@ -10,16 +9,15 @@ import {
   PaginationSchema,
   UpdateEmployeeBodySchema,
 } from "@backend/openapi/business.schemas.ts";
-import { paginationMeta } from "@backend/lib/pagination.ts";
 import {
-  CreateEmployeeWithUserBodySchema,
-  EmployeeWithUserResultSchema,
-  StatusResponseSchema,
   badRequestResponse,
   bearerAuthSecurity,
+  CreateEmployeeWithUserBodySchema,
   conflictResponse,
+  EmployeeWithUserResultSchema,
   forbiddenResponse,
   notFoundResponse,
+  StatusResponseSchema,
   serviceUnavailableResponse,
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
@@ -31,6 +29,8 @@ import {
   listEmployees,
   updateEmployee,
 } from "@backend/services/employee.service.ts";
+import type { AppEnv } from "@backend/types/hono-env.ts";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 const listRoute = createRoute({
   method: "get",
@@ -39,6 +39,7 @@ const listRoute = createRoute({
   tags: ["Employees"],
   summary: "Listar empleados (paginado, filtrable por estado y búsqueda)",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("employees", "read")] as const,
   request: { query: EmployeeListQuerySchema },
   responses: {
     200: {
@@ -64,6 +65,7 @@ const getRoute = createRoute({
   tags: ["Employees"],
   summary: "Obtener un empleado por id",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("employees", "read")] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -85,8 +87,14 @@ const createRouteDef = createRoute({
   tags: ["Employees"],
   summary: "Crear un empleado",
   security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("employees", "write"),
+  ] as const,
   request: {
-    body: { content: { "application/json": { schema: CreateEmployeeBodySchema } } },
+    body: {
+      content: { "application/json": { schema: CreateEmployeeBodySchema } },
+    },
   },
   responses: {
     201: {
@@ -112,6 +120,10 @@ const createWithUserRoute = createRoute({
     "Acepta además un `tkc` opcional con las credenciales del sistema externo, " +
     "que quedan enlazadas al usuario recién creado.",
   security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("employees", "write"),
+  ] as const,
   request: {
     body: {
       content: {
@@ -145,9 +157,15 @@ const updateRoute = createRoute({
   tags: ["Employees"],
   summary: "Actualizar un empleado",
   security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("employees", "write"),
+  ] as const,
   request: {
     params: IdParamSchema,
-    body: { content: { "application/json": { schema: UpdateEmployeeBodySchema } } },
+    body: {
+      content: { "application/json": { schema: UpdateEmployeeBodySchema } },
+    },
   },
   responses: {
     200: {
@@ -173,6 +191,10 @@ const deleteRoute = createRoute({
   description:
     "Elimina el empleado y, si tiene una cuenta de usuario enlazada, también esa cuenta con sus roles y sesiones. No se puede eliminar el empleado ligado a la cuenta que hace la llamada (409).",
   security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("employees", "delete"),
+  ] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -186,17 +208,14 @@ const deleteRoute = createRoute({
   },
 });
 
-// Todo el recurso (lecturas y escrituras) requiere rol admin: los clientes
-// normales solo pueden iniciar sesión, consultar el estado de su sesión y su
-// propio usuario. requireAdmin se apoya en el user que puebla requireSession,
-// por eso este último se registra primero.
-// El middleware se registra sobre la instancia base (no dentro de la cadena):
-// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
-// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
-// orden de ejecución en runtime es el mismo (middleware primero).
+// Autenticación/autorización declarada por ruta (en el `middleware` de cada
+// createRoute, no con un `.use("*")` sobre la base: OpenAPIHono.use() devuelve
+// un `Hono` base sin `.openapi`, que cortaría la inferencia de tipos del RPC).
+// Cada acción exige el permiso granular correspondiente ("employees:read" /
+// "employees:write" / "employees:delete"), no directamente el rol admin: así
+// un rol como "rrhh" puede gestionar empleados sin ser administrador del IS.
+// El rol admin sigue pasando siempre (comodín, ver middleware/permission.ts).
 const employeesRoutesBase = new OpenAPIHono<AppEnv>();
-employeesRoutesBase.use("*", requireSession);
-employeesRoutesBase.use("*", requireAdmin);
 
 export const employeesRoutes = employeesRoutesBase
   .openapi(listRoute, async (c) => {

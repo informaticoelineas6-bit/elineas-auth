@@ -1,4 +1,5 @@
-import { requireAdmin } from "@backend/middleware/admin.ts";
+import { HttpError } from "@backend/lib/http.ts";
+import { requirePermission } from "@backend/middleware/permission.ts";
 import { requireSession } from "@backend/middleware/session.ts";
 import { IdParamSchema } from "@backend/openapi/business.schemas.ts";
 import {
@@ -13,8 +14,8 @@ import {
   conflictResponse,
   forbiddenResponse,
   notFoundResponse,
-  serviceUnavailableResponse,
   StatusResponseSchema,
+  serviceUnavailableResponse,
   TkcCredentialsBodySchema,
   TkcKeySummaryResponseSchema,
   UpdateUserBodySchema,
@@ -22,19 +23,18 @@ import {
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
+  getUserTkcKeySummary,
+  removeUserTkcCredentials,
+  setUserTkcCredentials,
+} from "@backend/services/tkc-key.service.ts";
+import {
   adminChangeUserPassword,
   changeEmailFn,
   changePasswordFn,
   getMeFn,
   updateMeFn,
 } from "@backend/services/user.service.ts";
-import {
-  getUserTkcKeySummary,
-  removeUserTkcCredentials,
-  setUserTkcCredentials,
-} from "@backend/services/tkc-key.service.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
-import { HttpError } from "@backend/lib/http.ts";
 import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 const getMeRoute = createRoute({
@@ -157,6 +157,7 @@ const adminChangePasswordRoute = createRoute({
     "SU propia contraseña; la del usuario objetivo no se necesita. Por defecto " +
     "cierra todas las sesiones de ese usuario.",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("users", "write")] as const,
   request: {
     params: IdParamSchema,
     body: {
@@ -193,11 +194,13 @@ const getTkcRoute = createRoute({
   path: "/{id}/tkc",
   operationId: "getUserTkcKey",
   tags: ["Users"],
-  summary: "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)",
+  summary:
+    "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)",
   description:
     "Devuelve el usuario de TKC enlazado, SIN su contraseña. La contraseña " +
     "solo se entrega a su propio dueño al iniciar sesión.",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("tkc", "read")] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -224,6 +227,7 @@ const setTkcRoute = createRoute({
     "Responde 409 si ese usuario de TKC ya está enlazado a otra persona: una " +
     "cuenta del sistema externo pertenece a una sola.",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("tkc", "write")] as const,
   request: {
     params: IdParamSchema,
     body: {
@@ -253,6 +257,7 @@ const deleteTkcRoute = createRoute({
   tags: ["Users"],
   summary: "Desvincular las credenciales de TKC de un usuario (requiere admin)",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("tkc", "delete")] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -265,9 +270,12 @@ const deleteTkcRoute = createRoute({
   },
 });
 
+// Permisos granulares por ruta ("users:write" / "tkc:read" / "tkc:write" /
+// "tkc:delete"; el rol admin siempre pasa, comodín). Las credenciales TKC
+// quedan en su propio recurso "tkc", separado de "users:write", porque son
+// especialmente sensibles (ver comentario sobre tkcKey en business-schema.ts)
+// y conviene poder delegarlas a un rol aparte sin tocar contraseñas de login.
 const usersAdminRoutesBase = new OpenAPIHono<AppEnv>();
-usersAdminRoutesBase.use("*", requireSession);
-usersAdminRoutesBase.use("*", requireAdmin);
 
 export const usersAdminRoutes = usersAdminRoutesBase
   .openapi(adminChangePasswordRoute, async (c) => {

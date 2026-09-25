@@ -1,13 +1,13 @@
+import { session, user } from "@backend/db/auth-schema.ts";
 import {
+  boolean,
+  index,
   pgTable,
   text,
   timestamp,
-  boolean,
-  index,
   uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
-import { user, session } from "@backend/db/auth-schema.ts";
 
 // Igual que en auth-schema.ts: PKs uuid v4 con DEFAULT gen_random_uuid() en la
 // propia BD (`defaultRandom()`), no `$defaultFn(() => crypto.randomUUID())`. La
@@ -100,6 +100,55 @@ export const userRole = pgTable(
     index("userRole_userId_idx").on(table.userId),
     index("userRole_roleId_idx").on(table.roleId),
     uniqueIndex("userRole_userId_roleId_uidx").on(table.userId, table.roleId),
+  ],
+);
+
+// Catálogo global de permisos: cada fila es una capacidad puntual sobre un
+// recurso de la API de este IS ("employees", "sessions", ...), expresada
+// como acción concreta ("read"/"write"/"delete"). No pertenece a ningún
+// `system`: es el mismo catálogo para toda la organización, y son los roles
+// (que sí pertenecen a un sistema) los que deciden, vía `role_permission`,
+// qué permisos llevan.
+export const permission = pgTable(
+  "permission",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    resource: text("resource").notNull(),
+    action: text("action").notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("permission_resource_action_uidx").on(
+      table.resource,
+      table.action,
+    ),
+  ],
+);
+
+// Tabla puente rol ↔ permiso: qué puede hacer cada rol. El rol admin del
+// sistema `auth` (env.ADMIN_ROLE_NAME) no necesita filas aquí: se trata como
+// comodín en `requirePermission` (ver middleware/permission.ts). Cualquier
+// otro rol solo tiene las capacidades que se le asignen explícitamente aquí.
+export const rolePermission = pgTable(
+  "role_permission",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    roleId: uuid("role_id")
+      .notNull()
+      .references(() => role.id, { onDelete: "cascade" }),
+    permissionId: uuid("permission_id")
+      .notNull()
+      .references(() => permission.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("rolePermission_roleId_idx").on(table.roleId),
+    index("rolePermission_permissionId_idx").on(table.permissionId),
+    uniqueIndex("rolePermission_roleId_permissionId_uidx").on(
+      table.roleId,
+      table.permissionId,
+    ),
   ],
 );
 

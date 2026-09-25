@@ -30,10 +30,15 @@ export const IdParamSchema = z.object({
 // un cliente no pueda pedir toda la tabla de una vez. z.coerce convierte el
 // string del query a número; los valores por defecto se aplican si se omiten.
 export const PaginationQuerySchema = z.object({
-  page: z.coerce.number().int().min(1).default(1).openapi({
-    param: { name: "page", in: "query", required: false },
-    example: 1,
-  }),
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1)
+    .openapi({
+      param: { name: "page", in: "query", required: false },
+      example: 1,
+    }),
   limit: z.coerce
     .number()
     .int()
@@ -107,14 +112,16 @@ export const CreateEmployeeBodySchema = z
   })
   .openapi("CreateEmployeeBody");
 
-export const UpdateEmployeeBodySchema = CreateEmployeeBodySchema.partial().openapi(
-  "UpdateEmployeeBody",
-);
+export const UpdateEmployeeBodySchema =
+  CreateEmployeeBodySchema.partial().openapi("UpdateEmployeeBody");
 
 export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
-  active: z.enum(["true", "false"]).optional().openapi({
-    param: { name: "active", in: "query", required: false },
-  }),
+  active: z
+    .enum(["true", "false"])
+    .optional()
+    .openapi({
+      param: { name: "active", in: "query", required: false },
+    }),
   // Búsqueda libre por nombre, apellido, CI o email del usuario enlazado
   // (coincidencia parcial, sin distinguir mayúsculas).
   search: SearchTerm.optional().openapi({
@@ -149,14 +156,16 @@ export const CreateSystemBodySchema = z
   })
   .openapi("CreateSystemBody");
 
-export const UpdateSystemBodySchema = CreateSystemBodySchema.partial().openapi(
-  "UpdateSystemBody",
-);
+export const UpdateSystemBodySchema =
+  CreateSystemBodySchema.partial().openapi("UpdateSystemBody");
 
 export const SystemListQuerySchema = PaginationQuerySchema.extend({
-  active: z.enum(["true", "false"]).optional().openapi({
-    param: { name: "active", in: "query", required: false },
-  }),
+  active: z
+    .enum(["true", "false"])
+    .optional()
+    .openapi({
+      param: { name: "active", in: "query", required: false },
+    }),
   // Búsqueda libre por nombre o slug (coincidencia parcial, sin distinguir
   // mayúsculas).
   search: SearchTerm.optional().openapi({
@@ -181,7 +190,9 @@ export const RoleSchema = z
 
 export const CreateRoleBodySchema = z
   .object({
-    systemId: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
+    systemId: z
+      .uuid()
+      .openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
     name: DisplayName.openapi({ example: "admin" }),
     description: Description.optional(),
   })
@@ -195,9 +206,12 @@ export const UpdateRoleBodySchema = z
   .openapi("UpdateRoleBody");
 
 export const RoleListQuerySchema = PaginationQuerySchema.extend({
-  systemId: z.uuid().optional().openapi({
-    param: { name: "systemId", in: "query", required: false },
-  }),
+  systemId: z
+    .uuid()
+    .optional()
+    .openapi({
+      param: { name: "systemId", in: "query", required: false },
+    }),
   // Búsqueda libre por nombre del rol (coincidencia parcial, sin distinguir
   // mayúsculas).
   search: SearchTerm.optional().openapi({
@@ -205,6 +219,43 @@ export const RoleListQuerySchema = PaginationQuerySchema.extend({
     example: "admin",
   }),
 });
+
+// ---------------------------------------------------------------------------
+// Permission (catálogo) / RolePermission (asignación de permiso a rol)
+// ---------------------------------------------------------------------------
+export const PermissionSchema = z
+  .object({
+    id: z.uuid(),
+    resource: z.string().openapi({ example: "employees" }),
+    action: z.string().openapi({ example: "read" }),
+    description: z.string().nullable(),
+    createdAt: z.date(),
+  })
+  .openapi("Permission");
+
+export const RolePermissionSchema = z
+  .object({
+    id: z.uuid(),
+    resource: z.string().openapi({ example: "employees" }),
+    action: z.string().openapi({ example: "read" }),
+    description: z.string().nullable(),
+  })
+  .openapi("RolePermission");
+
+export const MyPermissionSchema = z
+  .object({
+    resource: z.string().openapi({ example: "employees" }),
+    action: z.string().openapi({ example: "read" }),
+  })
+  .openapi("MyPermission");
+
+export const SetRolePermissionsBodySchema = z
+  .object({
+    permissionIds: z
+      .array(z.uuid())
+      .openapi({ example: ["9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"] }),
+  })
+  .openapi("SetRolePermissionsBody");
 
 // ---------------------------------------------------------------------------
 // UserRole (asignación de rol a usuario)
@@ -220,21 +271,34 @@ export const UserRoleSchema = z
 
 export const CreateUserRoleBodySchema = z
   .object({
-    userId: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
-    roleId: z.uuid().openapi({ example: "3c1d2e4f-5a8b-4c0d-9e2f-3a4b5c6d7e8f" }),
+    userId: z
+      .uuid()
+      .openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
+    roleId: z
+      .uuid()
+      .openapi({ example: "3c1d2e4f-5a8b-4c0d-9e2f-3a4b5c6d7e8f" }),
   })
   .openapi("CreateUserRoleBody");
 
 export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
-  userId: z.uuid().optional().openapi({
-    param: { name: "userId", in: "query", required: false },
-  }),
-  roleId: z.uuid().optional().openapi({
-    param: { name: "roleId", in: "query", required: false },
-  }),
-  systemId: z.uuid().optional().openapi({
-    param: { name: "systemId", in: "query", required: false },
-  }),
+  userId: z
+    .uuid()
+    .optional()
+    .openapi({
+      param: { name: "userId", in: "query", required: false },
+    }),
+  roleId: z
+    .uuid()
+    .optional()
+    .openapi({
+      param: { name: "roleId", in: "query", required: false },
+    }),
+  systemId: z
+    .uuid()
+    .optional()
+    .openapi({
+      param: { name: "systemId", in: "query", required: false },
+    }),
 });
 
 // ---------------------------------------------------------------------------
@@ -249,9 +313,12 @@ export const SessionListQuerySchema = PaginationQuerySchema.extend({
   }),
   // Sin indicar, se listan todas las sesiones (activas y expiradas). "true"
   // acota a las que aún no expiraron, "false" a las ya expiradas.
-  active: z.enum(["true", "false"]).optional().openapi({
-    param: { name: "active", in: "query", required: false },
-  }),
+  active: z
+    .enum(["true", "false"])
+    .optional()
+    .openapi({
+      param: { name: "active", in: "query", required: false },
+    }),
 });
 
 // Rol propio (vista de solo lectura para el usuario autenticado, no un admin):
@@ -271,7 +338,10 @@ export const MyUserRoleSchema = z
   .openapi("MyUserRole");
 
 export const MyUserRolesQuerySchema = z.object({
-  systemSlug: z.string().optional().openapi({
-    param: { name: "systemSlug", in: "query" },
-  }),
+  systemSlug: z
+    .string()
+    .optional()
+    .openapi({
+      param: { name: "systemSlug", in: "query" },
+    }),
 });

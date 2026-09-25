@@ -16,12 +16,20 @@
 //   ADMIN_EMPLOYEE_NAME=... ADMIN_EMPLOYEE_LASTNAME=... ADMIN_EMPLOYEE_CI=...
 //
 // Es idempotente: puede ejecutarse varias veces sin duplicar datos.
-import { and, eq } from "drizzle-orm";
-import { db } from "@backend/db/index.ts";
-import { employee, role, system, userRole } from "@backend/db/business-schema.ts";
-import { user } from "@backend/db/auth-schema.ts";
-import { auth } from "@backend/lib/auth.ts";
+
 import { env } from "@backend/config/env.ts";
+import { user } from "@backend/db/auth-schema.ts";
+import {
+  employee,
+  permission,
+  role,
+  rolePermission,
+  system,
+  userRole,
+} from "@backend/db/business-schema.ts";
+import { db } from "@backend/db/index.ts";
+import { auth } from "@backend/lib/auth.ts";
+import { and, eq } from "drizzle-orm";
 
 const email = process.argv[2] ?? process.env.ADMIN_EMAIL;
 
@@ -113,7 +121,9 @@ if (!adminEmployee) {
     .from(employee)
     .where(eq(employee.userId, targetUser.id))
     .limit(1);
-  console.log(`✔ Empleado administrador creado: ${adminEmployee.name} ${adminEmployee.lastName}`);
+  console.log(
+    `✔ Empleado administrador creado: ${adminEmployee.name} ${adminEmployee.lastName}`,
+  );
 }
 
 // 2) Sistema que representa a este identity server.
@@ -141,7 +151,9 @@ await db
 const [adminRole] = await db
   .select()
   .from(role)
-  .where(and(eq(role.systemId, adminSystem.id), eq(role.name, env.ADMIN_ROLE_NAME)))
+  .where(
+    and(eq(role.systemId, adminSystem.id), eq(role.name, env.ADMIN_ROLE_NAME)),
+  )
   .limit(1);
 
 // 4) Asignación del rol admin al usuario.
@@ -149,6 +161,142 @@ await db
   .insert(userRole)
   .values({ userId: targetUser.id, roleId: adminRole.id })
   .onConflictDoNothing();
+
+// 5) Catálogo de permisos (resource:action) sobre los recursos administrados
+// por este IS. No pertenece a ningún sistema: es el mismo catálogo para toda
+// la organización (ver comentario en business-schema.ts).
+const PERMISSION_CATALOG: Array<{
+  resource: string;
+  action: "read" | "write" | "delete";
+  description: string;
+}> = [
+  { resource: "employees", action: "read", description: "Ver empleados" },
+  {
+    resource: "employees",
+    action: "write",
+    description: "Crear/editar empleados (incluye alta con usuario)",
+  },
+  {
+    resource: "employees",
+    action: "delete",
+    description: "Eliminar empleados",
+  },
+  {
+    resource: "sessions",
+    action: "read",
+    description: "Ver sesiones de cualquier usuario",
+  },
+  {
+    resource: "sessions",
+    action: "write",
+    description: "Revocar sesiones de cualquier usuario",
+  },
+  {
+    resource: "users",
+    action: "write",
+    description: "Cambiar la contraseña de otro usuario",
+  },
+  {
+    resource: "tkc",
+    action: "read",
+    description: "Ver qué credencial de TKC tiene enlazada un usuario",
+  },
+  {
+    resource: "tkc",
+    action: "write",
+    description: "Fijar las credenciales de TKC de un usuario",
+  },
+  {
+    resource: "tkc",
+    action: "delete",
+    description: "Desvincular las credenciales de TKC de un usuario",
+  },
+  {
+    resource: "request-logs",
+    action: "read",
+    description: "Ver logs de peticiones (auditoría)",
+  },
+];
+
+await db.insert(permission).values(PERMISSION_CATALOG).onConflictDoNothing();
+
+const permissionRows = await db.select().from(permission);
+const permissionId = (resource: string, action: string) =>
+  permissionRows.find((p) => p.resource === resource && p.action === action)!
+    .id;
+
+// 6) Roles de ejemplo delegados (no admin), cada uno con un subconjunto de
+// permisos. Sirven de punto de partida: se pueden renombrar, borrar o
+// reconfigurar desde el panel (PUT /api/roles/:id/permissions) sin tocar
+// código. Ningún usuario queda asignado a ellos aquí: eso es una decisión de
+// negocio que toma un admin desde el panel.
+const EXAMPLE_ROLES: Array<{
+  name: string;
+  description: string;
+  permissions: Array<[string, string]>;
+}> = [
+  {
+    name: "rrhh",
+    description: "Gestiona el alta, baja y datos de los empleados",
+    permissions: [
+      ["employees", "read"],
+      ["employees", "write"],
+      ["employees", "delete"],
+    ],
+  },
+  {
+    name: "soporte",
+    description:
+      "Resuelve incidentes de acceso: ver y cerrar sesiones, resetear contraseñas",
+    permissions: [
+      ["sessions", "read"],
+      ["sessions", "write"],
+      ["users", "write"],
+    ],
+  },
+  {
+    name: "auditor-seguridad",
+    description:
+      "Solo lectura: logs de peticiones y sesiones activas, para auditoría",
+    permissions: [
+      ["request-logs", "read"],
+      ["sessions", "read"],
+    ],
+  },
+];
+
+for (const exampleRole of EXAMPLE_ROLES) {
+  await db
+    .insert(role)
+    .values({
+      systemId: adminSystem.id,
+      name: exampleRole.name,
+      description: exampleRole.description,
+    })
+    .onConflictDoNothing();
+
+  const [roleRow] = await db
+    .select()
+    .from(role)
+    .where(
+      and(eq(role.systemId, adminSystem.id), eq(role.name, exampleRole.name)),
+    )
+    .limit(1);
+
+  await db
+    .insert(rolePermission)
+    .values(
+      exampleRole.permissions.map(([resource, action]) => ({
+        roleId: roleRow.id,
+        permissionId: permissionId(resource, action),
+      })),
+    )
+    .onConflictDoNothing();
+
+  console.log(
+    `✔ Rol de ejemplo listo: ${roleRow.name} (${exampleRole.permissions.length} permisos)`,
+  );
+}
 
 console.log("✔ Seed completado:");
 console.log(`  sistema  ${adminSystem.slug} (${adminSystem.id})`);

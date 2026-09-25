@@ -1,20 +1,21 @@
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
+import { paginationMeta } from "@backend/lib/pagination.ts";
+import { requirePermission } from "@backend/middleware/permission.ts";
 import { requireSession } from "@backend/middleware/session.ts";
-import { requireAdmin } from "@backend/middleware/admin.ts";
-import type { AppEnv } from "@backend/types/hono-env.ts";
+import {
+  PaginationSchema,
+  SessionListQuerySchema,
+  SystemSchema,
+} from "@backend/openapi/business.schemas.ts";
 import {
   AdminSafeSessionSchema,
-  SafeSessionSchema,
-  StatusResponseSchema,
-  UserSchema,
   bearerAuthSecurity,
   forbiddenResponse,
   notFoundResponse,
+  SafeSessionSchema,
+  StatusResponseSchema,
+  UserSchema,
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
-import { PaginationSchema, SessionListQuerySchema } from "@backend/openapi/business.schemas.ts";
-import { SystemSchema } from "@backend/openapi/business.schemas.ts";
-import { paginationMeta } from "@backend/lib/pagination.ts";
 import {
   adminRevokeSession,
   getSessionFn,
@@ -24,6 +25,8 @@ import {
   revokeOneFn,
   revokeOthersFn,
 } from "@backend/services/session.service.ts";
+import type { AppEnv } from "@backend/types/hono-env.ts";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 const getSessionRoute = createRoute({
   method: "get",
@@ -149,6 +152,7 @@ const listAllSessionsRoute = createRoute({
   tags: ["Sessions"],
   summary: "Listar las sesiones de todos los usuarios (admin)",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("sessions", "read")] as const,
   request: { query: SessionListQuerySchema },
   responses: {
     200: {
@@ -175,6 +179,7 @@ const adminRevokeRoute = createRoute({
   tags: ["Sessions"],
   summary: "Revocar por id la sesión de cualquier usuario (admin)",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("sessions", "write")] as const,
   request: {
     body: {
       content: {
@@ -201,9 +206,10 @@ const adminRevokeRoute = createRoute({
   },
 });
 
+// Permisos granulares por ruta ("sessions:read" / "sessions:write"; el rol
+// admin siempre pasa, comodín): permite delegar soporte (ver/cerrar sesiones
+// ajenas) sin dar privilegios de administrador del IS.
 const sessionsAdminRoutesBase = new OpenAPIHono<AppEnv>();
-sessionsAdminRoutesBase.use("*", requireSession);
-sessionsAdminRoutesBase.use("*", requireAdmin);
 
 export const sessionsAdminRoutes = sessionsAdminRoutesBase
   .openapi(listAllSessionsRoute, async (c) => {
