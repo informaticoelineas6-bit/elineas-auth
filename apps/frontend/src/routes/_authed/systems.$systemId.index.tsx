@@ -198,20 +198,22 @@ function SystemDetail({ system }: { system: System }) {
 							/>
 							<DetailItem
 								label="URL"
+								className="sm:col-span-2"
 								value={
 									system.url && (
-										<span className="flex items-center gap-1">
+										<span className="flex min-w-0 items-center gap-1">
 											<a
 												href={system.url}
 												target="_blank"
 												rel="noreferrer"
-												className="text-primary underline-offset-2 hover:underline"
+												className="min-w-0 truncate text-primary underline-offset-2 hover:underline"
 											>
 												{system.url}
 											</a>
 											<CopyButton
 												value={system.url}
 												label={`Copiar URL "${system.url}"`}
+												className="shrink-0"
 											/>
 										</span>
 									)

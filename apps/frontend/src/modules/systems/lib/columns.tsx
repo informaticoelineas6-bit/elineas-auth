@@ -1,10 +1,24 @@
-import { Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Link as LinkIcon, Pencil, Trash2 } from "lucide-react";
+import { toast } from "sonner";
 import type { DataTableColumn } from "@/modules/common/components/data-table";
 import { DataTableRowActions } from "@/modules/common/components/data-table";
 import { CopyButton } from "@/modules/common/components/partials/copy-button.tsx";
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { formatDate } from "@/modules/common/lib/format.ts";
 import type { System } from "../shared/types.ts";
+
+// Copia la URL del sistema al portapapeles desde el menú de acciones (no hay
+// botón dedicado como CopyButton porque aquí no se está renderizando el valor
+// junto al botón, solo la acción).
+async function copySystemUrl(system: System) {
+	if (!system.url) return;
+	try {
+		await navigator.clipboard.writeText(system.url);
+		toast.success("URL copiada al portapapeles");
+	} catch {
+		toast.error("No se pudo copiar al portapapeles");
+	}
+}
 
 // Columnas de la tabla de sistemas. Los handlers de fila se inyectan desde la
 // página para mantener las columnas puras (sin estado ni data fetching) y así
@@ -37,29 +51,6 @@ export function getSystemColumns({
 					/>
 				</div>
 			),
-		},
-		{
-			accessorKey: "url",
-			header: "URL",
-			cell: ({ row }) =>
-				row.original.url ? (
-					<div className="flex items-center gap-1">
-						<a
-							href={row.original.url}
-							target="_blank"
-							rel="noreferrer"
-							className="line-clamp-1 max-w-40 text-primary underline-offset-2 hover:underline"
-						>
-							{row.original.url}
-						</a>
-						<CopyButton
-							value={row.original.url}
-							label={`Copiar URL "${row.original.url}"`}
-						/>
-					</div>
-				) : (
-					<span className="text-muted-foreground">—</span>
-				),
 		},
 		{
 			accessorKey: "description",
@@ -103,6 +94,12 @@ export function getSystemColumns({
 							label: "Editar",
 							icon: Pencil,
 							onSelect: () => onEdit(row.original),
+						},
+						{
+							label: "Copiar URL",
+							icon: LinkIcon,
+							disabled: !row.original.url,
+							onSelect: () => copySystemUrl(row.original),
 						},
 						{
 							label: "Eliminar",
