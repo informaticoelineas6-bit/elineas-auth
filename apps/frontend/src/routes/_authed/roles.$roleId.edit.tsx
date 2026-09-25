@@ -62,7 +62,7 @@ function EditRolePage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para editar este rol." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar el rol"

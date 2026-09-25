@@ -61,7 +61,7 @@ function EditSystemPage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para editar este sistema." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar el sistema"

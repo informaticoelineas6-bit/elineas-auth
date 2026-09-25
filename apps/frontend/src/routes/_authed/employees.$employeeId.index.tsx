@@ -71,7 +71,7 @@ function EmployeeDetailPage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para ver esta ficha de usuario." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar la ficha"

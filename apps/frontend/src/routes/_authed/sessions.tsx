@@ -15,7 +15,11 @@ import { ForbiddenState } from "@/modules/common/components/partials/forbidden-s
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
-import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
+import {
+	getErrorMessage,
+	getErrorStatus,
+	reportError,
+} from "@/modules/common/lib/errors.ts";
 import { getAdminSessionColumns } from "@/modules/sessions/lib/columns.tsx";
 import { sessionFiltersSchema } from "@/modules/sessions/lib/validation.ts";
 import {
@@ -165,7 +169,7 @@ function SessionsPage() {
 			</div>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver las sesiones de todos los usuarios." />
+				<ForbiddenState description={getErrorMessage(allSessions.error)} />
 			) : (
 				<DataTable
 					columns={getAdminSessionColumns({

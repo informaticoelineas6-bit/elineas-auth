@@ -186,7 +186,7 @@ function UserRolesPage() {
 			/>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver las asignaciones de rol." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : (
 				<DataTable
 					columns={columns}

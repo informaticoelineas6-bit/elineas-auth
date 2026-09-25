@@ -105,7 +105,7 @@ function SystemsPage() {
 			/>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver el listado de sistemas." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : (
 				<DataTable
 					columns={columns}

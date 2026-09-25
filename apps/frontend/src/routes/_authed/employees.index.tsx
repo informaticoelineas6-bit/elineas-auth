@@ -173,7 +173,7 @@ function EmployeesPage() {
 			/>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver el listado de usuarios." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : (
 				<DataTable
 					columns={columns}

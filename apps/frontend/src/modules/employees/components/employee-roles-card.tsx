@@ -13,7 +13,7 @@ import {
 	CardTitle,
 } from "@/modules/common/components/ui/card.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
-import { getErrorStatus } from "@/modules/common/lib/errors.ts";
+import { getErrorMessage, getErrorStatus } from "@/modules/common/lib/errors.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
@@ -25,9 +25,14 @@ import { userRolesQueries } from "@/modules/user-roles/queries/user-roles.ts";
 export function EmployeeRolesCard({
 	userId,
 	userLabel,
+	canManage,
 }: {
 	userId: string | null;
 	userLabel: string;
+	// Asignar/gestionar roles exige el rol admin en el IS (no es delegable vía
+	// permisos: ver el comentario en apps/backend/src/routes/user-roles.routes.ts).
+	// Sin esto, un rol como "rrhh" vería botones que solo pueden terminar en 403.
+	canManage: boolean;
 }) {
 	const [assignOpen, setAssignOpen] = useState(false);
 
@@ -40,7 +45,7 @@ export function EmployeeRolesCard({
 						? "Roles asignados a la cuenta de usuario enlazada."
 						: "Esta persona no tiene una cuenta de usuario enlazada, por lo que no puede tener roles ni iniciar sesión."}
 				</CardDescription>
-				{userId && (
+				{userId && canManage && (
 					<CardAction className="flex gap-2">
 						<Button
 							variant="outline"
@@ -65,7 +70,7 @@ export function EmployeeRolesCard({
 				</CardContent>
 			)}
 
-			{userId && (
+			{userId && canManage && (
 				<AssignRoleDialog
 					open={assignOpen}
 					onOpenChange={setAssignOpen}
@@ -88,7 +93,7 @@ function EmployeeRolesList({ userId }: { userId: string }) {
 	if (getErrorStatus(assignments.error) === 403) {
 		return (
 			<p className="text-sm text-muted-foreground">
-				No tienes permisos para ver las asignaciones de rol.
+				{getErrorMessage(assignments.error)}
 			</p>
 		);
 	}

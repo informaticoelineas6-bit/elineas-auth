@@ -65,7 +65,7 @@ function SystemDetailPage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para ver este sistema." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar el sistema"

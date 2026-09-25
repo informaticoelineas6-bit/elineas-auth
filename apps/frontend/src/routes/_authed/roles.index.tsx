@@ -103,7 +103,7 @@ function RolesPage() {
 			/>
 
 			{isForbidden ? (
-				<ForbiddenState description="No tienes permisos para ver el listado de roles." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : (
 				<DataTable
 					columns={columns}

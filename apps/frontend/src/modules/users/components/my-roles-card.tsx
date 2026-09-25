@@ -8,7 +8,7 @@ import {
 	CardTitle,
 } from "@/modules/common/components/ui/card.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
-import { getErrorStatus } from "@/modules/common/lib/errors.ts";
+import { getErrorMessage, getErrorStatus } from "@/modules/common/lib/errors.ts";
 import { userRolesQueries } from "@/modules/user-roles/queries/user-roles.ts";
 import type { MyUserRole } from "@/modules/user-roles/shared/types.ts";
 
@@ -31,6 +31,7 @@ export function MyRolesCard() {
 					isPending={query.isPending}
 					isError={query.isError}
 					isForbidden={getErrorStatus(query.error) === 403}
+					forbiddenMessage={getErrorMessage(query.error)}
 					roles={query.data ?? []}
 					onRetry={() => query.refetch()}
 				/>
@@ -43,21 +44,19 @@ function MyRolesContent({
 	isPending,
 	isError,
 	isForbidden,
+	forbiddenMessage,
 	roles,
 	onRetry,
 }: {
 	isPending: boolean;
 	isError: boolean;
 	isForbidden: boolean;
+	forbiddenMessage: string;
 	roles: MyUserRole[];
 	onRetry: () => void;
 }) {
 	if (isForbidden) {
-		return (
-			<p className="text-sm text-muted-foreground">
-				No tienes permisos para ver tus roles.
-			</p>
-		);
+		return <p className="text-sm text-muted-foreground">{forbiddenMessage}</p>;
 	}
 	if (isError) {
 		return (

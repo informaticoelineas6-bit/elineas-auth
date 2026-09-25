@@ -64,7 +64,7 @@ function EditEmployeePage() {
 					}
 				/>
 			) : status === 403 ? (
-				<ForbiddenState description="No tienes permisos para editar este usuario." />
+				<ForbiddenState description={getErrorMessage(query.error)} />
 			) : query.isError ? (
 				<NotFoundState
 					title="No se pudo cargar la ficha"

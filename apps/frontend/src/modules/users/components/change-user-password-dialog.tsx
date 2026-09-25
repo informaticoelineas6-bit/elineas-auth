@@ -92,7 +92,7 @@ export function ChangeUserPasswordDialog({
 						getErrorMessage(error, "Tu contraseña no es correcta."),
 					);
 				} else if (status === 403) {
-					toast.error("Necesitas rol de administrador para hacer esto.");
+					toast.error(getErrorMessage(error));
 				} else if (status === 409) {
 					// El usuario no tiene contraseña local (account de credenciales).
 					toast.error(
