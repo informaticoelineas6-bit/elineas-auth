@@ -10,12 +10,23 @@ import type { MyPermission } from "../shared/types.ts";
 // queries en pending o el flash de la página antes del 403 de la API.
 //
 // `resource: undefined` = admin-only (mismo criterio que navigation.ts).
+//
+// El texto del toast calca el que devuelve la API (ver requireAdmin/
+// requirePermission en el backend: "Requiere privilegios de administrador" /
+// `Requiere el permiso "resource:action"`), para que decir "qué permiso hace
+// falta" sea consistente en toda la app: tanto si un componente descubre el
+// 403 llamando a la API (p. ej. TkcCredentialsCard, vía getErrorMessage) como
+// si esta guarda lo corta ANTES de llegar a pedir nada.
 export function requireResourceAccess(
 	resource: string | undefined,
 	context: { isAdmin: boolean; permissions: MyPermission[] },
 ) {
 	if (canAccessResource(resource, context)) return;
-	toast.error("No tienes permisos para acceder a esta sección.");
+	toast.error(
+		resource === undefined
+			? "Requiere privilegios de administrador."
+			: `Requiere algún permiso sobre "${resource}".`,
+	);
 	throw redirect({ to: "/dashboard" });
 }
 
@@ -28,6 +39,6 @@ export function requirePermissionAccess(
 	context: { isAdmin: boolean; permissions: MyPermission[] },
 ) {
 	if (hasPermission(resource, action, context)) return;
-	toast.error("No tienes permisos para acceder a esta sección.");
+	toast.error(`Requiere el permiso "${resource}:${action}".`);
 	throw redirect({ to: "/dashboard" });
 }
