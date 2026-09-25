@@ -1,4 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
+import { AuthApiError } from "#/modules/auth/lib/api.ts";
+import { clearAuthCookies } from "#/modules/auth/lib/cookies.ts";
 import { env } from "#/modules/auth/lib/env.ts";
 import { authMiddleware } from "#/modules/auth/middlewares/auth.ts";
 import type { AuthSession } from "#/modules/auth/shared/types.ts";
@@ -41,10 +43,42 @@ export const resolveAuthedContextFn = createServerFn({ method: "GET" })
 	.middleware([authMiddleware])
 	.handler(async ({ context }): Promise<AuthedContext> => {
 		if (!context.session) return { session: null };
-		const [roles, permissions] = await Promise.all([
-			listMyRoles({ systemSlug: env.AUTH_SYSTEM_SLUG }),
-			listMyPermissions(),
-		]);
+
+		let roles: MyUserRole[];
+		let permissions: MyPermission[];
+		try {
+			[roles, permissions] = await Promise.all([
+				listMyRoles({ systemSlug: env.AUTH_SYSTEM_SLUG }),
+				listMyPermissions(),
+			]);
+		} catch (error) {
+			// `context.session` viene del JWT cacheado (ver getAuthSession en
+			// modules/auth/lib/session.ts), verificado localmente sin llamar al
+			// IS: puede seguir pareciendo válido un rato después de que la sesión
+			// larga que usan estas dos llamadas (el token de sesión, vía Bearer)
+			// ya haya muerto de verdad — p. ej. al volver a una pestaña dejada de
+			// fondo un buen rato, o si esa sesión se revocó (otro login del mismo
+			// usuario en el mismo sistema revoca la anterior, ver signInFn). Sin
+			// este catch, ese 401 se propagaba sin capturar y el guard de _authed
+			// lo mostraba como "No se pudieron cargar tus permisos" (AdminRolesError)
+			// en vez de la redirección normal al login — confuso, porque no es un
+			// problema de permisos sino de sesión caducada. Se trata igual que
+			// "sin sesión": el resto de errores (5xx, red) sí siguen reventando,
+			// para que AdminRolesError ofrezca reintentar.
+			//
+			// clearAuthCookies() es imprescindible aquí, no cosmético: sin ella, la
+			// cookie is_jwt (todavía válida, es la que hace parecer viva la sesión)
+			// sigue puesta, así que "/" (que solo mira esa cookie, ver getSessionFn)
+			// cree que SÍ hay sesión y redirige de vuelta a /dashboard — que vuelve
+			// a caer aquí. Bucle infinito de redirects entre "/" y "/dashboard".
+			// Limpiando las cookies, "/" ve correctamente que no hay sesión.
+			if (error instanceof AuthApiError && error.status === 401) {
+				clearAuthCookies();
+				return { session: null };
+			}
+			throw error;
+		}
+
 		const isAdmin = roles.some(
 			(role) => role.name.toLowerCase() === ADMIN_ROLE_NAME,
 		);
