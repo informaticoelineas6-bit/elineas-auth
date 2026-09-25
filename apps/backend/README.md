@@ -108,9 +108,12 @@ El IS es un servidor de identidad **multi-sistema**:
   por `userId + systemId`).
 - Los **roles** (`role`) pertenecen a un sistema, no son globales
   (`src/db/business-schema.ts:60-77`).
-- El IS resuelve **quién** es el usuario (autenticación). **Qué puede hacer**
-  ese usuario dentro de tu sistema (autorización fina) es responsabilidad de
-  cada sistema consumidor — ver [sección 7](#7-autenticación-vs-autorización-qué-hace-el-is-y-qué-no).
+- El IS resuelve siempre **quién** es el usuario (autenticación). **Qué puede
+  hacer** dentro de tu sistema (autorización) lo podés resolver vos mismo, o
+  delegarlo en el IS: el mismo mecanismo de roles y permisos
+  (`role`/`permission`/`role_permission`) que usa la consola de
+  administración del propio IS está disponible para cualquier `system` dado
+  de alta, no solo para `auth` — ver [sección 7](#7-autenticación-vs-autorización-qué-hace-el-is-y-qué-no).
 
 ```
 ┌────────────┐   1. sign-in (systemSlug)   ┌──────────────────────┐
@@ -167,8 +170,12 @@ Antes de que un frontend/API nuevo pueda usar el IS, un administrador del IS
    -d '{"name":"Punto de Venta","slug":"pos","description":"POS de tiendas"}'
 ```
 
-1. **Crear los roles de ese sistema** (opcional, si tu app hace su propia
-   gestión de permisos vía IS):
+1. **Crear los roles de ese sistema** (opcional, si tu app resuelve su propia
+   autorización — ver sección 7.1 más abajo), y de paso el rol `admin` de tu
+   sistema si vas a usar permisos finos delegados en el IS (sección 7.2): ese
+   nombre exacto (`ADMIN_ROLE_NAME`, por defecto `"admin"`) actúa como
+   comodín LOCAL dentro de tu sistema, sin tener que asignarle cada permiso
+   uno por uno.
 2. **Asignar el rol a usuarios** vía `POST /api/user-roles`.
 
 Todos estos endpoints (`/api/systems`, `/api/roles`, `/api/user-roles`,
@@ -510,15 +517,21 @@ El IS refleja el `Origin` solo si está en `ALLOWED_ORIGIN`
 
 El IS te da una identidad verificada (`sub`, `email`, `name`,
 `emailVerified`) y, si el login se hizo con `systemSlug`, el sistema al que
-pertenece esa sesión. **No** incluye en el JWT los roles del usuario, y los
-endpoints de escritura de `/api/roles` / `/api/user-roles` solo son
-accesibles para administradores del sistema `auth` (`requireAdmin`, pensado
-para la consola de administración del propio IS).
+pertenece esa sesión. **No** incluye en el JWT los roles ni los permisos del
+usuario, y los endpoints de escritura de `/api/systems` / `/api/roles` /
+`/api/user-roles` / `/api/employees` solo son accesibles para administradores
+del sistema `auth` (`requireAdmin`, pensado para la consola de
+administración centralizada del propio IS — eso no cambia, sea cual sea tu
+sistema).
 
-Para conocer tus propios roles sin ser admin, usa el endpoint de solo
-lectura `GET /api/user-roles/me?systemSlug=...` (requiere sesión, sin
-`requireAdmin`; ver [sección 10](#10-referencia-rápida-de-endpoints)). Es la
-forma recomendada de resolver "¿qué rol(es) tiene este usuario en mi
+Para autorización dentro de TU sistema tenés dos niveles, elegí el que se
+ajuste a tu app:
+
+### 7.1 Solo roles (`/api/user-roles/me`)
+
+Uso de solo lectura `GET /api/user-roles/me?systemSlug=...` (requiere sesión,
+sin `requireAdmin`; ver [sección 10](#10-referencia-rápida-de-endpoints)). Es
+la forma más simple de resolver "¿qué rol(es) tiene este usuario en mi
 sistema?" desde tu backend: reenvía el mismo `Authorization: Bearer <JWT>`
 que ya verificaste contra el JWKS. Responde
 `{ roles: [{ id, name, description, system: { id, slug, name } }] }`.
@@ -575,11 +588,102 @@ app.delete(
 > resultado unos segundos por `sub`, o resuelve el rol una vez en el login y
 > guárdalo en tu propia sesión/JWT interno.
 
-**Recomendación:** trata al IS como tu proveedor de **autenticación** y de
-roles básicos por sistema (vía `/api/user-roles/me`). Si tu sistema necesita
-permisos más finos que un simple rol (p. ej. permisos por recurso), esos
-deben vivir en tu propio backend, indexados por `identity.sub` (el
-`user.id` del IS).
+### 7.2 Permisos finos delegados en el IS (`/api/permissions/me`)
+
+Si tu sistema necesita algo más granular que "tiene este rol" — permisos por
+recurso, tipo `orders:read` / `orders:write` / `orders:delete` — no hace
+falta reimplementar esa tabla en tu propio backend: el IS ya tiene el mismo
+mecanismo que usa su propia consola de administración
+(`role`/`permission`/`role_permission`, `src/db/business-schema.ts:60-145`),
+y está disponible para **cualquier** `system` dado de alta, no solo `auth`.
+
+1. Un admin del IS da de alta en BD los `permission` (`resource`, `action`)
+   que tu sistema necesita (tabla `permission`, catálogo global — no hay
+   endpoint de alta, solo `GET /api/permissions` para listarlo) y los asigna
+   a los roles de tu sistema con `PUT /api/roles/{roleId}/permissions`.
+2. Tu backend resuelve los permisos efectivos del usuario en tu sistema con
+   `GET /api/permissions/me?systemSlug=pos`, reenviando el mismo Bearer que
+   ya verificaste contra el JWKS. Responde
+   `{ permissions: [{ resource, action }] }`.
+
+```ts
+// src/middleware/requirePermission.ts
+import type { Response, NextFunction } from "express";
+import type { AuthenticatedRequest } from "@/middleware/verifyIdentity";
+
+const IDENTITY_SERVER_URL = process.env.IDENTITY_SERVER_URL!;
+const SYSTEM_SLUG = "pos"; // el slug de TU sistema, registrado en el IS
+
+// Debe ejecutarse DESPUÉS de requireIdentity (necesita el bearer original).
+export function requirePermission(resource: string, action: string) {
+  return async (
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const bearer = req.header("authorization")!.slice(7);
+    const r = await fetch(
+      `${IDENTITY_SERVER_URL}/api/permissions/me?systemSlug=${SYSTEM_SLUG}`,
+      { headers: { Authorization: `Bearer ${bearer}` } },
+    );
+    if (!r.ok) {
+      return res
+        .status(502)
+        .json({ error: "IS no disponible", code: "IS_UNAVAILABLE" });
+    }
+    const { permissions } = await r.json();
+    const allowed = permissions.some(
+      (p: { resource: string; action: string }) =>
+        p.resource === resource && p.action === action,
+    );
+    if (!allowed) {
+      return res
+        .status(403)
+        .json({ error: `Requiere el permiso "${resource}:${action}"`, code: "FORBIDDEN" });
+    }
+    next();
+  };
+}
+```
+
+```ts
+app.delete(
+  "/api/orders/:id",
+  requireIdentity,
+  requirePermission("orders", "delete"),
+  (req, res) => {
+    // ...
+  },
+);
+```
+
+**Comodines de `/api/permissions/me?systemSlug=X`** (devuelven el catálogo
+completo de permisos, no solo los tuyos):
+
+- Rol `admin` en el sistema `auth` (`ADMIN_SYSTEM_SLUG`): superusuario global
+  del IS, igual que en `requireAdmin` — puede todo, en cualquier sistema.
+- Rol `admin` **dentro de tu propio sistema** (`X`): comodín LOCAL, pensado
+  para que el rol admin de un sistema recién dado de alta no tenga que
+  llevar cada `permission` asignada una por una en `role_permission`.
+
+Fuera de esos dos casos, la respuesta es exactamente la unión de los
+permisos que llevan los roles que el usuario tiene en `systemSlug` — la
+misma fuente de verdad que usaría un `requirePermission` corriendo dentro
+del propio IS (`src/middleware/permission.ts`), por lo que nunca se
+desincroniza con lo que un panel decide mostrar u ocultar.
+
+> Igual que en 7.1, esto añade una llamada de red al IS por request. Cachear
+> unos segundos por `sub` + `systemSlug` (con el mismo TTL que usa el propio
+> IS, 30s, ver `PERMISSION_CACHE_TTL_SECONDS`) es razonable si te preocupa la
+> latencia.
+
+**Recomendación:** el IS es siempre tu proveedor de **autenticación**. Para
+**autorización**, empezá por 7.1 (roles) si te alcanza con "tiene este rol o
+no"; usá 7.2 (permisos) si necesitás granularidad por recurso y preferís no
+mantener esa tabla en tu propio backend. Las dos conviven: podés delegar
+permisos en el IS para lo administrativo y resolver reglas de negocio propias
+(p. ej. "solo el dueño del pedido puede cancelarlo") en tu código, indexadas
+por `identity.sub` (el `user.id` del IS).
 
 ## 8. Rate limiting
 
@@ -627,8 +731,10 @@ ausente en sign-in/sign-up).
 | GET        | `/api/sessions/session`                                           | Sesión           | Usuario, sesión y sistema actuales                                            |
 | GET/DELETE | `/api/sessions*`                                                  | Sesión           | Listar/revocar sesiones propias                                               |
 | GET/PATCH  | `/api/users/me*`                                                  | Sesión           | Perfil propio; cambio de contraseña/email (ambos exigen la contraseña actual) |
-| GET        | `/api/user-roles/me`                                              | Sesión           | Mis roles, opcionalmente filtrados por `systemSlug`                           |
+| GET        | `/api/user-roles/me`                                              | Sesión o JWT     | Mis roles, opcionalmente filtrados por `systemSlug` (ver §7.1)                |
+| GET        | `/api/permissions/me`                                             | Sesión o JWT     | Mis permisos efectivos en `systemSlug` (por defecto, `auth`; ver §7.2)        |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna)                                 |
+| GET/PUT    | `/api/roles/{id}/permissions`                                     | Sesión + admin   | Ver/reemplazar los permisos de un rol de cualquier sistema                    |
 | POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
 | GET/PUT/DELETE | `/api/users/admin/{id}/tkc`                                   | Sesión + admin   | Credenciales del sistema externo TKC (ver §10.4); nunca devuelven la contraseña |
 | GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)                                    |

@@ -87,6 +87,16 @@ El paquete exporta **solo zod y helpers sin dependencias de runtime**: nada de
 Hono, ni `@hono/zod-openapi`, ni `libphonenumber-js`. Así lo pueden importar el
 servidor (Bun) y el panel (navegador) sin arrastrar nada de uno al otro.
 
+También exporta la política de acceso por permisos (`canAccessResource`,
+`hasPermission` en `src/permissions.ts`): la misma lógica que usa
+`apps/frontend` para decidir qué sección/botón mostrar según los
+`{ resource, action }` que devuelve `GET /api/permissions/me` (ver
+`apps/backend/README.md` §7.2). Cualquier otro frontend cliente del IS que se
+agregue a este monorepo bajo `apps/` debería importar estas funciones de
+`@elineas/auth-contracts` en vez de reimplementarlas — solo hace falta
+envolverlas en el guard de SU router (redirect + toast propios, como hace
+`apps/frontend/src/modules/permissions/lib/guard.ts` con TanStack Router).
+
 Los tipos de **respuesta** no están aquí: se derivan del grafo de rutas real del
 servidor vía `AppType`, que expone `@elineas/auth-backend/rpc`.
 
