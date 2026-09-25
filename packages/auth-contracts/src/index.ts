@@ -11,4 +11,5 @@
 
 export * from "./dates.ts";
 export * from "./pagination.ts";
+export * from "./permissions.ts";
 export * from "./primitives.ts";

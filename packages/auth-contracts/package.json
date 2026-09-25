@@ -1,7 +1,7 @@
 {
   "name": "@elineas/auth-contracts",
   "version": "1.0.0",
-  "description": "Reglas de validación compartidas entre el identity server y sus consumidores: fuente única de la política de contraseña, el dominio corporativo, la paginación y los campos de negocio.",
+  "description": "Reglas de validación y política de acceso compartidas entre el identity server y sus consumidores: fuente única de la política de contraseña, el dominio corporativo, la paginación, los campos de negocio y el control de acceso por permisos (resource:action).",
   "type": "module",
   "private": true,
   "main": "./src/index.ts",

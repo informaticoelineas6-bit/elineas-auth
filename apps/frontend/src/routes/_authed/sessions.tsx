@@ -1,3 +1,4 @@
+import { hasPermission } from "@elineas/auth-contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
@@ -20,7 +21,6 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
-import { hasPermission } from "@/modules/permissions/lib/access.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getAdminSessionColumns } from "@/modules/sessions/lib/columns.tsx";
 import { sessionFiltersSchema } from "@/modules/sessions/lib/validation.ts";
@@ -58,7 +58,10 @@ function SessionsPage() {
 	const navigate = useNavigate();
 	const signOut = useServerFn(signOutFn);
 	const { isAdmin, permissions } = Route.useRouteContext();
-	const canRevoke = hasPermission("sessions", "write", { isAdmin, permissions });
+	const canRevoke = hasPermission("sessions", "write", {
+		isAdmin,
+		permissions,
+	});
 
 	// Sesiones propias: solo para decidir si tiene sentido ofrecer "cerrar mis
 	// otras sesiones" / "cerrar todas las mías" (acciones de autoservicio,

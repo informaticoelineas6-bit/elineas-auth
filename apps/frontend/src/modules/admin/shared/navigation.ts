@@ -1,3 +1,4 @@
+import { canAccessResource } from "@elineas/auth-contracts";
 import {
 	BookOpen,
 	Boxes,
@@ -6,7 +7,6 @@ import {
 	UserCog,
 	Users,
 } from "lucide-react";
-import { canAccessResource } from "#/modules/permissions/lib/access.ts";
 import type { MyPermission } from "#/modules/permissions/shared/types.ts";
 
 // Enlaces de la consola de administración. El `to` es literal (as const) para

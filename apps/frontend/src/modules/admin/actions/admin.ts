@@ -49,7 +49,7 @@ export const resolveAuthedContextFn = createServerFn({ method: "GET" })
 		try {
 			[roles, permissions] = await Promise.all([
 				listMyRoles({ systemSlug: env.AUTH_SYSTEM_SLUG }),
-				listMyPermissions(),
+				listMyPermissions({ systemSlug: env.AUTH_SYSTEM_SLUG }),
 			]);
 		} catch (error) {
 			// `context.session` viene del JWT cacheado (ver getAuthSession en

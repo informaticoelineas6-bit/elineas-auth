@@ -1,3 +1,4 @@
+import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Lock, Pencil, Power, PowerOff, Trash2 } from "lucide-react";
@@ -30,7 +31,6 @@ import {
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
 import type { Employee } from "@/modules/employees/shared/types.ts";
-import { hasPermission } from "@/modules/permissions/lib/access.ts";
 import type { MyPermission } from "@/modules/permissions/shared/types.ts";
 import { TkcCredentialsCard } from "@/modules/tkc/components/tkc-credentials-card.tsx";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";

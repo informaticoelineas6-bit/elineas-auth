@@ -1,7 +1,7 @@
+import type { MyPermission } from "@elineas/auth-contracts";
+import { canAccessResource, hasPermission } from "@elineas/auth-contracts";
 import { redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { canAccessResource, hasPermission } from "./access.ts";
-import type { MyPermission } from "../shared/types.ts";
 
 // Para usar en `beforeLoad` de una ruta admin-only o que exige un permiso
 // concreto: si el usuario no puede acceder, CANCELA la navegación (redirect)

@@ -1,3 +1,4 @@
+import { canAccessResource } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -19,7 +20,6 @@ import { PageHeader } from "@/modules/common/components/partials/page-header.tsx
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
-import { canAccessResource } from "@/modules/permissions/lib/access.ts";
 import type { MyPermission } from "@/modules/permissions/shared/types.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";

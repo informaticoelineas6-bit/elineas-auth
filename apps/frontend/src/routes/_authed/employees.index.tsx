@@ -1,3 +1,4 @@
+import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Upload, UserPlus } from "lucide-react";
@@ -31,7 +32,6 @@ import type {
 	Employee,
 	EmployeeFilters,
 } from "@/modules/employees/shared/types.ts";
-import { hasPermission } from "@/modules/permissions/lib/access.ts";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/")({
@@ -172,10 +172,7 @@ function EmployeesPage() {
 						<ExportMenu filters={filters} />
 						{canWrite && (
 							<>
-								<Button
-									variant="outline"
-									onClick={() => setImportOpen(true)}
-								>
+								<Button variant="outline" onClick={() => setImportOpen(true)}>
 									<Upload />
 									Importar
 								</Button>
