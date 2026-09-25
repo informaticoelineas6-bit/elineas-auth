@@ -1,3 +1,23 @@
+// DEBE ser el primer import del proceso, antes que cualquier otro (incluso
+// antes que createApp): importar "@hono/zod-openapi" ejecuta como efecto
+// secundario `extendZodWithOpenApi(z)`, que parchea el prototipo de Zod para
+// añadir `.openapi()`. Con Zod v4 ese parche tiene que aplicarse ANTES de que
+// se construya cualquier schema (`z.object(...)`, los de business.schemas.ts,
+// los de @elineas/auth-contracts, etc.): un schema creado antes del parche se
+// queda sin `.openapi()` aunque el prototipo se parchee después, porque Zod v4
+// congela los métodos disponibles al construir cada schema.
+//
+// Sin este import aquí, el orden real dependía de qué archivo de rutas
+// resultara ser, por accidente, el primero en importar "@hono/zod-openapi"
+// en todo el grafo de módulos (antes: employees.routes.ts, por tener ese
+// import en primera posición). Cualquier reordenamiento de imports — incluido
+// el que aplica `bun run check:fix` (biome ordena imports alfabéticamente,
+// y "@hono/..." cae después de "@backend/...") — podía romper el arranque
+// con un `TypeError: X.openapi is not a function` al importar
+// business.schemas.ts. Ver el commit que añadió este comentario para el
+// diagnóstico completo.
+import "@hono/zod-openapi";
+
 import { createApp } from "@backend/app.ts";
 import { env } from "@backend/config/env.ts";
 import { closeDatabase } from "@backend/db/index.ts";
@@ -16,12 +36,15 @@ import { startRequestLogWorker } from "@backend/workers/request-log-worker.ts";
 process.on("unhandledRejection", (reason) => {
   console.error(
     "Promesa rechazada sin manejar:",
-    reason instanceof Error ? reason.stack ?? reason.message : reason,
+    reason instanceof Error ? (reason.stack ?? reason.message) : reason,
   );
 });
 
 process.on("uncaughtException", (error) => {
-  console.error("Excepción no capturada, cerrando el proceso:", error.stack ?? error.message);
+  console.error(
+    "Excepción no capturada, cerrando el proceso:",
+    error.stack ?? error.message,
+  );
   process.exit(1);
 });
 
