@@ -88,5 +88,7 @@ COPY --from=prod-deps /app/node_modules /app/node_modules
 COPY --from=prod-deps /app/apps/frontend/node_modules /app/apps/frontend/node_modules
 COPY --from=build /app/apps/frontend/.output ./.output
 COPY --from=build /app/apps/frontend/package.json ./
+# Sin privilegios: la imagen de Bun ya trae el usuario `bun` (uid 1000).
+USER bun
 EXPOSE 3000
 CMD ["bun", ".output/server/index.mjs"]

@@ -46,6 +46,18 @@ services:
     image: elineas-auth-backend:2.9.0
     container_name: elineas-auth-backend
     restart: unless-stopped
+    # Endurecimiento: sin root/capabilities/escalada, FS de solo lectura y
+    # límites de recursos (ajustar mem_limit si el servicio sufre OOM).
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 512m
+    cpus: 1
     ports:
       - "3001:8080"
     env_file:
@@ -89,6 +101,18 @@ services:
     image: elineas-auth-frontend:3.9.0
     container_name: elineas-auth-frontend
     restart: unless-stopped
+    # Endurecimiento: sin root/capabilities/escalada, FS de solo lectura y
+    # límites de recursos (ajustar mem_limit si el servicio sufre OOM).
+    read_only: true
+    tmpfs:
+      - /tmp
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    pids_limit: 256
+    mem_limit: 512m
+    cpus: 1
     ports:
       - "3000:3000"
     env_file:
