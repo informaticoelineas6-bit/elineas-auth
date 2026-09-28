@@ -89,11 +89,18 @@ services:
     volumes:
       # Se montan los tres workspaces que la API compila, y se preservan los
       # node_modules de la imagen (los del host son de otra plataforma y, con
-      # workspaces, viven tanto en la raíz como en cada app).
+      # workspaces, viven tanto en la raíz como en cada app y en cada paquete).
+      # Sin la última línea, un `bun install`/`bun run` ejecutado en el HOST
+      # dentro de packages/auth-contracts (p. ej. su propio typecheck/test)
+      # crea ahí un node_modules con symlinks relativos a rutas del host; el
+      # bind mount de la línea de arriba lo cuela dentro del contenedor tal
+      # cual, y esos symlinks no resuelven ahí (structure/versión distintas) →
+      # "Cannot find package 'zod'" y el `bun --watch` entra en crash-loop.
       - ./apps/backend:/app/apps/backend
       - ./packages/auth-contracts:/app/packages/auth-contracts
       - /app/node_modules
       - /app/apps/backend/node_modules
+      - /app/packages/auth-contracts/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -123,6 +130,7 @@ services:
       - ./packages/auth-contracts:/app/packages/auth-contracts
       - /app/node_modules
       - /app/apps/frontend/node_modules
+      - /app/packages/auth-contracts/node_modules
     depends_on:
       - backend
 

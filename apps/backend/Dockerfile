@@ -18,11 +18,19 @@ WORKDIR /app
 # mientras las dependencias no cambien. `--filter` limita la instalación a esta
 # app y a los paquetes del workspace de los que depende: sin él se instalarían
 # también las del panel (vite, tailwind, tanstack...), que aquí no hacen nada.
+# El sufijo `-v2` del id del cache mount de más abajo no es cosmético: ese
+# cache (el de paquetes descargados de bun, `/root/.bun/install/cache`)
+# persiste ENTRE builds y quedó con una versión vieja de `zod` que
+# `--frozen-lockfile` no reconciliaba contra el bun.lock actual (instalaba
+# 4.6.1 en vez del 4.6.5 que pide el lockfile) — ni `--no-cache` lo arregla,
+# porque ese cache mount es un volumen aparte de las capas de la imagen. Si
+# vuelve a pasar (paquete no encontrado/versión que no coincide con
+# bun.lock pese a una imagen recién construida), subí el sufijo de nuevo.
 FROM base AS deps
 COPY package.json bun.lock ./
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/auth-contracts/package.json ./packages/auth-contracts/
-RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=bun-install-cache-v2,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --filter @elineas/auth-backend
 
 # ---- dev: deps + código fuente, hot reload vía bind mount (ver docker-compose.yml) ----
@@ -56,7 +64,7 @@ FROM base AS prod-deps
 COPY package.json bun.lock ./
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/auth-contracts/package.json ./packages/auth-contracts/
-RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=bun-install-cache-v2,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --production --filter @elineas/auth-backend
 
 # ---- prod: imagen final, sin devDependencies ni herramientas de build ----

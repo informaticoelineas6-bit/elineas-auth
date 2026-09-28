@@ -36,12 +36,15 @@ WORKDIR /app
 # `restart: unless-stopped` de compose, el contenedor entra en bucle de
 # reinicio. Verificado contra ambas rutas de resolución con `bun.lock`
 # reinstalado desde cero.
+# El sufijo `-v2` del id del cache mount de más abajo: ver la nota en
+# apps/backend/Dockerfile (mismo id compartido entre ambos, quedó con una
+# versión vieja de `zod` que `--frozen-lockfile` no reconciliaba).
 FROM base AS deps
 COPY package.json bun.lock ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/auth-contracts/package.json ./packages/auth-contracts/
-RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=bun-install-cache-v2,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --filter @elineas/auth-frontend && \
     ln -sf ../apps/frontend/node_modules/nitro /app/node_modules/nitro
 
@@ -74,7 +77,7 @@ COPY package.json bun.lock ./
 COPY apps/frontend/package.json ./apps/frontend/
 COPY apps/backend/package.json ./apps/backend/
 COPY packages/auth-contracts/package.json ./packages/auth-contracts/
-RUN --mount=type=cache,id=bun-install-cache,target=/root/.bun/install/cache \
+RUN --mount=type=cache,id=bun-install-cache-v2,target=/root/.bun/install/cache \
     bun install --frozen-lockfile --production --filter @elineas/auth-frontend
 
 # ---- prod: imagen final, sirve el server Nitro precompilado sobre Bun ----
