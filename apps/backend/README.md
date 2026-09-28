@@ -597,10 +597,20 @@ mecanismo que usa su propia consola de administración
 (`role`/`permission`/`role_permission`, `src/db/business-schema.ts:60-145`),
 y está disponible para **cualquier** `system` dado de alta, no solo `auth`.
 
-1. Un admin del IS da de alta en BD los `permission` (`resource`, `action`)
-   que tu sistema necesita (tabla `permission`, catálogo global — no hay
-   endpoint de alta, solo `GET /api/permissions` para listarlo) y los asigna
-   a los roles de tu sistema con `PUT /api/roles/{roleId}/permissions`.
+1. Un admin del IS da de alta los `permission` (`resource`, `action`) que tu
+   sistema necesita (tabla `permission`, catálogo global) y los asigna a los
+   roles de tu sistema. Dos formas, equivalentes:
+   - Desde el panel de administración (`/permissions`): una card por sistema
+     con los permisos asignados a sus roles como badges; crear uno pide el
+     rol destino y da de alta el `resource:action` si no existía. Por debajo
+     llama a `POST /api/permissions/assign` (crea o reutiliza el permiso y lo
+     asigna a ese rol), `PATCH`/`DELETE /api/permissions/{id}` (edita o borra
+     el permiso del catálogo) y `PUT`/`DELETE /api/permissions/{id}/roles/{roleId}`
+     (asigna/quita ese permiso de un rol puntual, sin tocar el catálogo).
+   - Directo por la API: `GET /api/permissions` para listar el catálogo,
+     `GET /api/permissions/by-system` para verlo agrupado por sistema (con
+     los roles que llevan cada permiso), y `PUT /api/roles/{roleId}/permissions`
+     para reemplazar de una vez el conjunto completo de permisos de un rol.
 2. Tu backend resuelve los permisos efectivos del usuario en tu sistema con
    `GET /api/permissions/me?systemSlug=pos`, reenviando el mismo Bearer que
    ya verificaste contra el JWKS. Responde
@@ -735,6 +745,12 @@ ausente en sign-in/sign-up).
 | GET        | `/api/permissions/me`                                             | Sesión o JWT     | Mis permisos efectivos en `systemSlug` (por defecto, `auth`; ver §7.2)        |
 | CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna)                                 |
 | GET/PUT    | `/api/roles/{id}/permissions`                                     | Sesión + admin   | Ver/reemplazar los permisos de un rol de cualquier sistema                    |
+| GET        | `/api/permissions`                                                | Sesión + admin   | Catálogo completo de permisos (`resource:action`)                            |
+| GET        | `/api/permissions/by-system`                                      | Sesión + admin   | Catálogo agrupado por sistema, con los roles que llevan cada permiso (ver §7.2) |
+| POST       | `/api/permissions/assign`                                         | Sesión + admin   | Crea (o reutiliza) un permiso y lo asigna a un rol de un sistema              |
+| PATCH/DELETE | `/api/permissions/{id}`                                         | Sesión + admin   | Edita el catálogo, o lo borra (y sus asignaciones a roles)                    |
+| PUT/DELETE | `/api/permissions/{id}/roles/{roleId}`                            | Sesión + admin   | Asigna/quita un permiso puntual de un rol                                    |
+| DELETE     | `/api/permissions/{id}/systems/{systemId}`                        | Sesión + admin   | Quita un permiso de todos los roles de un sistema; borra el catálogo si queda huérfano |
 | POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
 | GET/PUT/DELETE | `/api/users/admin/{id}/tkc`                                   | Sesión + admin   | Credenciales del sistema externo TKC (ver §10.4); nunca devuelven la contraseña |
 | GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)                                    |
