@@ -34,9 +34,14 @@ export function SystemPermissionsCard({ entry }: { entry: SystemPermissions }) {
 						: `${permissions.length} permiso(s)`}
 				</CardDescription>
 				<CardAction>
-					<Button variant="outline" size="sm" onClick={() => setCreating(true)}>
+					<Button
+						variant="outline"
+						size="icon-sm"
+						aria-label="Nuevo permiso"
+						title="Nuevo permiso"
+						onClick={() => setCreating(true)}
+					>
 						<Plus />
-						Permiso
 					</Button>
 				</CardAction>
 			</CardHeader>
