@@ -426,6 +426,84 @@
               "_postman_previewlanguage": "json"
             }
           ]
+        },
+        {
+          "name": "Confirmar el cambio de correo con el token de verificación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-email",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "auth",
+                "verify-email"
+              ]
+            },
+            "description": "Confirmar el cambio de correo con el token de verificación\n\n_No requiere autenticación._",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"eyJhbGciOi...\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Correo verificado y cambio aplicado",
+              "status": "Correo verificado y cambio aplicado",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -752,6 +830,455 @@
               "_postman_previewlanguage": "json"
             }
           ]
+        },
+        {
+          "name": "Cambiar la contraseña de otro usuario (requiere rol admin)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/:id/change-password",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "admin",
+                ":id",
+                "change-password"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Cambiar la contraseña de otro usuario (requiere rol admin)\n\n**Path param** `id`: ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"newPassword\": \"la-nueva-contraseña\",\n  \"currentPassword\": \"tu-contraseña-de-admin\",\n  \"revokeSessions\": true\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Contraseña actualizada",
+              "status": "Contraseña actualizada",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true,\n  \"revokedSessions\": 2\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/:id/tkc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "admin",
+                ":id",
+                "tkc"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)\n\n**Path param** `id`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Credencial enlazada (o null si no tiene)",
+              "status": "Credencial enlazada (o null si no tiene)",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"tkc\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"username\": \"ada.lovelace\",\n    \"linkedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Fijar las credenciales de TKC de un usuario (requiere admin)",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/:id/tkc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "admin",
+                ":id",
+                "tkc"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Fijar las credenciales de TKC de un usuario (requiere admin)\n\n**Path param** `id`: ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"ada.lovelace\",\n  \"password\": \"la-contraseña-de-tkc\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Credenciales guardadas (se devuelven sin la contraseña)",
+              "status": "Credenciales guardadas (se devuelven sin la contraseña)",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"tkc\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"username\": \"ada.lovelace\",\n    \"linkedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "409 - Conflicto de unicidad",
+              "status": "Conflicto de unicidad",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "503 - Servicio no disponible",
+              "status": "Servicio no disponible",
+              "code": 503,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Desvincular las credenciales de TKC de un usuario (requiere admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/users/admin/:id/tkc",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "users",
+                "admin",
+                ":id",
+                "tkc"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Desvincular las credenciales de TKC de un usuario (requiere admin)\n\n**Path param** `id`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Credenciales desvinculadas",
+              "status": "Credenciales desvinculadas",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -1019,6 +1546,207 @@
             {
               "name": "404 - Solicitud inválida",
               "status": "Solicitud inválida",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Listar las sesiones de todos los usuarios (admin)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/admin",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sessions",
+                "admin"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página, 1-indexado. Por defecto 1.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Elementos por página (1-100). Por defecto 20.",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Ada",
+                  "description": "Búsqueda parcial por nombre o email del usuario dueño de la sesión.",
+                  "disabled": true
+                },
+                {
+                  "key": "active",
+                  "value": "true",
+                  "description": "Filtrar por estado (true/false).",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar las sesiones de todos los usuarios (admin)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Sesiones de todos los usuarios (activas y expiradas, según el filtro `active`)",
+              "status": "Sesiones de todos los usuarios (activas y expiradas, según el filtro `active`)",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"sessions\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"expiresAt\": \"2026-07-10T12:00:00.000Z\",\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n      \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n      \"ipAddress\": \"texto\",\n      \"userAgent\": \"texto\",\n      \"impersonatedBy\": \"texto\",\n      \"activeOrganizationId\": \"texto\",\n      \"user\": {\n        \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n        \"name\": \"Ada Lovelace\",\n        \"email\": \"ada@example.com\"\n      },\n      \"system\": {\n        \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n        \"name\": \"Ejemplo\",\n        \"slug\": \"ejemplo-slug\"\n      }\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Revocar por id la sesión de cualquier usuario (admin)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sessions/admin/revoke",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sessions",
+                "admin",
+                "revoke"
+              ]
+            },
+            "description": "Revocar por id la sesión de cualquier usuario (admin)",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"sessionId\": \"9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Sesión revocada",
+              "status": "Sesión revocada",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
               "code": 404,
               "header": [
                 {
@@ -1560,6 +2288,130 @@
               "name": "404 - Recurso no encontrado",
               "status": "Recurso no encontrado",
               "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Crear un usuario y su empleado enlazado en una sola operación",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/employees/with-user",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "employees",
+                "with-user"
+              ]
+            },
+            "description": "Crear un usuario y su empleado enlazado en una sola operación\n\nAcepta además un `tkc` opcional con las credenciales del sistema externo, que quedan enlazadas al usuario recién creado.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user\": {\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"password\": \"tu-contraseña-segura\",\n    \"image\": \"texto\"\n  },\n  \"employee\": {\n    \"name\": \"Ada\",\n    \"lastName\": \"Lovelace\",\n    \"ci\": \"01010112345\",\n    \"birthday\": \"2026-07-10T12:00:00.000Z\",\n    \"phoneNumber\": \"+591 70012345\",\n    \"address\": \"Av. Siempre Viva 123\",\n    \"inDate\": \"2026-07-10T12:00:00.000Z\",\n    \"outDate\": \"2026-07-10T12:00:00.000Z\",\n    \"active\": true\n  },\n  \"tkc\": {\n    \"username\": \"ada.lovelace\",\n    \"password\": \"la-contraseña-de-tkc\"\n  }\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "201 - Usuario y empleado creados",
+              "status": "Usuario y empleado creados",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"user\": {\n    \"id\": \"usr_9f8a2b\",\n    \"name\": \"Ada Lovelace\",\n    \"email\": \"ada@example.com\",\n    \"emailVerified\": true,\n    \"image\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"role\": \"texto\",\n    \"banned\": true,\n    \"banReason\": \"texto\",\n    \"banExpires\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"employee\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"name\": \"Ada\",\n    \"lastName\": \"Lovelace\",\n    \"ci\": \"01010112345\",\n    \"birthday\": \"2026-07-10T12:00:00.000Z\",\n    \"phoneNumber\": \"+591 70012345\",\n    \"address\": \"Av. Siempre Viva 123\",\n    \"inDate\": \"2026-07-10T12:00:00.000Z\",\n    \"outDate\": \"2026-07-10T12:00:00.000Z\",\n    \"active\": true,\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  },\n  \"tkc\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"username\": \"ada.lovelace\",\n    \"linkedAt\": \"2026-07-10T12:00:00.000Z\",\n    \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "409 - Conflicto de unicidad",
+              "status": "Conflicto de unicidad",
+              "code": 409,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "503 - Servicio no disponible",
+              "status": "Servicio no disponible",
+              "code": 503,
               "header": [
                 {
                   "key": "Content-Type",
@@ -2650,6 +3502,222 @@
               "_postman_previewlanguage": "json"
             }
           ]
+        },
+        {
+          "name": "Listar los permisos asignados a un rol",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles/:id/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                ":id",
+                "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Listar los permisos asignados a un rol\n\n**Path param** `id`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permisos del rol",
+              "status": "Permisos del rol",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"permissions\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"resource\": \"employees\",\n      \"action\": \"read\",\n      \"description\": \"texto\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Reemplazar el conjunto completo de permisos de un rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/roles/:id/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "roles",
+                ":id",
+                "permissions"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Reemplazar el conjunto completo de permisos de un rol\n\nSustituye TODOS los permisos del rol por `permissionIds` ([] los quita todos). El rol admin del sistema auth no necesita permisos aquí: siempre pasa como comodín.\n\n**Path param** `id`: ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"permissionIds\": [\n    \"9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c\"\n  ]\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permisos del rol tras la actualización",
+              "status": "Permisos del rol tras la actualización",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"permissions\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"resource\": \"employees\",\n      \"action\": \"read\",\n      \"description\": \"texto\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
         }
       ]
     },
@@ -3080,6 +4148,999 @@
             {
               "name": "200 - Asignación eliminada",
               "status": "Asignación eliminada",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "description": "Auditoría de peticiones a la API (requiere permiso request-logs:read).",
+      "item": [
+        {
+          "name": "Listar logs de peticiones (paginado; filtrable por fecha, usuario, status, método y path)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/request-logs",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "request-logs"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página, 1-indexado. Por defecto 1.",
+                  "disabled": true
+                },
+                {
+                  "key": "limit",
+                  "value": "20",
+                  "description": "Elementos por página (1-100). Por defecto 20.",
+                  "disabled": true
+                },
+                {
+                  "key": "from",
+                  "value": "2026-07-01T00:00:00.000Z",
+                  "description": "Inicio del rango temporal (por `ts`).",
+                  "disabled": true
+                },
+                {
+                  "key": "to",
+                  "value": "2026-07-31T23:59:59.999Z",
+                  "description": "Fin del rango temporal (por `ts`).",
+                  "disabled": true
+                },
+                {
+                  "key": "userId",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "Filtrar por usuario.",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "500",
+                  "description": "Filtrar por status HTTP.",
+                  "disabled": true
+                },
+                {
+                  "key": "method",
+                  "value": "POST",
+                  "description": "Filtrar por método HTTP.",
+                  "disabled": true
+                },
+                {
+                  "key": "path",
+                  "value": "/api/auth",
+                  "description": "Búsqueda parcial por path.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar logs de peticiones (paginado; filtrable por fecha, usuario, status, método y path)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Lista de logs de peticiones",
+              "status": "Lista de logs de peticiones",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"logs\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"streamId\": \"texto\",\n      \"ts\": \"2026-07-10T12:00:00.000Z\",\n      \"requestId\": \"texto\",\n      \"method\": \"POST\",\n      \"path\": \"/api/auth/sign-in\",\n      \"routePath\": \"/api/auth/sign-in\",\n      \"status\": 200,\n      \"durationMs\": 12.5,\n      \"clientIp\": \"texto\",\n      \"userAgent\": \"texto\",\n      \"referer\": \"texto\",\n      \"origin\": \"texto\",\n      \"contentLength\": 123,\n      \"userId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"sessionId\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"query\": {},\n      \"requestBody\": {},\n      \"error\": null,\n      \"extra\": null\n    }\n  ],\n  \"pagination\": {\n    \"page\": 1,\n    \"limit\": 20,\n    \"total\": 1,\n    \"totalPages\": 1\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Permissions",
+      "description": "Catálogo de permisos (resource:action) y su asignación a roles (requiere rol admin, salvo /me).",
+      "item": [
+        {
+          "name": "Listar los permisos efectivos del usuario autenticado en un sistema",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                "me"
+              ],
+              "query": [
+                {
+                  "key": "systemSlug",
+                  "value": "pos",
+                  "description": "Sistema para el que se resuelven los permisos. Por defecto, `auth`.",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Listar los permisos efectivos del usuario autenticado en un sistema\n\nSin `systemSlug`, resuelve los permisos en el sistema `auth`. Cualquier sistema consumidor puede pedir los suyos, igual que en GET /api/user-roles/me. Si el usuario tiene el rol admin en el sistema `auth` o en el propio `systemSlug` consultado, devuelve el catálogo completo (comodín global y comodín local, respectivamente). Es lo que cada panel usa para decidir qué secciones mostrar/ocultar.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permisos efectivos del usuario",
+              "status": "Permisos efectivos del usuario",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"permissions\": [\n    {\n      \"resource\": \"employees\",\n      \"action\": \"read\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Listar el catálogo completo de permisos (resource:action)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions"
+              ]
+            },
+            "description": "Listar el catálogo completo de permisos (resource:action)",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Catálogo de permisos",
+              "status": "Catálogo de permisos",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"permissions\": [\n    {\n      \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n      \"resource\": \"employees\",\n      \"action\": \"read\",\n      \"description\": \"texto\",\n      \"createdAt\": \"2026-07-10T12:00:00.000Z\"\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Listar los permisos agrupados por sistema",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/by-system",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                "by-system"
+              ]
+            },
+            "description": "Listar los permisos agrupados por sistema\n\nUn sistema por card, con los permisos (resource:action) asignados a cualquiera de sus roles y en qué roles concretos de ese sistema quedó cada uno. Pensado para la vista de administración de permisos.",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permisos agrupados por sistema",
+              "status": "Permisos agrupados por sistema",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"systems\": [\n    {\n      \"system\": {\n        \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n        \"name\": \"Ejemplo\",\n        \"slug\": \"ejemplo-slug\",\n        \"description\": \"texto\",\n        \"url\": \"texto\",\n        \"active\": true,\n        \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n        \"updatedAt\": \"2026-07-10T12:00:00.000Z\"\n      },\n      \"permissions\": [\n        {\n          \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n          \"resource\": \"employees\",\n          \"action\": \"read\",\n          \"description\": \"texto\",\n          \"createdAt\": \"2026-07-10T12:00:00.000Z\",\n          \"roles\": [\n            {\n              \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n              \"name\": \"admin\"\n            }\n          ]\n        }\n      ]\n    }\n  ]\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Crear (o reutilizar) un permiso y asignarlo a un rol de un sistema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/assign",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                "assign"
+              ]
+            },
+            "description": "Crear (o reutilizar) un permiso y asignarlo a un rol de un sistema\n\n`roleId` debe pertenecer a `systemId`. Si el permiso `resource:action` ya existe en el catálogo se reutiliza; si no, se crea. Es la vía del panel para 'crear un permiso para un sistema' sin tocar la API a mano.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"systemId\": \"9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c\",\n  \"roleId\": \"9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c\",\n  \"resource\": \"employees\",\n  \"action\": \"read\",\n  \"description\": \"texto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "201 - Permiso asignado",
+              "status": "Permiso asignado",
+              "code": 201,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"permission\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"resource\": \"employees\",\n    \"action\": \"read\",\n    \"description\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar un permiso del catálogo",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Actualizar un permiso del catálogo\n\nEl permiso es global: editar resource/action/description afecta a todos los sistemas que lo tengan asignado, no solo al que se esté viendo.\n\n**Path param** `id`: ",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"resource\": \"employees\",\n  \"action\": \"read\",\n  \"description\": \"texto\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permiso actualizado",
+              "status": "Permiso actualizado",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"permission\": {\n    \"id\": \"3fa85f64-5717-4562-b3fc-2c963f66afa6\",\n    \"resource\": \"employees\",\n    \"action\": \"read\",\n    \"description\": \"texto\",\n    \"createdAt\": \"2026-07-10T12:00:00.000Z\"\n  }\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "400 - Solicitud inválida",
+              "status": "Solicitud inválida",
+              "code": 400,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Eliminar un permiso del catálogo (y sus asignaciones a roles)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/:id",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                ":id"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                }
+              ]
+            },
+            "description": "Eliminar un permiso del catálogo (y sus asignaciones a roles)\n\n**Path param** `id`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permiso eliminado",
+              "status": "Permiso eliminado",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Quitar un permiso de un sistema (badge 'eliminar' en el panel)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/:id/systems/:systemId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                ":id",
+                "systems",
+                ":systemId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                },
+                {
+                  "key": "systemId",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de systemId"
+                }
+              ]
+            },
+            "description": "Quitar un permiso de un sistema (badge 'eliminar' en el panel)\n\nDesasigna el permiso de todos los roles de `systemId`. Si tras eso no queda asignado a ningún rol de ningún otro sistema, también se borra del catálogo (`deleted: true` en la respuesta).\n\n**Path params** `id`, `systemId`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permiso desasignado del sistema",
+              "status": "Permiso desasignado del sistema",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"deleted\": false\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Asignar un permiso ya existente del catálogo a un rol",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/:id/roles/:roleId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                ":id",
+                "roles",
+                ":roleId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                },
+                {
+                  "key": "roleId",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de roleId"
+                }
+              ]
+            },
+            "description": "Asignar un permiso ya existente del catálogo a un rol\n\nAlta idempotente: si el rol ya tenía el permiso, no hace nada. Es el control fino del panel de edición (roles concretos de un sistema que llevan un permiso dado).\n\n**Path params** `id`, `roleId`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permiso asignado al rol",
+              "status": "Permiso asignado al rol",
+              "code": 200,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"status\": true\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "401 - No hay una sesión válida",
+              "status": "No hay una sesión válida",
+              "code": 401,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Requiere privilegios de administrador",
+              "status": "Requiere privilegios de administrador",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "404 - Recurso no encontrado",
+              "status": "Recurso no encontrado",
+              "code": 404,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            }
+          ]
+        },
+        {
+          "name": "Quitar un permiso de un rol puntual",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/permissions/:id/roles/:roleId",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "permissions",
+                ":id",
+                "roles",
+                ":roleId"
+              ],
+              "variable": [
+                {
+                  "key": "id",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de id"
+                },
+                {
+                  "key": "roleId",
+                  "value": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+                  "description": "ID de roleId"
+                }
+              ]
+            },
+            "description": "Quitar un permiso de un rol puntual\n\nSolo quita esta asignación rol↔permiso; a diferencia de DELETE /{id}/systems/{systemId}, NO borra el permiso del catálogo aunque quede sin ningún rol.\n\n**Path params** `id`, `roleId`: ",
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{token}}",
+                  "type": "string"
+                }
+              ]
+            }
+          },
+          "response": [
+            {
+              "name": "200 - Permiso quitado del rol",
+              "status": "Permiso quitado del rol",
               "code": 200,
               "header": [
                 {
