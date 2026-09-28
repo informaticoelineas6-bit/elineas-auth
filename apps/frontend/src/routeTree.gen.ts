@@ -19,6 +19,7 @@ import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
 import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
 import { Route as AuthedEmployeesIndexRouteImport } from './routes/_authed/employees.index'
 import { Route as AuthedEmployeesNewRouteImport } from './routes/_authed/employees.new'
+import { Route as AuthedPermissionsIndexRouteImport } from './routes/_authed/permissions.index'
 import { Route as AuthedRolesIndexRouteImport } from './routes/_authed/roles.index'
 import { Route as AuthedRolesNewRouteImport } from './routes/_authed/roles.new'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems.index'
@@ -76,6 +77,11 @@ const AuthedEmployeesIndexRoute = AuthedEmployeesIndexRouteImport.update({
 const AuthedEmployeesNewRoute = AuthedEmployeesNewRouteImport.update({
   id: '/employees/new',
   path: '/employees/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedPermissionsIndexRoute = AuthedPermissionsIndexRouteImport.update({
+  id: '/permissions/',
+  path: '/permissions/',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedRolesIndexRoute = AuthedRolesIndexRouteImport.update({
@@ -140,6 +146,7 @@ export interface FileRoutesByFullPath {
   '/roles/new': typeof AuthedRolesNewRoute
   '/systems/new': typeof AuthedSystemsNewRoute
   '/employees/': typeof AuthedEmployeesIndexRoute
+  '/permissions/': typeof AuthedPermissionsIndexRoute
   '/roles/': typeof AuthedRolesIndexRoute
   '/systems/': typeof AuthedSystemsIndexRoute
   '/employees/$employeeId/edit': typeof AuthedEmployeesEmployeeIdEditRoute
@@ -160,6 +167,7 @@ export interface FileRoutesByTo {
   '/roles/new': typeof AuthedRolesNewRoute
   '/systems/new': typeof AuthedSystemsNewRoute
   '/employees': typeof AuthedEmployeesIndexRoute
+  '/permissions': typeof AuthedPermissionsIndexRoute
   '/roles': typeof AuthedRolesIndexRoute
   '/systems': typeof AuthedSystemsIndexRoute
   '/employees/$employeeId/edit': typeof AuthedEmployeesEmployeeIdEditRoute
@@ -182,6 +190,7 @@ export interface FileRoutesById {
   '/_authed/roles/new': typeof AuthedRolesNewRoute
   '/_authed/systems/new': typeof AuthedSystemsNewRoute
   '/_authed/employees/': typeof AuthedEmployeesIndexRoute
+  '/_authed/permissions/': typeof AuthedPermissionsIndexRoute
   '/_authed/roles/': typeof AuthedRolesIndexRoute
   '/_authed/systems/': typeof AuthedSystemsIndexRoute
   '/_authed/employees/$employeeId/edit': typeof AuthedEmployeesEmployeeIdEditRoute
@@ -204,6 +213,7 @@ export interface FileRouteTypes {
     | '/roles/new'
     | '/systems/new'
     | '/employees/'
+    | '/permissions/'
     | '/roles/'
     | '/systems/'
     | '/employees/$employeeId/edit'
@@ -224,6 +234,7 @@ export interface FileRouteTypes {
     | '/roles/new'
     | '/systems/new'
     | '/employees'
+    | '/permissions'
     | '/roles'
     | '/systems'
     | '/employees/$employeeId/edit'
@@ -245,6 +256,7 @@ export interface FileRouteTypes {
     | '/_authed/roles/new'
     | '/_authed/systems/new'
     | '/_authed/employees/'
+    | '/_authed/permissions/'
     | '/_authed/roles/'
     | '/_authed/systems/'
     | '/_authed/employees/$employeeId/edit'
@@ -332,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedEmployeesNewRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/permissions/': {
+      id: '/_authed/permissions/'
+      path: '/permissions'
+      fullPath: '/permissions/'
+      preLoaderRoute: typeof AuthedPermissionsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/roles/': {
       id: '/_authed/roles/'
       path: '/roles'
@@ -408,6 +427,7 @@ interface AuthedRouteChildren {
   AuthedRolesNewRoute: typeof AuthedRolesNewRoute
   AuthedSystemsNewRoute: typeof AuthedSystemsNewRoute
   AuthedEmployeesIndexRoute: typeof AuthedEmployeesIndexRoute
+  AuthedPermissionsIndexRoute: typeof AuthedPermissionsIndexRoute
   AuthedRolesIndexRoute: typeof AuthedRolesIndexRoute
   AuthedSystemsIndexRoute: typeof AuthedSystemsIndexRoute
   AuthedEmployeesEmployeeIdEditRoute: typeof AuthedEmployeesEmployeeIdEditRoute
@@ -427,6 +447,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedRolesNewRoute: AuthedRolesNewRoute,
   AuthedSystemsNewRoute: AuthedSystemsNewRoute,
   AuthedEmployeesIndexRoute: AuthedEmployeesIndexRoute,
+  AuthedPermissionsIndexRoute: AuthedPermissionsIndexRoute,
   AuthedRolesIndexRoute: AuthedRolesIndexRoute,
   AuthedSystemsIndexRoute: AuthedSystemsIndexRoute,
   AuthedEmployeesEmployeeIdEditRoute: AuthedEmployeesEmployeeIdEditRoute,

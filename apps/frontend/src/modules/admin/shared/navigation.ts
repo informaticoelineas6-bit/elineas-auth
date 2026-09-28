@@ -2,6 +2,7 @@ import { canAccessResource } from "@elineas/auth-contracts";
 import {
 	BookOpen,
 	Boxes,
+	Lock,
 	MonitorSmartphone,
 	ShieldCheck,
 	UserCog,
@@ -14,10 +15,10 @@ import type { MyPermission } from "#/modules/permissions/shared/types.ts";
 //
 // `resource` es el recurso ("employees", "sessions", ...) cuyo permiso de
 // lectura habilita el enlace para un rol NO admin (ver `isNavItemVisible`).
-// Sin `resource`, el enlace es admin-only: hoy Systems, Roles, Asignaciones
-// (/user-roles) y Documentación no tienen contrapartida en el catálogo de
-// permisos. Systems/Roles/Asignaciones porque sus endpoints siguen exigiendo
-// directamente el rol admin (ver el comentario en
+// Sin `resource`, el enlace es admin-only: hoy Systems, Roles, Permisos,
+// Asignaciones (/user-roles) y Documentación no tienen contrapartida en el
+// catálogo de permisos. Systems/Roles/Permisos/Asignaciones porque sus
+// endpoints siguen exigiendo directamente el rol admin (ver el comentario en
 // apps/backend/src/routes/roles.routes.ts sobre por qué: delegar su gestión
 // sería delegar la propia llave del sistema de permisos). Documentación
 // porque es la guía de integración de sistemas consumidores, así que es
@@ -25,6 +26,12 @@ import type { MyPermission } from "#/modules/permissions/shared/types.ts";
 export const NAV_ITEMS = [
 	{ to: "/systems", label: "Sistemas", icon: Boxes, resource: undefined },
 	{ to: "/roles", label: "Roles", icon: ShieldCheck, resource: undefined },
+	{
+		to: "/permissions",
+		label: "Permisos",
+		icon: Lock,
+		resource: undefined,
+	},
 	{ to: "/employees", label: "Usuarios", icon: Users, resource: "employees" },
 	{
 		to: "/user-roles",
