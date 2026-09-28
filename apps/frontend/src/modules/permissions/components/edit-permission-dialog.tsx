@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { ChevronDown } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
@@ -22,6 +23,11 @@ import {
 } from "@/modules/common/components/ui/field.tsx";
 import { Input } from "@/modules/common/components/ui/input.tsx";
 import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
+import {
+	Popover,
+	PopoverContent,
+	PopoverTrigger,
+} from "@/modules/common/components/ui/popover.tsx";
 import { Textarea } from "@/modules/common/components/ui/textarea.tsx";
 import { reportError } from "@/modules/common/lib/errors.ts";
 import {
@@ -204,10 +210,11 @@ export function EditPermissionDialog({
 					<FieldSeparator />
 
 					<Field>
-						<FieldLabel>Roles de {system.name} con este permiso</FieldLabel>
+						<FieldLabel htmlFor="permission-roles">
+							Roles de {system.name} con este permiso
+						</FieldLabel>
 						<FieldDescription>
-							Marca o desmarca los roles de este sistema que deben tener el
-							permiso.
+							Selecciona los roles de este sistema que deben tener el permiso.
 						</FieldDescription>
 						{rolesQuery.isPending ? (
 							<p className="text-sm text-muted-foreground">Cargando roles…</p>
@@ -216,24 +223,12 @@ export function EditPermissionDialog({
 								Este sistema aún no tiene roles.
 							</p>
 						) : (
-							<div className="space-y-2 mt-1">
-								{roles.map((role) => (
-									<label
-										key={role.id}
-										className="flex items-center gap-2 text-sm"
-										htmlFor={`role-${role.id}`}
-									>
-										<Checkbox
-											id={`role-${role.id}`}
-											checked={assignedRoleIds.has(role.id)}
-											onCheckedChange={(checked) =>
-												toggleRole(role.id, checked === true)
-											}
-										/>
-										{role.name}
-									</label>
-								))}
-							</div>
+							<RolesMultiSelect
+								id="permission-roles"
+								roles={roles}
+								selectedRoleIds={assignedRoleIds}
+								onToggle={toggleRole}
+							/>
 						)}
 					</Field>
 
@@ -285,5 +280,65 @@ export function EditPermissionDialog({
 				onConfirm={confirmRemoveFromSystem}
 			/>
 		</>
+	);
+}
+
+// Select múltiple (sin dependencia de cmdk): el trigger muestra los roles
+// elegidos como texto y el popover lista todos los roles con un checkbox
+// cada uno. Cada click dispara `onToggle` de inmediato (no hay "aplicar": el
+// padre ya persiste cada cambio con su propia mutación).
+function RolesMultiSelect({
+	id,
+	roles,
+	selectedRoleIds,
+	onToggle,
+}: {
+	id: string;
+	roles: { id: string; name: string }[];
+	selectedRoleIds: Set<string>;
+	onToggle: (roleId: string, checked: boolean) => void;
+}) {
+	const selectedNames = roles
+		.filter((role) => selectedRoleIds.has(role.id))
+		.map((role) => role.name);
+
+	return (
+		<Popover>
+			<PopoverTrigger asChild>
+				<Button
+					id={id}
+					type="button"
+					variant="outline"
+					className="w-full justify-between font-normal"
+				>
+					<span className="truncate text-left">
+						{selectedNames.length === 0
+							? "Selecciona roles"
+							: selectedNames.join(", ")}
+					</span>
+					<ChevronDown className="size-4 shrink-0 text-muted-foreground" />
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent className="w-64 p-2" align="start">
+				<div className="max-h-60 space-y-1 overflow-y-auto">
+					{roles.map((role) => (
+						<label
+							key={role.id}
+							className="flex items-center gap-2 rounded-sm px-1.5 py-1 text-sm hover:bg-accent"
+							htmlFor={`role-${role.id}`}
+						>
+							<Checkbox
+								id={`role-${role.id}`}
+								checked={selectedRoleIds.has(role.id)}
+								onCheckedChange={(checked) =>
+									onToggle(role.id, checked === true)
+								}
+							/>
+							{role.name}
+						</label>
+					))}
+				</div>
+			</PopoverContent>
+		</Popover>
 	);
 }
