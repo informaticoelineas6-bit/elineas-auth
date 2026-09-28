@@ -269,6 +269,57 @@ export const SetRolePermissionsBodySchema = z
   })
   .openapi("SetRolePermissionsBody");
 
+// Crea (o reutiliza si ya existe en el catálogo por resource+action) un
+// permiso y lo asigna a `roleId`. `roleId` debe pertenecer a `systemId`: es
+// la vía que usa el panel para "crear un permiso para un sistema", ya que
+// `permission` en sí no tiene FK a `system` (ver comentario en
+// business-schema.ts), y la relación real pasa por el rol.
+export const AssignPermissionBodySchema = z
+  .object({
+    systemId: z
+      .uuid()
+      .openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
+    roleId: z
+      .uuid()
+      .openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),
+    resource: z.string().min(1).openapi({ example: "employees" }),
+    action: z.string().min(1).openapi({ example: "read" }),
+    description: Description.optional(),
+  })
+  .openapi("AssignPermissionBody");
+
+export const UpdatePermissionBodySchema = z
+  .object({
+    resource: z.string().min(1).optional(),
+    action: z.string().min(1).optional(),
+    description: Description.optional(),
+  })
+  .openapi("UpdatePermissionBody");
+
+export const PermissionSystemParamSchema = z.object({
+  id: z.uuid().openapi({ param: { name: "id", in: "path" } }),
+  systemId: z.uuid().openapi({ param: { name: "systemId", in: "path" } }),
+});
+
+export const PermissionRoleParamSchema = z.object({
+  id: z.uuid().openapi({ param: { name: "id", in: "path" } }),
+  roleId: z.uuid().openapi({ param: { name: "roleId", in: "path" } }),
+});
+
+// Vista agrupada por sistema para el panel: cada sistema con los permisos
+// (distintos por resource+action) que tiene asignados en cualquiera de sus
+// roles, y en qué roles concretos de ESE sistema quedó cada uno.
+export const SystemPermissionsSchema = z
+  .object({
+    system: SystemSchema,
+    permissions: z.array(
+      PermissionSchema.extend({
+        roles: z.array(z.object({ id: z.uuid(), name: z.string() })),
+      }),
+    ),
+  })
+  .openapi("SystemPermissions");
+
 // ---------------------------------------------------------------------------
 // UserRole (asignación de rol a usuario)
 // ---------------------------------------------------------------------------
