@@ -13,7 +13,7 @@ const ADMIN_CACHE_TTL_SECONDS = 30;
 
 // Consulta directa a BD: ¿tiene el usuario el rol admin en el sistema que
 // representa a este identity server?
-async function queryIsAdmin(userId: string): Promise<boolean> {
+export async function queryIsAdmin(userId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: userRole.id })
     .from(userRole)

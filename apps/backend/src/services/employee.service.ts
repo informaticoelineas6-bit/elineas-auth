@@ -6,6 +6,7 @@ import { user } from "@backend/db/auth-schema.ts";
 import { auth } from "@backend/lib/auth.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { sendWelcomeEmail } from "@backend/lib/mail.ts";
+import { queryIsAdmin } from "@backend/middleware/admin.ts";
 import { escapeLike } from "@backend/lib/search.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
 import {
@@ -252,6 +253,19 @@ export async function deleteEmployee(id: string, currentUserId?: string) {
         409,
         "No puedes eliminar tu propio usuario",
         "CONFLICT",
+      );
+    }
+    // Borrar el usuario de un admin (cascada a roles y sesiones) le quitaría el
+    // acceso: solo otro admin puede hacerlo. Consulta directa a BD (sin caché)
+    // para no decidir con un dato de hasta 30 s de antigüedad.
+    if (
+      (await queryIsAdmin(row.userId)) &&
+      !(currentUserId && (await queryIsAdmin(currentUserId)))
+    ) {
+      throw new HttpError(
+        403,
+        "Solo un administrador puede eliminar a un administrador",
+        "FORBIDDEN",
       );
     }
     await tx.delete(user).where(eq(user.id, row.userId));
