@@ -1,6 +1,7 @@
 import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
-import { rateLimit } from "@backend/middleware/rate-limit.ts";
+import { failureRateLimit, rateLimit } from "@backend/middleware/rate-limit.ts";
+import { clientIp } from "@backend/lib/client-ip.ts";
 import { requireSameOrigin } from "@backend/middleware/same-origin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 
@@ -25,19 +26,36 @@ async function signInAccountKey(c: Context): Promise<string | undefined> {
 // credential stuffing). Se registran antes que las rutas para que se ejecuten
 // primero.
 export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
-  // Login: dos límites complementarios. Uno por IP (frena a un atacante desde
-  // una misma máquina) y otro por CUENTA (frena la fuerza bruta distribuida
-  // contra un único usuario desde muchas IPs).
+  // Login: un límite por IP (frena a un atacante desde una misma máquina) y
+  // límites por CUENTA solo sobre intentos fallidos (ver más abajo).
   app.use(
     "/api/auth/sign-in",
     rateLimit({ name: "sign-in", windowMs: 60_000, max: 10 }),
   );
+  // Por cuenta, contando SOLO los intentos fallidos (401):
+  //  · email + IP, umbral bajo: quien falla repetidamente se bloquea a sí mismo;
+  //    un atacante no puede dejar fuera al usuario legítimo (otra IP) con unos
+  //    pocos intentos.
+  //  · solo email, umbral alto: backstop contra fuerza bruta distribuida (botnet
+  //    que rota IPs) contra una cuenta concreta.
   app.use(
     "/api/auth/sign-in",
-    rateLimit({
-      name: "sign-in-account",
+    failureRateLimit({
+      name: "sign-in-account-ip",
       windowMs: 15 * 60_000,
       max: 10,
+      key: async (c) => {
+        const email = await signInAccountKey(c);
+        return email === undefined ? undefined : `${email}|${clientIp(c)}`;
+      },
+    }),
+  );
+  app.use(
+    "/api/auth/sign-in",
+    failureRateLimit({
+      name: "sign-in-account",
+      windowMs: 15 * 60_000,
+      max: 100,
       key: signInAccountKey,
     }),
   );

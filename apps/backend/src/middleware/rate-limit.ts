@@ -159,3 +159,78 @@ export function rateLimit({ name, windowMs, max, key }: Options) {
     return next();
   };
 }
+
+// Limitador que cuenta SOLO los intentos fallidos (respuesta 401). A diferencia
+// de `rateLimit`, que suma cada petición, el contador no sube con logins
+// correctos, y se comprueba ANTES del handler pero se incrementa DESPUÉS, una
+// vez conocido el resultado.
+//
+// Se usa para el bloqueo por cuenta del login. Con `rateLimit` sobre el email,
+// 10 intentos (aunque fueran de un atacante) bloqueaban a la víctima 15 min. Aquí
+// la clave suele combinar email + IP, de modo que quien falla repetidamente solo
+// se bloquea a sí mismo; un umbral aparte, mucho más alto y solo por email, frena
+// la fuerza bruta distribuida sin que un atacante pueda bloquear cuentas ajenas
+// con unos pocos intentos.
+//
+// La comprobación y el incremento no son atómicos entre sí: peticiones
+// simultáneas pueden pasar un puñado de intentos del umbral. Es aceptable aquí
+// (el umbral es una barrera de abuso, no un contador de precisión).
+export function failureRateLimit({ name, windowMs, max, key }: Options) {
+  const failures = new Map<string, number[]>();
+
+  const recentInMemory = (id: string): number[] => {
+    const windowStart = Date.now() - windowMs;
+    const fresh = (failures.get(id) ?? []).filter((t) => t > windowStart);
+    if (fresh.length === 0) failures.delete(id);
+    else failures.set(id, fresh);
+    return fresh;
+  };
+
+  return async function failureRateLimitMiddleware(c: Context, next: Next) {
+    const id = key ? await key(c) : clientIp(c);
+    if (id === undefined) return next();
+    const redisKey = `ratelimit:${name}:${id}`;
+
+    let useMemory = !redis;
+    if (redis) {
+      try {
+        const count = Number(
+          (await redisCommand(() => redis!.send("GET", [redisKey]))) ?? 0,
+        );
+        if (count >= max) {
+          const ttlMs = Number(
+            await redisCommand(() => redis!.send("PTTL", [redisKey])),
+          );
+          return tooMany(
+            c,
+            ttlMs > 0 ? Math.ceil(ttlMs / 1000) : Math.ceil(windowMs / 1000),
+          );
+        }
+      } catch {
+        useMemory = true;
+      }
+    }
+    if (useMemory) {
+      const recent = recentInMemory(id);
+      if (recent.length >= max) {
+        return tooMany(c, Math.ceil((recent[0]! + windowMs - Date.now()) / 1000));
+      }
+    }
+
+    await next();
+
+    // 401 = credenciales incorrectas. Cualquier otro resultado (éxito, 403 por
+    // falta de roles tras una contraseña válida, 429, errores) no cuenta.
+    if (c.res.status !== 401) return;
+
+    if (!useMemory && redis) {
+      try {
+        await redisAllowed(redisKey, windowMs, max);
+        return;
+      } catch {
+        // Redis falló al registrar: se anota en memoria.
+      }
+    }
+    failures.set(id, [...recentInMemory(id), Date.now()]);
+  };
+}
