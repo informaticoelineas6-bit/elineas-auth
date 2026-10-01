@@ -12,7 +12,18 @@ import { db } from "@backend/db/index.ts";
 import { auth } from "@backend/lib/auth.ts";
 
 const SYSTEM_SLUG = "control-asistencia";
-const PASSWORD = "Asistencia2026!";
+// Nunca contra producción: crea cuentas de prueba, una de ellas superadmin.
+if (process.env.APP_ENV === "production") {
+  console.error("Este script es solo para entornos de prueba (APP_ENV=production).");
+  process.exit(1);
+}
+
+// Contraseña de las cuentas de prueba: la de SEED_PASSWORD o, si no se define,
+// una aleatoria por ejecución (se imprime al final). Ya no hay una fija en el
+// repositorio.
+const PASSWORD =
+  process.env.SEED_PASSWORD ??
+  `Tmp-${crypto.randomUUID().replace(/-/g, "").slice(0, 16)}!`;
 
 const ACCOUNTS = [
   {
