@@ -22,17 +22,21 @@ services:
         # Snapshot cada minuto, similar al `save 60 1` que tenía Redis.
         "--snapshot_cron",
         "* * * * *",
-        "--requirepass",
-        "${REDIS_PASSWORD}",
       ]
     environment:
-      REDISCLI_AUTH: ${REDIS_PASSWORD}
+      # La contraseña va por entorno y no en la línea de comandos (`--requirepass`
+      # se veía en `docker inspect` y `ps`). Dragonfly lee sus flags de las
+      # variables DFLY_<flag>. `:?` aborta `compose up` si REDIS_PASSWORD falta
+      # o está vacía, en vez de arrancar un Redis sin contraseña.
+      DFLY_requirepass: ${REDIS_PASSWORD:?Define REDIS_PASSWORD en el entorno}
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?Define REDIS_PASSWORD en el entorno}
     volumes:
       - redisdata:/data
     networks:
       - elineas-auth-net
     healthcheck:
-      test: ["CMD", "redis-cli", "-a", "${REDIS_PASSWORD}", "ping"]
+      # La contraseña la toma redis-cli de REDISCLI_AUTH (no va en argv).
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -128,6 +132,16 @@ services:
       backend:
         condition: service_healthy
 
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -q -O /dev/null http://localhost:3000/ || exit 1",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 20s
 volumes:
   redisdata:
 
