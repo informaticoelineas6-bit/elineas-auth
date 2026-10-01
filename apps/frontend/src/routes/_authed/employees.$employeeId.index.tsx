@@ -111,7 +111,8 @@ function EmployeeDetail({
 	const access = { isAdmin, permissions };
 	const canWrite = hasPermission("employees", "write", access);
 	const canDelete = hasPermission("employees", "delete", access);
-	const canChangePassword = hasPermission("users", "write", access);
+	// El endpoint exige rol admin (no `users:write`), ver users.routes.ts.
+	const canChangePassword = isAdmin;
 	const updateEmployee = useUpdateEmployee();
 	const deleteEmployee = useDeleteEmployee();
 

@@ -52,7 +52,8 @@ function EmployeesPage() {
 	const access = { isAdmin, permissions };
 	const canWrite = hasPermission("employees", "write", access);
 	const canDelete = hasPermission("employees", "delete", access);
-	const canChangePassword = hasPermission("users", "write", access);
+	// El endpoint exige rol admin (no `users:write`), ver users.routes.ts.
+	const canChangePassword = isAdmin;
 	const { filters, controls, setFilter } = useListControls<EmployeeFilters>();
 	const query = useQuery(employeesQueries.list(filters));
 	const updateEmployee = useUpdateEmployee();

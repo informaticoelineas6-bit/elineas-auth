@@ -1,4 +1,5 @@
 import { HttpError } from "@backend/lib/http.ts";
+import { requireAdmin } from "@backend/middleware/admin.ts";
 import { requirePermission } from "@backend/middleware/permission.ts";
 import { requireSession } from "@backend/middleware/session.ts";
 import { IdParamSchema } from "@backend/openapi/business.schemas.ts";
@@ -157,7 +158,9 @@ const adminChangePasswordRoute = createRoute({
     "SU propia contraseña; la del usuario objetivo no se necesita. Por defecto " +
     "cierra todas las sesiones de ese usuario.",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requirePermission("users", "write")] as const,
+  // Solo admin (no `users:write`): fijar la contraseña de otro usuario permite
+  // tomar su cuenta, incluida la de un admin, así que no es delegable.
+  middleware: [requireSession, requireAdmin] as const,
   request: {
     params: IdParamSchema,
     body: {
