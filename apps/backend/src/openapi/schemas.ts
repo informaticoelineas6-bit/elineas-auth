@@ -60,9 +60,10 @@ export const SignUpBodySchema = z
   .object({
     name: DisplayName.openapi({ example: "Ada Lovelace" }),
     email: CompanyEmail.openapi({ example: "ada@mercadoelineas.com" }),
-    // Se valida aquí también para dar un error claro antes de llegar a la capa
-    // de auth (better-auth aplica la misma política).
-    password: Password.openapi({ example: "tu-contraseña-segura" }),
+    // Opcional: lo normal es NO enviarla. Sin ella la cuenta se crea con una
+    // contraseña aleatoria y el dueño recibe un enlace para establecer la suya.
+    // Se valida aquí para dar un error claro antes de llegar a la capa de auth.
+    password: Password.openapi({ example: "tu-contraseña-segura" }).optional(),
     image: ImageUrl.optional(),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
@@ -300,6 +301,21 @@ export const ChangeEmailResponseSchema = z
     pendingVerification: z.boolean(),
   })
   .openapi("ChangeEmailResponse");
+
+export const SetPasswordBodySchema = z
+  .object({
+    token: z.string().min(1).max(256).openapi({ example: "tokenDelCorreo" }),
+    newPassword: Password.openapi({ example: "tu-contraseña-segura" }),
+  })
+  .openapi("SetPasswordBody");
+
+export const SetPasswordResponseSchema = z
+  .object({ status: z.boolean() })
+  .openapi("SetPasswordResponse");
+
+export const InviteResponseSchema = z
+  .object({ status: z.boolean() })
+  .openapi("InviteResponse");
 
 export const VerifyEmailBodySchema = z
   .object({

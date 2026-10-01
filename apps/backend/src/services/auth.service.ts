@@ -1,6 +1,6 @@
 import { auth } from "@backend/lib/auth.ts";
 import { forwardAuthHeaders, handleError, HttpError, issueJwt } from "@backend/lib/http.ts";
-import { sendWelcomeEmail } from "@backend/lib/mail.ts";
+import { generateInitialPassword, sendAccountInvite } from "@backend/lib/invite.ts";
 import {
   bindSessionToSystem,
   resolveActiveSystem,
@@ -14,6 +14,7 @@ import {
 import type { z } from "@hono/zod-openapi";
 import type {
   SignInBodySchema,
+  SetPasswordBodySchema,
   SignUpBodySchema,
   VerifyEmailBodySchema,
 } from "@backend/openapi/schemas.ts";
@@ -21,6 +22,7 @@ import { Context } from "hono";
 
 type SignUpInput = { out: { json: z.infer<typeof SignUpBodySchema> } };
 type SignInInput = { out: { json: z.infer<typeof SignInBodySchema> } };
+type SetPasswordInput = { out: { json: z.infer<typeof SetPasswordBodySchema> } };
 type VerifyEmailInput = { out: { json: z.infer<typeof VerifyEmailBodySchema> } };
 
 export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
@@ -40,7 +42,10 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     // configurar que el llamante cree que no existe.
     if (tkc) assertTkcCredentialsUsable();
     const { response } = await auth.api.signUpEmail({
-      body: credentials,
+      // Sin contraseña en la petición: aleatoria e inservible, el dueño fija la
+      // suya con el enlace de invitación. Si el llamador envía una, se respeta
+      // (compatibilidad) pero tampoco se manda por correo.
+      body: { ...credentials, password: credentials.password ?? generateInitialPassword() },
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
@@ -53,14 +58,9 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     }
     if (tkc) await setUserTkcCredentials(response.user.id, tkc);
     const token = await issueJwt(response.token);
-    // Envío de credenciales sin await: un fallo del correo no debe hacer
-    // fallar un alta que ya se completó (sendWelcomeEmail captura y loguea
-    // sus propios errores, nunca lanza).
-    void sendWelcomeEmail({
-      to: credentials.email,
-      name: credentials.name,
-      password: credentials.password,
-    });
+    // Invitación sin await: un fallo del correo no debe hacer fallar un alta
+    // que ya se completó (sendAccountInvite captura y loguea, nunca lanza).
+    void sendAccountInvite(credentials.email);
     // `tkc: null` a propósito, aunque el alta las haya guardado: esta respuesta
     // va al ADMIN que crea la cuenta, no a su dueño. Devolvérselas solo le
     // repetiría lo que acaba de enviar, a cambio de que el secreto viaje una
@@ -205,4 +205,18 @@ export const getJwksFn = async (c: Context) => {
     });
   }
   return c.json(await entry.value, 200);
+};
+
+// Público: el dueño de una cuenta invitada fija su contraseña con el token de un
+// solo uso del correo. better-auth lo consume y cierra las sesiones previas.
+export const setPasswordFn = async (
+  c: Context<any, string, SetPasswordInput>,
+) => {
+  try {
+    const { token, newPassword } = c.req.valid("json");
+    await auth.api.resetPassword({ body: { token, newPassword } });
+    return c.json({ status: true }, 200);
+  } catch (error) {
+    return handleError(error, c);
+  }
 };

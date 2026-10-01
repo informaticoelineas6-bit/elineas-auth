@@ -1,7 +1,10 @@
 import { env } from "@backend/config/env.ts";
 import { authDb } from "@backend/db/auth-relational-shim.ts";
 import * as schema from "@backend/db/auth-schema.ts";
-import { sendChangeEmailVerification } from "@backend/lib/mail.ts";
+import {
+  sendChangeEmailVerification,
+  sendInviteEmail,
+} from "@backend/lib/mail.ts";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { bearer, jwt } from "better-auth/plugins";
@@ -27,6 +30,22 @@ export const auth = betterAuth({
     enabled: true,
     minPasswordLength: 12,
     maxPasswordLength: 128,
+    // Invitación de cuentas nuevas: el admin NO fija ni conoce la contraseña; la
+    // cuenta se crea con una aleatoria inservible y el dueño recibe un enlace de
+    // un solo uso para establecer la suya (ver lib/invite.ts). Reutiliza el
+    // mecanismo de reset de better-auth: el token se consume al usarse y al
+    // restablecer se cierran las sesiones previas.
+    //
+    // Como en la verificación de email, el enlace por defecto apunta a este
+    // backend; se reescribe para que apunte a la página /set-password del
+    // FRONTEND, que confirma el token vía POST /api/auth/set-password.
+    resetPasswordTokenExpiresIn: 48 * 60 * 60, // 48 h
+    revokeSessionsOnPasswordReset: true,
+    sendResetPassword: async ({ user, token }) => {
+      const frontendBase = env.ALLOWED_ORIGINS[0];
+      const url = `${frontendBase}/set-password?token=${encodeURIComponent(token)}`;
+      await sendInviteEmail({ to: user.email, name: user.name, url });
+    },
   },
   // Caché de sesión en cookie firmada: evita una consulta a BD en CADA petición
   // autenticada (requireSession). La cookie va firmada con BETTER_AUTH_SECRET, así

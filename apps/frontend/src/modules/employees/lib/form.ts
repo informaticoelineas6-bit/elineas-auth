@@ -15,8 +15,7 @@ import {
 // Valores iniciales del alta combinada. Los opcionales del empleado arrancan
 // vacíos (se depuran antes de enviar); el empleado nace activo por defecto.
 export const employeeWithUserFormDefaults: CreateEmployeeWithUserFormInput = {
-	user: { name: "", email: "", password: "" },
-	confirmPassword: "",
+	user: { name: "", email: "" },
 	employee: {
 		name: "",
 		lastName: "",
@@ -131,7 +130,7 @@ export function toUpdateEmployeePayload(
 }
 
 // Convierte los valores del formulario en el cuerpo del POST /with-user:
-// descarta `confirmPassword` y omite los opcionales vacíos del empleado para no
+// omite los opcionales vacíos del empleado para no
 // enviar cadenas vacías al IS (que coacciona fechas con z.coerce.date()).
 export function toCreateEmployeeWithUserPayload(
 	value: CreateEmployeeWithUserFormInput,
@@ -158,7 +157,6 @@ export function toCreateEmployeeWithUserPayload(
 		user: {
 			name: value.user.name,
 			email: value.user.email,
-			password: value.user.password,
 		},
 		...(tkc ? { tkc } : {}),
 		employee: {

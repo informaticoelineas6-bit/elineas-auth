@@ -706,6 +706,8 @@ Endpoints con límite (`src/middleware/auth-rate-limits.ts`, `src/middleware/rat
 | `POST /api/users/me/change-password` | 5/min             | IP                  |
 | `POST /api/users/me/change-email`    | 5/min             | IP                  |
 | `POST /api/users/admin/{id}/change-password` | 5/min     | IP                  |
+| `POST /api/auth/set-password`                | 10/min    | IP                  |
+| `POST /api/users/admin/{id}/invite`          | 5/min     | IP                  |
 | `GET /api/auth/jwks`                 | 60/min            | IP                  |
 | `GET /api/auth/token`                | 60/min            | IP                  |
 
@@ -752,11 +754,20 @@ ausente en sign-in/sign-up).
 | PUT/DELETE | `/api/permissions/{id}/roles/{roleId}`                            | Sesión + admin   | Asigna/quita un permiso puntual de un rol                                    |
 | DELETE     | `/api/permissions/{id}/systems/{systemId}`                        | Sesión + admin   | Quita un permiso de todos los roles de un sistema; borra el catálogo si queda huérfano |
 | POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
+| POST       | `/api/users/admin/{id}/invite`                                    | Sesión + admin   | Reenvía el enlace para establecer la contraseña                               |
+| POST       | `/api/auth/set-password`                                          | Pública (token)  | Fija la contraseña con el token de un solo uso del correo                     |
 | GET/PUT/DELETE | `/api/users/admin/{id}/tkc`                                   | Sesión + admin   | Credenciales del sistema externo TKC (ver §10.4); nunca devuelven la contraseña |
 | GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)                                    |
 | GET        | `/health/ready`                                                   | — (pública)      | Readiness: además comprueba la BD (`503` si no responde)                      |
 
 ### 10.1 Alta combinada de usuario + empleado
+
+> **Contraseñas por invitación.** Ningún correo lleva una contraseña. Al crear
+> una cuenta (`sign-up` o `with-user`) `password` es opcional: sin ella se genera
+> una aleatoria que nadie ve y se envía un enlace (`/set-password?token=…`,
+> 48 h, un solo uso, cierra sesiones previas) con el que el dueño elige la suya
+> vía `POST /api/auth/set-password`. Si el correo falla, el alta no se aborta:
+> el admin puede reenviarlo con `POST /api/users/admin/{id}/invite`.
 
 `POST /api/employees/with-user` (sesión + admin) crea en una sola llamada el
 **usuario** y el **empleado** ya enlazado a él, evitando encadenar
@@ -771,7 +782,8 @@ no se envía: lo fija el servidor con el id del usuario recién creado.
   "user": {
     "name": "Ada Lovelace",
     "email": "ada@example.com",
-    "password": "tu-contraseña-segura", // min 12, max 128 (política de better-auth)
+    // Sin "password": la cuenta se crea con una aleatoria e inservible y el
+    // dueño recibe por correo un enlace de un solo uso (48 h) para fijar la suya.
   },
   "employee": {
     "name": "Ada",

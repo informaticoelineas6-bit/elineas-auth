@@ -12,6 +12,7 @@ import {
 	changeEmail,
 	changePassword,
 	getMe,
+	resendUserInvite,
 	updateMe,
 } from "../services/users.ts";
 
@@ -48,3 +49,8 @@ export const adminChangeUserPasswordFn = createServerFn({ method: "POST" })
 		const { userId, ...body } = data;
 		return adminChangeUserPassword(userId, body);
 	});
+
+export const resendUserInviteFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(z.object({ userId: z.uuid("Identificador de usuario no válido") }))
+	.handler(({ data }) => resendUserInvite(data.userId));

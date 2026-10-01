@@ -40,6 +40,11 @@ export function changeEmail(input: ChangeEmailInput) {
 	return unwrap(usersRpc.me["change-email"].$post({ json: input }));
 }
 
+// Reenvía al usuario el enlace de un solo uso para establecer su contraseña.
+export function resendUserInvite(userId: string) {
+	return unwrap(usersAdminRpc[":id"].invite.$post({ param: { id: userId } }));
+}
+
 // Cambia la contraseña de OTRO usuario. Requiere rol admin en el IS; el
 // `currentPassword` del input es el del ADMIN, no el del usuario objetivo.
 export function adminChangeUserPassword(

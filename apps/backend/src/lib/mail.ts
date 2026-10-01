@@ -2,7 +2,7 @@ import nodemailer from "nodemailer";
 import { Resend } from "resend";
 import { render } from "@react-email/render";
 import { env } from "@backend/config/env.ts";
-import { WelcomeEmail } from "@backend/emails/welcome-email.tsx";
+import { InviteEmail } from "@backend/emails/invite-email.tsx";
 import { ChangeEmailVerification } from "@backend/emails/change-email-verification.tsx";
 
 type SendArgs = { to: string; subject: string; html: string; text: string };
@@ -42,38 +42,32 @@ if (env.RESEND_API_KEY) {
   );
 }
 
-// Fire-and-forget: NUNCA lanza. Un fallo de envío no debe abortar un alta que
-// ya se completó, así que el error se loguea y la operación de negocio sigue.
-// Los call sites invocan `void sendWelcomeEmail(...)` sin await ni catch.
-export async function sendWelcomeEmail(input: {
+// Invitación para establecer la contraseña. NUNCA lleva una contraseña: solo un
+// enlace de un solo uso (48 h). Sin mailer el enlace no llega a nadie y la cuenta
+// queda inaccesible hasta reenviarlo, así que un fallo SÍ se propaga; los
+// llamadores que no quieren abortar el alta lo capturan (ver lib/invite.ts).
+export async function sendInviteEmail(input: {
   to: string;
   name: string;
-  password: string;
+  url: string;
 }) {
-  if (!send) return;
-  try {
-    const element = WelcomeEmail({
-      name: input.name,
-      email: input.to,
-      password: input.password,
-    });
-    const html = await render(element);
-    const text = await render(element, { plainText: true });
-    await send({
-      to: input.to,
-      subject: "Bienvenido a Mercado Elineas: tus credenciales de acceso",
-      html,
-      text,
-    });
-  } catch (error) {
-    console.error(
-      `No se pudo enviar el correo de bienvenida a ${input.to}:`,
-      error instanceof Error ? error.message : error,
+  if (!send) {
+    throw new Error(
+      "Mailer deshabilitado: no se puede enviar la invitación de la cuenta.",
     );
   }
+  const element = InviteEmail({ name: input.name, url: input.url });
+  const html = await render(element);
+  const text = await render(element, { plainText: true });
+  await send({
+    to: input.to,
+    subject: "Activa tu cuenta de Mercado Elineas",
+    html,
+    text,
+  });
 }
 
-// Correo de confirmación del cambio de email. A diferencia de sendWelcomeEmail
+// Correo de confirmación del cambio de email. A diferencia del alta (sendAccountInvite)
 // (fire-and-forget), aquí el correo ES el camino crítico: sin él el usuario no
 // puede completar el cambio, así que un fallo (o el mailer deshabilitado) SÍ se
 // propaga para que la solicitud de cambio devuelva un error en vez de decir

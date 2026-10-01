@@ -11,9 +11,18 @@ import {
 import { env } from "#/modules/auth/lib/env.ts";
 import { verifyAccessToken } from "#/modules/auth/lib/jwt.ts";
 import { verifyTurnstileToken } from "#/modules/auth/lib/turnstile-server.ts";
-import { signInSchema, verifyEmailTokenSchema } from "../lib/validation.ts";
+import {
+	setPasswordSchema,
+	signInSchema,
+	verifyEmailTokenSchema,
+} from "../lib/validation.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
-import { signIn, signOut, verifyEmailChange } from "../services/auth.ts";
+import {
+	setPassword,
+	signIn,
+	signOut,
+	verifyEmailChange,
+} from "../services/auth.ts";
 
 // Site key pública para el widget del cliente. `TURNSTILE_SECRET_KEY` (server-
 // only) nunca sale de aquí: se usa solo dentro de signInFn.
@@ -104,6 +113,28 @@ export const verifyEmailChangeFn = createServerFn({ method: "POST" })
 			// su JWT cacheado sigue con el email viejo (ver session.ts). Se descarta
 			// para forzar el refresh contra el IS en la próxima petición.
 			clearAccessToken();
+			return { ok: true } as const;
+		} catch (error) {
+			if (error instanceof AuthApiError) {
+				return {
+					ok: false,
+					error: error.message,
+					code: error.code,
+					status: error.status,
+				} as const;
+			}
+			throw error;
+		}
+	});
+
+// Establece la contraseña de una cuenta invitada. Server fn PÚBLICA (la persona
+// aún no tiene contraseña ni sesión). Devuelve un resultado tipado en vez de
+// lanzar, igual que verifyEmailChangeFn.
+export const setPasswordFn = createServerFn({ method: "POST" })
+	.validator(setPasswordSchema)
+	.handler(async ({ data }) => {
+		try {
+			await setPassword(data.token, data.newPassword);
 			return { ok: true } as const;
 		} catch (error) {
 			if (error instanceof AuthApiError) {

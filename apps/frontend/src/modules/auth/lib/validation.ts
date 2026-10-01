@@ -1,9 +1,15 @@
-import { loginEmail, signInPassword } from "@elineas/auth-contracts";
+import { loginEmail, password, signInPassword } from "@elineas/auth-contracts";
 import { z } from "zod";
 
 // Token de confirmación del cambio de correo (llega en el enlace del email).
 export const verifyEmailTokenSchema = z.object({
 	token: z.string().min(1, "Falta el token de verificación"),
+});
+
+// Establecer la contraseña de una cuenta invitada (token del enlace del correo).
+export const setPasswordSchema = z.object({
+	token: z.string().min(1, "Falta el token de la invitación"),
+	newPassword: password,
 });
 
 export const signInSchema = z.object({

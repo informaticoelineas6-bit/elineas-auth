@@ -6,6 +6,7 @@ import { IdParamSchema } from "@backend/openapi/business.schemas.ts";
 import {
   AdminChangePasswordBodySchema,
   AdminChangePasswordResponseSchema,
+  InviteResponseSchema,
   badRequestResponse,
   bearerAuthSecurity,
   ChangeEmailBodySchema,
@@ -30,6 +31,7 @@ import {
 } from "@backend/services/tkc-key.service.ts";
 import {
   adminChangeUserPassword,
+  resendUserInvite,
   changeEmailFn,
   changePasswordFn,
   getMeFn,
@@ -183,6 +185,30 @@ const adminChangePasswordRoute = createRoute({
   },
 });
 
+const resendInviteRoute = createRoute({
+  method: "post",
+  path: "/{id}/invite",
+  operationId: "resendUserInvite",
+  tags: ["Users"],
+  summary: "Reenviar la invitación para establecer la contraseña (requiere users:write)",
+  description:
+    "Envía al correo del usuario un enlace de un solo uso (48 h) para que fije " +
+    "su contraseña. El admin nunca ve ni fija la contraseña.",
+  security: bearerAuthSecurity,
+  middleware: [requireSession, requirePermission("users", "write")] as const,
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "Invitación enviada",
+      content: { "application/json": { schema: InviteResponseSchema } },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+    503: serviceUnavailableResponse,
+  },
+});
+
 // ---------------------------------------------------------------------------
 // Credenciales del sistema externo TKC de un usuario
 // ---------------------------------------------------------------------------
@@ -293,6 +319,11 @@ export const usersAdminRoutes = usersAdminRoutesBase
       revokeSessions,
     });
     return c.json({ status: true, revokedSessions }, 200);
+  })
+  .openapi(resendInviteRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    await resendUserInvite(id);
+    return c.json({ status: true }, 200);
   })
   .openapi(getTkcRoute, async (c) => {
     const { id } = c.req.valid("param");

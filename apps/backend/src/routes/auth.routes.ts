@@ -6,6 +6,8 @@ import {
   AuthResultSchema,
   JwksResponseSchema,
   SignInBodySchema,
+  SetPasswordBodySchema,
+  SetPasswordResponseSchema,
   SignUpBodySchema,
   SuccessResponseSchema,
   TokenResponseSchema,
@@ -23,6 +25,7 @@ import {
   getTokenFn,
   signInFn,
   signOutFn,
+  setPasswordFn,
   signUpFn,
   verifyEmailFn,
 } from "@backend/services/auth.service.ts";
@@ -148,10 +151,32 @@ const verifyEmailRoute = createRoute({
   },
 });
 
+const setPasswordRoute = createRoute({
+  method: "post",
+  path: "/set-password",
+  operationId: "setPassword",
+  tags: ["Auth"],
+  summary: "Establecer la contraseña de una cuenta invitada con el token del correo",
+  description:
+    "Público: el token de un solo uso (48 h) es la credencial. Al usarse se " +
+    "invalida y se cierran las sesiones previas de la cuenta.",
+  request: {
+    body: { content: { "application/json": { schema: SetPasswordBodySchema } } },
+  },
+  responses: {
+    200: {
+      description: "Contraseña establecida",
+      content: { "application/json": { schema: SetPasswordResponseSchema } },
+    },
+    400: badRequestResponse,
+  },
+});
+
 export const authRoutes = new OpenAPIHono<AppEnv>()
   .openapi(signUpRoute, signUpFn)
   .openapi(signInRoute, signInFn)
   .openapi(signOutRoute, signOutFn)
   .openapi(getTokenRoute, getTokenFn)
   .openapi(getJwksRoute, getJwksFn)
-  .openapi(verifyEmailRoute, verifyEmailFn);
+  .openapi(verifyEmailRoute, verifyEmailFn)
+  .openapi(setPasswordRoute, setPasswordFn);

@@ -186,3 +186,26 @@ export async function adminChangeUserPassword(input: {
 
   return { revokedSessions: revoked.length };
 }
+
+// Reenvía la invitación (enlace para establecer la contraseña) al correo del
+// usuario. A diferencia del envío del alta, aquí el admin espera saber si salió,
+// así que un fallo del correo SÍ se propaga.
+export async function resendUserInvite(userId: string): Promise<void> {
+  const [target] = await db
+    .select({ email: user.email })
+    .from(user)
+    .where(eq(user.id, userId))
+    .limit(1);
+  if (!target) {
+    throw new HttpError(404, "Usuario no encontrado", "NOT_FOUND");
+  }
+  try {
+    await auth.api.requestPasswordReset({ body: { email: target.email } });
+  } catch {
+    throw new HttpError(
+      503,
+      "No se pudo enviar la invitación. Inténtalo de nuevo.",
+      "SERVICE_UNAVAILABLE",
+    );
+  }
+}

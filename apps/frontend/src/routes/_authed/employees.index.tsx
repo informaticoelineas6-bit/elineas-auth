@@ -33,6 +33,7 @@ import type {
 	EmployeeFilters,
 } from "@/modules/employees/shared/types.ts";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
+import { resendUserInviteFn } from "@/modules/users/actions/users.ts";
 
 export const Route = createFileRoute("/_authed/employees/")({
 	// Búsqueda/filtro/página viajan en la URL con el mismo schema que el server fn.
@@ -143,6 +144,17 @@ function EmployeesPage() {
 		onChangePassword: (employee) => {
 			if (!employee.userId) return;
 			setChangingPassword(employee);
+		},
+		onResendInvite: async (employee) => {
+			if (!employee.userId) return;
+			try {
+				await resendUserInviteFn({ data: { userId: employee.userId } });
+				toast.success("Invitación enviada", {
+					description: "El enlace caduca en 48 horas.",
+				});
+			} catch {
+				toast.error("No se pudo enviar la invitación");
+			}
 		},
 		onCopyEmail: async (employee) => {
 			const email = employee.user?.email;

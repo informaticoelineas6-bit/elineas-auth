@@ -63,6 +63,21 @@ export async function verifyEmailChange(token: string) {
 	return (await readJson(response)) as { status: boolean };
 }
 
+// Fija la contraseña de una cuenta invitada con el token de un solo uso del
+// correo. Endpoint público del IS: el token es la credencial. Lanza AuthApiError
+// si el token es inválido, caducó o ya se usó.
+export async function setPassword(token: string, newPassword: string) {
+	const response = await fetch(
+		new URL("/api/auth/set-password", env.AUTH_API_URL),
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ token, newPassword }),
+		},
+	);
+	return (await readJson(response)) as { status: boolean };
+}
+
 // "Refresco" del JWT: el IS no tiene un refresh token separado, es este mismo
 // token de sesión el que se cambia por un JWT nuevo de corta duración.
 export async function refreshAccessToken(

@@ -5,7 +5,7 @@ import { employee } from "@backend/db/business-schema.ts";
 import { user } from "@backend/db/auth-schema.ts";
 import { auth } from "@backend/lib/auth.ts";
 import { HttpError } from "@backend/lib/http.ts";
-import { sendWelcomeEmail } from "@backend/lib/mail.ts";
+import { generateInitialPassword, sendAccountInvite } from "@backend/lib/invite.ts";
 import { queryIsAdmin } from "@backend/middleware/admin.ts";
 import { escapeLike } from "@backend/lib/search.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
@@ -158,7 +158,8 @@ export async function createEmployeeWithUser(
   if (input.tkc) assertTkcCredentialsUsable();
 
   const { response } = await auth.api.signUpEmail({
-    body: input.user,
+    // Sin contraseña: aleatoria e inservible; el dueño la fija con el enlace.
+    body: { ...input.user, password: input.user.password ?? generateInitialPassword() },
     headers,
     returnHeaders: true,
   });
@@ -174,15 +175,11 @@ export async function createEmployeeWithUser(
     const tkc = input.tkc
       ? await setUserTkcCredentials(response.user.id, input.tkc)
       : null;
-    // El correo de credenciales se envía solo cuando el alta completa (usuario
-    // + empleado) tuvo éxito: si el insert falla, el usuario se compensa/borra
-    // y no debe recibir aviso. Sin await: un fallo del correo no aborta el alta
-    // (sendWelcomeEmail captura y loguea sus propios errores, nunca lanza).
-    void sendWelcomeEmail({
-      to: input.user.email,
-      name: input.user.name,
-      password: input.user.password,
-    });
+    // La invitación se envía solo cuando el alta completa (usuario + empleado)
+    // tuvo éxito: si el insert falla, el usuario se compensa/borra y no debe
+    // recibir aviso. Sin await: un fallo del correo no aborta el alta
+    // (sendAccountInvite captura y loguea, nunca lanza).
+    void sendAccountInvite(input.user.email);
     // `tkc` va SIN contraseña (es un TkcKeySummary): confirma qué usuario de TKC
     // quedó enlazado sin devolver el secreto que el llamante acaba de enviar.
     return { user: response.user, employee: row, tkc };

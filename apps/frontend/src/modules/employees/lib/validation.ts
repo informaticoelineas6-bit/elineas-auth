@@ -3,7 +3,6 @@ import { phoneSchema } from "#/modules/common/lib/phone.ts";
 import {
 	companyEmailSchema,
 	isNotFutureDate,
-	passwordSchema,
 } from "#/modules/common/lib/validation.ts";
 import {
 	tkcCredentialsSchema,
@@ -121,7 +120,8 @@ export const createEmployeeWithUserSchema = z.object({
 			.min(1, "Debe tener al menos 1 caracter")
 			.max(100, "Debe tener menos de 100 caracteres"),
 		email: companyEmailSchema,
-		password: passwordSchema,
+		// Sin contraseña: la cuenta se crea con una aleatoria y el dueño recibe un
+		// enlace por correo para establecer la suya.
 		image: z.string().optional(),
 	}),
 	employee: employeeSectionSchema,
@@ -132,17 +132,12 @@ export const createEmployeeWithUserSchema = z.object({
 });
 
 // Esquema del formulario de alta (solo cliente): espeja las reglas del servidor
-// y añade la confirmación de contraseña. `confirmPassword` no se envía al IS.
+// (hoy idéntico salvo `tkc`, que en el formulario siempre existe).
 export const createEmployeeWithUserFormSchema = createEmployeeWithUserSchema
 	.extend({
-		confirmPassword: z.string().min(1, "Confirma la contraseña"),
 		// En el FORMULARIO los dos campos existen siempre (arrancan vacíos), a
 		// diferencia del payload, donde `tkc` se omite por completo si no se
 		// rellenó. `tkcSectionSchema` acepta ambos vacíos y exige los dos en
 		// cuanto se escribe en uno.
 		tkc: tkcSectionSchema,
-	})
-	.refine((value) => value.user.password === value.confirmPassword, {
-		message: "Las contraseñas no coinciden",
-		path: ["confirmPassword"],
 	});

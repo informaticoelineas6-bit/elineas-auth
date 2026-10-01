@@ -69,6 +69,17 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/auth/verify-email",
     rateLimit({ name: "verify-email", windowMs: 60_000, max: 10 }),
   );
+  // Establecer contraseña con el token del correo: público y consume un token
+  // secreto; por IP para que no pueda forzarse a base de reintentos.
+  app.use(
+    "/api/auth/set-password",
+    rateLimit({ name: "set-password", windowMs: 60_000, max: 10 }),
+  );
+  // Reenvío de invitación: cada hit envía un correo, así que se limita.
+  app.use(
+    "/api/users/admin/:id/invite",
+    rateLimit({ name: "invite", windowMs: 60_000, max: 5 }),
+  );
   // JWKS (público) y token (autenticado) sin límite eran un vector barato de
   // agotamiento de recursos: cada hit dispara trabajo en better-auth. El límite
   // por IP es holgado para el uso legítimo (un verificador cachea el JWKS) pero
