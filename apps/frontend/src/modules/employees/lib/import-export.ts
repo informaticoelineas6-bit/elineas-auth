@@ -67,9 +67,22 @@ function triggerDownload(blob: Blob, filename: string) {
 // --- CSV nativo (RFC 4180) -------------------------------------------------
 // Reemplaza a papaparse para nuestro caso acotado (una tabla plana de strings).
 
+// Neutraliza la inyección de fórmulas: Excel/Sheets/LibreOffice evalúan como
+// fórmula una celda que empieza por = + - @ (o tab/CR). Un nombre o dirección
+// editable por un usuario con permiso de edición podría ejecutarse al abrir el
+// export un admin (p. ej. =HYPERLINK(...) que filtra celdas vecinas). Se
+// antepone una comilla simple, que la hoja de cálculo no muestra. Los números
+// y teléfonos legítimos (+53 5555 1234, -12) no se tocan.
+const PLAIN_NUMBER = /^[+-]?[\d\s().-]+$/;
+function neutralizeFormula(value: string): string {
+	if (!/^[=+\-@\t\r]/.test(value)) return value;
+	return PLAIN_NUMBER.test(value) ? value : `'${value}`;
+}
+
 // Entrecomilla una celda solo si lo necesita (contiene coma, comilla o salto
 // de línea) y duplica las comillas internas, según RFC 4180.
-function escapeCsvCell(value: string): string {
+function escapeCsvCell(raw: string): string {
+	const value = neutralizeFormula(raw);
 	return /[",\n\r]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
@@ -185,6 +198,8 @@ export async function exportEmployees(
 	const rows = employees.map(employeeToRow);
 	const columns = [...EMPLOYEE_EXPORT_COLUMNS];
 
+	// El CSV neutraliza fórmulas en escapeCsvCell; el JSON no es una hoja de
+	// cálculo, así que va tal cual.
 	if (format === "csv") {
 		triggerDownload(
 			new Blob([toCsv(rows, columns)], { type: "text/csv;charset=utf-8;" }),
@@ -219,7 +234,15 @@ export async function exportEmployees(
 					key: col,
 					...(TEXT_COLUMNS.includes(col) ? { numFmt: "@" } : {}),
 				})),
-				data: rows,
+				// Mismo saneado que el CSV: el .xlsx también se abre en Excel.
+				data: rows.map((row) =>
+					Object.fromEntries(
+						Object.entries(row).map(([k, v]) => [
+							k,
+							typeof v === "string" ? neutralizeFormula(v) : v,
+						]),
+					),
+				),
 			},
 		],
 	});
