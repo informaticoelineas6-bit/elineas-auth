@@ -11,6 +11,11 @@ import "@backend/lib/logging.ts";
 // better-auth pasa secretos por la URL en verificación de email / reset de
 // contraseña (?token=...), así que nunca deben quedar en texto plano en la BD.
 const SENSITIVE_QUERY_KEYS = new Set([
+  "key",
+  "sig",
+  "signature",
+  "auth",
+  "session",
   "token",
   "code",
   "state",
@@ -45,7 +50,9 @@ function trunc(value: string | undefined): string | undefined {
 
 // Enmascara recursivamente las claves sensibles de un cuerpo ya parseado.
 function redactBody(value: unknown, depth = 0): unknown {
-  if (depth > 6) return value; // corta anidamientos patológicos
+  // Más allá del tope NO se devuelve el valor: un secreto anidado a esa
+  // profundidad se guardaría sin enmascarar.
+  if (depth > 6) return "[TRUNCATED]";
   if (Array.isArray(value)) return value.map((item) => redactBody(item, depth + 1));
   if (value && typeof value === "object") {
     const out: Record<string, unknown> = {};
@@ -84,9 +91,8 @@ async function captureBody(c: Context<AppEnv>): Promise<unknown> {
       const text = await c.req.raw.clone().text();
       return redactBody(Object.fromEntries(new URLSearchParams(text)));
     }
-    if (contentType.startsWith("text/")) {
-      return trunc(await c.req.raw.clone().text());
-    }
+    // text/* (text/plain, etc.) no se captura: no tiene claves que enmascarar,
+    // así que una credencial enviada como texto libre quedaría en claro.
   } catch {
     // Cuerpo ilegible o JSON malformado: no bloquea el logging.
     return undefined;
@@ -102,7 +108,8 @@ function redactQuery(
   if (keys.length === 0) return undefined;
   const out: Record<string, string> = {};
   for (const key of keys) {
-    out[key] = SENSITIVE_QUERY_KEYS.has(key.toLowerCase())
+    out[key] =
+      SENSITIVE_QUERY_KEYS.has(key.toLowerCase()) || SENSITIVE_BODY_KEY.test(key)
       ? "[REDACTED]"
       : trunc(query[key])!;
   }
