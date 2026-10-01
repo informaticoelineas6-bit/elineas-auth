@@ -63,11 +63,15 @@ services:
     mem_limit: 512m
     cpus: 1
     ports:
-      - "3001:8080"
+      - "127.0.0.1:3001:8080"
     env_file:
       - apps/backend/.env.production
     environment:
       APP_ENV: production
+      # Un solo proxy delante: cloudflared (tunnel). Cloudflare añade la IP real
+      # al X-Forwarded-For; con 0 todos compartirían el bucket de rate limit de
+      # la IP del tunnel. Si se añade otro proxy, subir el valor.
+      TRUST_PROXY_HOPS: "1"
       # DATABASE_URL viene de `.env.production` (fuera de git): antes estaba
       # aquí en claro con la contraseña del superusuario. Debe apuntar al
       # contenedor de la BD POR NOMBRE sobre `elineas-db`, no por
@@ -118,7 +122,7 @@ services:
     mem_limit: 512m
     cpus: 1
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     env_file:
       - apps/frontend/.env.production
     environment:
@@ -128,10 +132,6 @@ services:
       AUTH_API_URL: http://backend:8080
     networks:
       - elineas-auth-net
-    depends_on:
-      backend:
-        condition: service_healthy
-
     healthcheck:
       test:
         [
@@ -142,6 +142,10 @@ services:
       timeout: 5s
       retries: 3
       start_period: 20s
+    depends_on:
+      backend:
+        condition: service_healthy
+
 volumes:
   redisdata:
 
