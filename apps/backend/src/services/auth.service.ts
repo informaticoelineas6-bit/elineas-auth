@@ -5,7 +5,7 @@ import {
   bindSessionToSystem,
   resolveActiveSystem,
 } from "@backend/services/session-system.service.ts";
-import { userHasRoleInSystem } from "@backend/services/user-role.service.ts";
+import { userHasRoleInAnySystem, userHasRoleInSystem } from "@backend/services/user-role.service.ts";
 import {
   assertTkcCredentialsUsable,
   getUserTkcCredentials,
@@ -74,38 +74,49 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
 
 export const signInFn = async (c: Context<any, string, SignInInput>) => {
   try {
-    // systemSlug es obligatorio: cada login pertenece a un sistema concreto.
+    // systemSlug es opcional. Con slug, la sesión queda ligada a ese sistema
+    // (una sola sesión por usuario y sistema). Sin slug, el token es
+    // multi-sistema: la sesión no se liga a ninguno y sirve en todos aquellos
+    // donde el usuario tenga roles (cada sistema los consulta con
+    // /api/user-roles/me?systemSlug=...).
     // Body ya validado por Zod: descarta campos desconocidos.
     const { systemSlug, ...credentials } = c.req.valid("json");
-    const sys = await resolveActiveSystem(systemSlug);
+    const sys = systemSlug ? await resolveActiveSystem(systemSlug) : null;
     const { headers, response } = await auth.api.signInEmail({
       body: credentials,
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
 
-    // La autenticación es correcta, pero el acceso a ESTE sistema exige tener al
-    // menos un rol en él. Si no lo tiene, se revoca la sesión recién creada y NO
-    // se reenvían las cabeceras de sesión (el navegador no llega a quedar
-    // logueado), devolviendo 403.
-    if (!(await userHasRoleInSystem(response.user.id, sys.id))) {
+    // La autenticación es correcta, pero el acceso exige tener al menos un rol
+    // en el sistema indicado (o en alguno, si no se indicó). Si no lo tiene, se
+    // revoca la sesión recién creada y NO se reenvían las cabeceras de sesión
+    // (el navegador no llega a quedar logueado), devolviendo 403.
+    const allowed = sys
+      ? await userHasRoleInSystem(response.user.id, sys.id)
+      : await userHasRoleInAnySystem(response.user.id);
+    if (!allowed) {
       await auth.api.revokeSession({
         body: { token: response.token },
         headers: new Headers({ authorization: `Bearer ${response.token}` }),
       });
       throw new HttpError(
         403,
-        `El usuario no tiene ningún rol en el sistema "${sys.slug}"`,
+        sys
+          ? `El usuario no tiene ningún rol en el sistema "${sys.slug}"`
+          : "El usuario no tiene roles en ningún sistema",
         "NO_ROLES_IN_SYSTEM",
       );
     }
 
     forwardAuthHeaders(c, headers);
-    await bindSessionToSystem({
-      sessionToken: response.token,
-      userId: response.user.id,
-      systemId: sys.id,
-    });
+    if (sys) {
+      await bindSessionToSystem({
+        sessionToken: response.token,
+        userId: response.user.id,
+        systemId: sys.id,
+      });
+    }
     const token = await issueJwt(response.token);
 
     // Credenciales del sistema externo TKC, en claro y SOLO aquí: este es el

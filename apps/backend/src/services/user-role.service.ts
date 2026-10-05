@@ -75,6 +75,20 @@ export async function userHasRoleInSystem(
   return Boolean(row);
 }
 
+// ¿Tiene el usuario al menos un rol en CUALQUIER sistema activo? Es el requisito
+// del login sin `systemSlug` (token multi-sistema): cada sistema decide después
+// por sí mismo si el usuario tiene rol en él.
+export async function userHasRoleInAnySystem(userId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ id: userRole.id })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
+    .innerJoin(system, eq(role.systemId, system.id))
+    .where(and(eq(userRole.userId, userId), eq(system.active, true)))
+    .limit(1);
+  return Boolean(row);
+}
+
 // Roles del propio usuario autenticado, con el sistema al que pertenece cada
 // uno. A diferencia de listUserRoles, no requiere admin: solo puede filtrar
 // por el userId de quien llama.

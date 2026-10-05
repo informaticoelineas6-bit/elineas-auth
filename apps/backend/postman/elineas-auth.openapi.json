@@ -259,8 +259,7 @@
         },
         "required": [
           "email",
-          "password",
-          "systemSlug"
+          "password"
         ]
       },
       "SuccessResponse": {

@@ -239,8 +239,10 @@ export const identityClient = {
 };
 ```
 
-> El `systemSlug` es obligatorio en `sign-in` (`SignInBodySchema`,
-> `src/openapi/schemas.ts:17-26`). El alta de usuarios (`sign-up`) **no** es
+> El `systemSlug` es opcional en `sign-in` (`SignInBodySchema`). Con slug, la
+> sesión se liga a ese sistema y se exige rol en él. Sin slug, el token es
+> multi-sistema: sirve en todos los sistemas donde el usuario tenga roles (se
+> exige al menos uno), la sesión no se liga a ninguno y `system` es `null`. El alta de usuarios (`sign-up`) **no** es
 > autoservicio: requiere que quien llama ya sea admin (`src/routes/auth.routes.ts:27-52`),
 > así que un frontend normal nunca debe exponer un formulario de registro
 > público contra este IS — los usuarios los crea un admin o el seed inicial.
@@ -727,14 +729,13 @@ Todas las respuestas de error siguen `{ error: string, code?: string }`
 (`ErrorResponseSchema`, `src/openapi/schemas.ts:59-64`). Códigos relevantes
 para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 `RATE_LIMITED` (429), `CONFLICT` (409, violación de unicidad),
-`SYSTEM_NOT_FOUND` / `SYSTEM_REQUIRED` (400, `systemSlug` inválido o
-ausente en sign-in/sign-up).
+`SYSTEM_NOT_FOUND` (400, `systemSlug` inválido o inactivo).
 
 ## 10. Referencia rápida de endpoints
 
 | Método     | Ruta                                                              | Auth requerida   | Descripción                                                                   |
 | ---------- | ----------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------- |
-| POST       | `/api/auth/sign-in`                                               | — (rate limited) | Login; requiere `systemSlug`                                                  |
+| POST       | `/api/auth/sign-in`                                               | — (rate limited) | Login; `systemSlug` opcional (sin él, token multi-sistema)                    |
 | POST       | `/api/auth/sign-up`                                               | Sesión + admin   | Alta de usuario (no autoservicio)                                             |
 | POST       | `/api/employees/with-user`                                        | Sesión + admin   | Crea usuario **y** su empleado enlazado a la vez                              |
 | POST       | `/api/auth/sign-out`                                              | Sesión           | Cierra la sesión actual                                                       |

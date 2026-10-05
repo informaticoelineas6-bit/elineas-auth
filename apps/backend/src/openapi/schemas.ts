@@ -81,8 +81,10 @@ export const SignInBodySchema = z
     password: SignInPassword.openapi({ example: "tu-contraseña-segura" }),
     callbackURL: z.string().optional(),
     rememberMe: z.boolean().optional(),
-    // Obligatorio: cada login pertenece a un sistema concreto.
-    systemSlug: z.string().openapi({ example: "pos" }),
+    // Opcional. Con slug, la sesión se liga a ese sistema y se exige rol en él.
+    // Sin slug, el token vale para todos los sistemas donde el usuario tenga
+    // roles (se exige al menos uno) y `system` se devuelve como null.
+    systemSlug: z.string().optional().openapi({ example: "pos" }),
   })
   .openapi("SignInBody");
 
