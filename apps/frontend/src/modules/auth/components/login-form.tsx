@@ -16,6 +16,7 @@ export function LoginForm({
 	form,
 	rateLimit,
 	turnstile,
+	google,
 }: {
 	form: SignInFormApi;
 	rateLimit: {
@@ -27,6 +28,8 @@ export function LoginForm({
 		containerRef: { current: HTMLDivElement | null };
 		getToken: () => Promise<string | undefined>;
 	};
+	// Presente solo si el login con Google está habilitado.
+	google?: { onClick: () => void; pending: boolean };
 }) {
 	return (
 		<form
@@ -113,6 +116,26 @@ export function LoginForm({
 					</div>
 				)}
 			</form.Subscribe>
+
+			{google && (
+				<>
+					<div className="flex items-center gap-3 text-muted-foreground text-xs">
+						<span className="h-px flex-1 bg-border" />o
+						<span className="h-px flex-1 bg-border" />
+					</div>
+					<Button
+						type="button"
+						variant="outline"
+						disabled={google.pending}
+						onClick={google.onClick}
+						aria-label="Continuar con Google"
+					>
+						<LoadingSwap isLoading={google.pending}>
+							<img src="/google.svg" alt="" className="size-5" />
+						</LoadingSwap>
+					</Button>
+				</>
+			)}
 		</form>
 	);
 }

@@ -25,6 +25,7 @@ import { Route as AuthedRolesIndexRouteImport } from './routes/_authed/roles.ind
 import { Route as AuthedRolesNewRouteImport } from './routes/_authed/roles.new'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems.index'
 import { Route as AuthedSystemsNewRouteImport } from './routes/_authed/systems.new'
+import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
 import { Route as AuthedEmployeesEmployeeIdIndexRouteImport } from './routes/_authed/employees.$employeeId.index'
 import { Route as AuthedEmployeesEmployeeIdEditRouteImport } from './routes/_authed/employees.$employeeId.edit'
 import { Route as AuthedRolesRoleIdEditRouteImport } from './routes/_authed/roles.$roleId.edit'
@@ -110,6 +111,11 @@ const AuthedSystemsNewRoute = AuthedSystemsNewRouteImport.update({
   path: '/systems/new',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthGoogleCallbackRoute = AuthGoogleCallbackRouteImport.update({
+  id: '/auth/google/callback',
+  path: '/auth/google/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthedEmployeesEmployeeIdIndexRoute =
   AuthedEmployeesEmployeeIdIndexRouteImport.update({
     id: '/employees/$employeeId/',
@@ -152,6 +158,7 @@ export interface FileRoutesByFullPath {
   '/employees/new': typeof AuthedEmployeesNewRoute
   '/roles/new': typeof AuthedRolesNewRoute
   '/systems/new': typeof AuthedSystemsNewRoute
+  '/auth/google/callback': typeof AuthGoogleCallbackRoute
   '/employees/': typeof AuthedEmployeesIndexRoute
   '/permissions/': typeof AuthedPermissionsIndexRoute
   '/roles/': typeof AuthedRolesIndexRoute
@@ -174,6 +181,7 @@ export interface FileRoutesByTo {
   '/employees/new': typeof AuthedEmployeesNewRoute
   '/roles/new': typeof AuthedRolesNewRoute
   '/systems/new': typeof AuthedSystemsNewRoute
+  '/auth/google/callback': typeof AuthGoogleCallbackRoute
   '/employees': typeof AuthedEmployeesIndexRoute
   '/permissions': typeof AuthedPermissionsIndexRoute
   '/roles': typeof AuthedRolesIndexRoute
@@ -198,6 +206,7 @@ export interface FileRoutesById {
   '/_authed/employees/new': typeof AuthedEmployeesNewRoute
   '/_authed/roles/new': typeof AuthedRolesNewRoute
   '/_authed/systems/new': typeof AuthedSystemsNewRoute
+  '/auth/google/callback': typeof AuthGoogleCallbackRoute
   '/_authed/employees/': typeof AuthedEmployeesIndexRoute
   '/_authed/permissions/': typeof AuthedPermissionsIndexRoute
   '/_authed/roles/': typeof AuthedRolesIndexRoute
@@ -222,6 +231,7 @@ export interface FileRouteTypes {
     | '/employees/new'
     | '/roles/new'
     | '/systems/new'
+    | '/auth/google/callback'
     | '/employees/'
     | '/permissions/'
     | '/roles/'
@@ -244,6 +254,7 @@ export interface FileRouteTypes {
     | '/employees/new'
     | '/roles/new'
     | '/systems/new'
+    | '/auth/google/callback'
     | '/employees'
     | '/permissions'
     | '/roles'
@@ -267,6 +278,7 @@ export interface FileRouteTypes {
     | '/_authed/employees/new'
     | '/_authed/roles/new'
     | '/_authed/systems/new'
+    | '/auth/google/callback'
     | '/_authed/employees/'
     | '/_authed/permissions/'
     | '/_authed/roles/'
@@ -283,6 +295,7 @@ export interface RootRouteChildren {
   AuthedRoute: typeof AuthedRouteWithChildren
   SetPasswordRoute: typeof SetPasswordRoute
   VerifyEmailRoute: typeof VerifyEmailRoute
+  AuthGoogleCallbackRoute: typeof AuthGoogleCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -399,6 +412,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedSystemsNewRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/auth/google/callback': {
+      id: '/auth/google/callback'
+      path: '/auth/google/callback'
+      fullPath: '/auth/google/callback'
+      preLoaderRoute: typeof AuthGoogleCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_authed/employees/$employeeId/': {
       id: '/_authed/employees/$employeeId/'
       path: '/employees/$employeeId'
@@ -485,6 +505,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthedRoute: AuthedRouteWithChildren,
   SetPasswordRoute: SetPasswordRoute,
   VerifyEmailRoute: VerifyEmailRoute,
+  AuthGoogleCallbackRoute: AuthGoogleCallbackRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

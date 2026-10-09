@@ -51,3 +51,32 @@ export function clearAuthCookies() {
 export function clearAccessToken() {
 	deleteCookie(ACCESS_TOKEN_COOKIE, baseOptions);
 }
+
+// Estado del login con Google entre la salida hacia el IS y la vuelta: el
+// `verifier` PKCE y el `state` anti-CSRF. httpOnly y de vida corta; `lax` para
+// que viaje en la navegación de vuelta desde el IS (GET de nivel superior).
+const GOOGLE_FLOW_COOKIE = "is_google_flow";
+
+export function writeGoogleFlow(flow: { verifier: string; state: string }) {
+	setCookie(GOOGLE_FLOW_COOKIE, JSON.stringify(flow), {
+		...baseOptions,
+		maxAge: 10 * 60,
+	});
+}
+
+export function readGoogleFlow(): { verifier: string; state: string } | null {
+	const raw = getCookie(GOOGLE_FLOW_COOKIE);
+	if (!raw) return null;
+	try {
+		const flow = JSON.parse(raw) as { verifier?: unknown; state?: unknown };
+		return typeof flow.verifier === "string" && typeof flow.state === "string"
+			? { verifier: flow.verifier, state: flow.state }
+			: null;
+	} catch {
+		return null;
+	}
+}
+
+export function clearGoogleFlow() {
+	deleteCookie(GOOGLE_FLOW_COOKIE, baseOptions);
+}

@@ -98,3 +98,23 @@ export async function refreshAccessToken(
 	const body = (await response.json()) as { token: string | null };
 	return body.token;
 }
+
+// Canjea el código del login con Google (servidor a servidor) por la sesión.
+// Devuelve lo mismo que signIn, incluida la cabecera con el token de sesión. Al
+// igual que en signIn, el `tkc` del cuerpo NO se propaga a propósito.
+export async function exchangeGoogleCode(code: string, codeVerifier: string) {
+	const response = await fetch(
+		new URL("/api/auth/google/exchange", env.AUTH_API_URL),
+		{
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ code, code_verifier: codeVerifier }),
+		},
+	);
+	const body = (await readJson(response)) as {
+		user: AuthApiUser;
+		token: string | null;
+		system: AuthApiSystem;
+	};
+	return { ...body, sessionToken: response.headers.get("set-auth-token") };
+}

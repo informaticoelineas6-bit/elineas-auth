@@ -20,6 +20,13 @@ export const env = {
 	// Captcha invisible del login (Cloudflare Turnstile). Opcional a propósito:
 	// sin configurar, el login funciona igual mostrando ningún reto (útil en
 	// desarrollo); en producción es OBLIGATORIA (ver arriba).
+	// Login con Google (por redirect). Opcional: sin APP_PUBLIC_URL el botón no
+	// se muestra. AUTH_API_URL puede ser una dirección interna (p. ej. el nombre
+	// del servicio en compose), inalcanzable desde el navegador, por eso el IS se
+	// abre en su URL PÚBLICA. APP_PUBLIC_URL es el origen de ESTE frontend tal
+	// como lo ve el navegador y debe estar permitido en el IS (ALLOWED_ORIGIN).
+	AUTH_PUBLIC_URL: process.env.AUTH_PUBLIC_URL ?? required("AUTH_API_URL"),
+	APP_PUBLIC_URL: process.env.APP_PUBLIC_URL,
 	TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
 	TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
 };

@@ -1,11 +1,16 @@
+import { createHash, randomBytes } from "node:crypto";
 import { redirect } from "@tanstack/react-router";
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { AuthApiError } from "#/modules/auth/lib/api.ts";
 import {
 	clearAccessToken,
 	clearAuthCookies,
+	clearGoogleFlow,
+	readGoogleFlow,
 	readSessionToken,
 	writeAccessToken,
+	writeGoogleFlow,
 	writeSessionToken,
 } from "#/modules/auth/lib/cookies.ts";
 import { env } from "#/modules/auth/lib/env.ts";
@@ -18,6 +23,7 @@ import {
 } from "../lib/validation.ts";
 import { authMiddleware } from "../middlewares/auth.ts";
 import {
+	exchangeGoogleCode,
 	setPassword,
 	signIn,
 	signOut,
@@ -29,6 +35,93 @@ import {
 export const getTurnstileSiteKeyFn = createServerFn({ method: "GET" }).handler(
 	() => env.TURNSTILE_SITE_KEY ?? null,
 );
+
+// El botón de Google solo se muestra si hay APP_PUBLIC_URL (ver lib/env.ts).
+export const getGoogleEnabledFn = createServerFn({ method: "GET" }).handler(
+	() => Boolean(env.APP_PUBLIC_URL),
+);
+
+// Primer paso del login con Google: genera el PKCE y el state, los guarda en una
+// cookie httpOnly y devuelve la URL del IS a la que debe ir el navegador.
+export const startGoogleLoginFn = createServerFn({ method: "POST" }).handler(
+	async () => {
+		if (!env.APP_PUBLIC_URL) {
+			return { error: "El inicio de sesión con Google no está disponible." } as const;
+		}
+		const verifier = randomBytes(32).toString("base64url");
+		const state = randomBytes(16).toString("hex");
+		writeGoogleFlow({ verifier, state });
+		const url = new URL("/api/auth/google/start", env.AUTH_PUBLIC_URL);
+		url.searchParams.set(
+			"redirect_to",
+			new URL("/auth/google/callback", env.APP_PUBLIC_URL).toString(),
+		);
+		url.searchParams.set(
+			"code_challenge",
+			createHash("sha256").update(verifier).digest("base64url"),
+		);
+		url.searchParams.set("state", state);
+		url.searchParams.set("systemSlug", env.AUTH_SYSTEM_SLUG);
+		return { url: url.toString() } as const;
+	},
+);
+
+const GOOGLE_ERRORS: Record<string, string> = {
+	ACCOUNT_NOT_FOUND:
+		"No existe una cuenta con ese correo de Google. Pide a un administrador que la cree.",
+	NO_ROLES_IN_SYSTEM: "Tu cuenta no tiene acceso a este sistema.",
+	GOOGLE_ACCESS_DENIED: "Cancelaste el inicio de sesión con Google.",
+};
+
+// Último paso: el IS devolvió al usuario a /auth/google/callback con un código
+// (o un error). Se comprueba el state, se canjea el código con el verifier y se
+// abre la sesión igual que en signInFn. Devuelve un resultado tipado.
+export const completeGoogleLoginFn = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			code: z.string().optional(),
+			state: z.string().optional(),
+			error: z.string().optional(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const flow = readGoogleFlow();
+		// De un solo uso: se descarta pase lo que pase.
+		clearGoogleFlow();
+		if (data.error) {
+			return {
+				ok: false,
+				error:
+					GOOGLE_ERRORS[data.error] ??
+					"No se pudo iniciar sesión con Google. Intenta nuevamente.",
+			} as const;
+		}
+		if (!flow || !data.code || !data.state || data.state !== flow.state) {
+			return {
+				ok: false,
+				error: "La sesión de Google no es válida o caducó. Intenta nuevamente.",
+			} as const;
+		}
+		try {
+			const result = await exchangeGoogleCode(data.code, flow.verifier);
+			if (!result.sessionToken) {
+				throw new Error(
+					"El servidor de autenticación no devolvió un token de sesión",
+				);
+			}
+			writeSessionToken(result.sessionToken);
+			if (result.token) {
+				const payload = await verifyAccessToken(result.token);
+				if (payload) writeAccessToken(result.token);
+			}
+			return { ok: true } as const;
+		} catch (error) {
+			if (error instanceof AuthApiError) {
+				return { ok: false, error: error.message } as const;
+			}
+			throw error;
+		}
+	});
 
 export const signInFn = createServerFn({ method: "POST" })
 	.validator(signInSchema)

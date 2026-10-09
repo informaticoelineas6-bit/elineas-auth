@@ -17,6 +17,7 @@ function toSession(payload: AccessTokenPayload): AuthSession {
 		userId: payload.sub,
 		email: payload.email,
 		name: payload.name,
+		image: payload.image,
 		role: payload.role,
 	};
 }

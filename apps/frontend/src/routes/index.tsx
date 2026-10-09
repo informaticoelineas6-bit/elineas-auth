@@ -1,10 +1,13 @@
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
+import { useState } from "react";
 import { z } from "zod";
 import {
+	getGoogleEnabledFn,
 	getSessionFn,
 	getTurnstileSiteKeyFn,
 	signInFn,
+	startGoogleLoginFn,
 } from "@/modules/auth/actions/auth.ts";
 import { LoginForm } from "@/modules/auth/components/login-form.tsx";
 import { useSignInForm } from "@/modules/auth/lib/form.ts";
@@ -33,15 +36,23 @@ export const Route = createFileRoute("/")({
 	// Site key de Turnstile (pública): se resuelve en el servidor a partir de
 	// TURNSTILE_SITE_KEY y viaja al cliente como loader data, igual que el tema
 	// en el root. `null` si no está configurado (login sin captcha).
-	loader: () => getTurnstileSiteKeyFn(),
+	loader: async () => {
+		const [turnstileSiteKey, googleEnabled] = await Promise.all([
+			getTurnstileSiteKeyFn(),
+			getGoogleEnabledFn(),
+		]);
+		return { turnstileSiteKey, googleEnabled };
+	},
 	component: LoginPage,
 });
 
 function LoginPage() {
 	const navigate = useNavigate();
 	const search = Route.useSearch();
-	const turnstileSiteKey = Route.useLoaderData();
+	const { turnstileSiteKey, googleEnabled } = Route.useLoaderData();
 	const login = useServerFn(signInFn);
+	const startGoogle = useServerFn(startGoogleLoginFn);
+	const [googlePending, setGooglePending] = useState(false);
 	const rateLimit = useCountdown();
 	const turnstile = useTurnstile(turnstileSiteKey);
 
@@ -70,6 +81,23 @@ function LoginPage() {
 		}
 	});
 
+	async function onGoogle() {
+		setGooglePending(true);
+		try {
+			const result = await startGoogle();
+			if ("error" in result) {
+				reportError(result.error);
+				setGooglePending(false);
+				return;
+			}
+			// Navegación completa (no fetch): el IS responde con redirects a Google.
+			window.location.assign(result.url);
+		} catch (error) {
+			reportError(error, "No se pudo iniciar sesión con Google.");
+			setGooglePending(false);
+		}
+	}
+
 	return (
 		<div className="relative w-full min-h-screen overflow-hidden">
 			<div className="absolute inset-0">
@@ -93,7 +121,16 @@ function LoginPage() {
 				<h1 className="font-semibold shimmer text-muted-foreground text-5xl text-center">
 					Elineas Identity Server
 				</h1>
-				<LoginForm form={form} rateLimit={rateLimit} turnstile={turnstile} />
+				<LoginForm
+					form={form}
+					rateLimit={rateLimit}
+					turnstile={turnstile}
+					google={
+						googleEnabled
+							? { onClick: onGoogle, pending: googlePending }
+							: undefined
+					}
+				/>
 			</div>
 		</div>
 	);

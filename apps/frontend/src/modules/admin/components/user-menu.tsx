@@ -50,7 +50,12 @@ export function UserMenu({ session }: { session: AuthSession }) {
 				>
 					<Avatar>
 						<AvatarImage
-							src={`https://api.dicebear.com/9.x/glass/svg?seed=${session.name}`}
+							src={
+								session.image ??
+								`https://api.dicebear.com/9.x/glass/svg?seed=${session.name}`
+							}
+							// Las fotos de Google rechazan peticiones con Referer ajeno.
+							referrerPolicy="no-referrer"
 						/>
 						<AvatarFallback>{getInitials(displayName)}</AvatarFallback>
 					</Avatar>
