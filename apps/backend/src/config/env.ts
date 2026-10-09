@@ -84,6 +84,19 @@ export const env = {
   // CAMBIARLA INUTILIZA las credenciales ya guardadas: quedan cifradas con la
   // clave anterior y habrá que volver a introducirlas.
   TKC_SECRET_KEY: process.env.TKC_SECRET_KEY,
+  // Login con Google (OAuth con redirect). Opcional, como REDIS_URL: sin
+  // GOOGLE_CLIENT_ID y GOOGLE_CLIENT_SECRET el IS arranca igual y las rutas
+  // /api/auth/google/* responden 503. El redirect URI que hay que registrar en
+  // Google Cloud es `${BETTER_AUTH_URL}/api/auth/callback/google`.
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  // Orígenes a los que se permite devolver al usuario tras el login con Google,
+  // ADEMÁS de ALLOWED_ORIGIN (otras apps que usan el IS por redirect). Lista
+  // separada por comas de orígenes exactos (sin path).
+  GOOGLE_REDIRECT_ORIGINS: (process.env.GOOGLE_REDIRECT_ORIGINS ?? "")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
   // Nº de proxies de confianza por delante de la API. Determina cuántos saltos
   // de X-Forwarded-For son fiables al calcular la IP del cliente para el rate
   // limiting. 0 (por defecto) = ignorar XFF y usar solo la IP del socket, que

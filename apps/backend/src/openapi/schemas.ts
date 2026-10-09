@@ -88,6 +88,34 @@ export const SignInBodySchema = z
   })
   .openapi("SignInBody");
 
+// Inicio del login con Google por redirect. Va en query porque lo abre el
+// NAVEGADOR (GET + redirect), no un fetch.
+export const GoogleStartQuerySchema = z
+  .object({
+    redirect_to: z.string().min(1).max(2048).openapi({
+      example: "https://pos.midominio.com/auth/google/callback",
+      description: "URL a la que se devuelve al usuario. Su origen debe estar permitido.",
+    }),
+    code_challenge: z
+      .string()
+      .regex(/^[A-Za-z0-9_-]{43}$/)
+      .openapi({
+        description: "PKCE: base64url(SHA-256(code_verifier)), sin relleno (43 caracteres).",
+      }),
+    state: z.string().max(256).optional().openapi({
+      description: "Valor opaco de la app; se devuelve tal cual en redirect_to.",
+    }),
+    systemSlug: z.string().optional().openapi({ example: "pos" }),
+  })
+  .openapi("GoogleStartQuery");
+
+export const GoogleExchangeBodySchema = z
+  .object({
+    code: z.string().min(1).max(256),
+    code_verifier: z.string().min(43).max(128),
+  })
+  .openapi("GoogleExchangeBody");
+
 export const UserSchema = z
   .object({
     id: z.uuid().openapi({ example: "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c" }),

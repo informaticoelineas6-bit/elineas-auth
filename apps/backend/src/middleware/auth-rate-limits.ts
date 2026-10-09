@@ -75,6 +75,24 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/auth/set-password",
     rateLimit({ name: "set-password", windowMs: 60_000, max: 10 }),
   );
+  // Login con Google: start dispara una escritura de state en BD y finish/exchange
+  // consumen secretos, así que se limitan por IP.
+  app.use(
+    "/api/auth/google/start",
+    rateLimit({ name: "google-start", windowMs: 60_000, max: 20 }),
+  );
+  app.use(
+    "/api/auth/google/finish",
+    rateLimit({ name: "google-finish", windowMs: 60_000, max: 20 }),
+  );
+  app.use(
+    "/api/auth/google/exchange",
+    rateLimit({ name: "google-exchange", windowMs: 60_000, max: 10 }),
+  );
+  app.use(
+    "/api/auth/callback/google",
+    rateLimit({ name: "google-callback", windowMs: 60_000, max: 20 }),
+  );
   // Reenvío de invitación: cada hit envía un correo, así que se limita.
   app.use(
     "/api/users/admin/:id/invite",

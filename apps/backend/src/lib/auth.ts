@@ -107,5 +107,30 @@ export const auth = betterAuth({
     // el comentario largo en auth-relational-shim.ts.
     database: { generateId: "uuid", joins: true },
   },
+  // Login con Google. Solo se registra si hay credenciales (ver env.ts).
+  //
+  // `disableSignUp: true`: Google NUNCA crea cuentas. Las altas siguen siendo
+  // cosa de un admin (y entrar exige además tener roles), de modo que un gmail
+  // cualquiera no puede registrarse; solo entra quien ya tiene usuario con ese
+  // correo. Si no existe, el callback redirige con `error=signup_disabled`.
+  socialProviders:
+    env.GOOGLE_CLIENT_ID && env.GOOGLE_CLIENT_SECRET
+      ? {
+          google: {
+            clientId: env.GOOGLE_CLIENT_ID,
+            clientSecret: env.GOOGLE_CLIENT_SECRET,
+            disableSignUp: true,
+          },
+        }
+      : {},
+  // Enlace Google <-> usuario existente por email. Se exige que Google declare
+  // el correo verificado (por eso `google` NO está en `trustedProviders`, que se
+  // saltaría esa comprobación). `requireLocalEmailVerified: false` porque las
+  // cuentas creadas por un admin nacen con email_verified=false; es seguro
+  // porque solo un admin crea cuentas (nadie puede "reservar" un correo ajeno
+  // registrándose antes) y al enlazar better-auth lo marca como verificado.
+  account: {
+    accountLinking: { enabled: true, requireLocalEmailVerified: false },
+  },
   plugins: [jwt(), bearer()],
 });

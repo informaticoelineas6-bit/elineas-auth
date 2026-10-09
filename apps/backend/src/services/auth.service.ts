@@ -72,6 +72,33 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
   }
 };
 
+// La autenticación es correcta, pero el acceso exige tener al menos un rol en el
+// sistema indicado (o en alguno, si no se indicó). Si no lo tiene, se revoca la
+// sesión recién creada y se lanza 403. Lo comparten el login con contraseña y el
+// de Google, para que ambos apliquen exactamente la misma regla.
+export async function assertAccessOrRevoke(params: {
+  userId: string;
+  sessionToken: string;
+  sys: { id: string; slug: string } | null;
+}) {
+  const { userId, sessionToken, sys } = params;
+  const allowed = sys
+    ? await userHasRoleInSystem(userId, sys.id)
+    : await userHasRoleInAnySystem(userId);
+  if (allowed) return;
+  await auth.api.revokeSession({
+    body: { token: sessionToken },
+    headers: new Headers({ authorization: `Bearer ${sessionToken}` }),
+  });
+  throw new HttpError(
+    403,
+    sys
+      ? `El usuario no tiene ningún rol en el sistema "${sys.slug}"`
+      : "El usuario no tiene roles en ningún sistema",
+    "NO_ROLES_IN_SYSTEM",
+  );
+}
+
 export const signInFn = async (c: Context<any, string, SignInInput>) => {
   try {
     // systemSlug es opcional. Con slug, la sesión queda ligada a ese sistema
@@ -92,22 +119,11 @@ export const signInFn = async (c: Context<any, string, SignInInput>) => {
     // en el sistema indicado (o en alguno, si no se indicó). Si no lo tiene, se
     // revoca la sesión recién creada y NO se reenvían las cabeceras de sesión
     // (el navegador no llega a quedar logueado), devolviendo 403.
-    const allowed = sys
-      ? await userHasRoleInSystem(response.user.id, sys.id)
-      : await userHasRoleInAnySystem(response.user.id);
-    if (!allowed) {
-      await auth.api.revokeSession({
-        body: { token: response.token },
-        headers: new Headers({ authorization: `Bearer ${response.token}` }),
-      });
-      throw new HttpError(
-        403,
-        sys
-          ? `El usuario no tiene ningún rol en el sistema "${sys.slug}"`
-          : "El usuario no tiene roles en ningún sistema",
-        "NO_ROLES_IN_SYSTEM",
-      );
-    }
+    await assertAccessOrRevoke({
+      userId: response.user.id,
+      sessionToken: response.token,
+      sys,
+    });
 
     forwardAuthHeaders(c, headers);
     if (sys) {

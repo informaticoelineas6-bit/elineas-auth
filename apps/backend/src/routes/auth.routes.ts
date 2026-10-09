@@ -4,6 +4,8 @@ import { requireAdmin } from "@backend/middleware/admin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import {
   AuthResultSchema,
+  GoogleExchangeBodySchema,
+  GoogleStartQuerySchema,
   JwksResponseSchema,
   SignInBodySchema,
   SetPasswordBodySchema,
@@ -20,6 +22,12 @@ import {
   serviceUnavailableResponse,
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
+import {
+  googleCallbackFn,
+  googleExchangeFn,
+  googleFinishFn,
+  googleStartFn,
+} from "@backend/services/google-auth.service.ts";
 import {
   getJwksFn,
   getTokenFn,
@@ -172,6 +180,49 @@ const setPasswordRoute = createRoute({
   },
 });
 
+const googleStartRoute = createRoute({
+  method: "get",
+  path: "/google/start",
+  operationId: "authGoogleStart",
+  tags: ["Auth"],
+  summary: "Iniciar sesión con Google (redirect)",
+  description:
+    "Lo abre el NAVEGADOR de la app. Redirige a Google y, al terminar, devuelve al " +
+    "usuario a `redirect_to` con `?code=...&state=...` o `?error=CODIGO` " +
+    "(ACCOUNT_NOT_FOUND, NO_ROLES_IN_SYSTEM, SYSTEM_NOT_FOUND, GOOGLE_ACCESS_DENIED, " +
+    "GOOGLE_AUTH_FAILED). Google nunca crea cuentas: el usuario debe existir ya " +
+    "con ese correo. El código se canjea en POST /google/exchange.",
+  request: { query: GoogleStartQuerySchema },
+  responses: {
+    302: { description: "Redirección a Google" },
+    400: badRequestResponse,
+    503: serviceUnavailableResponse,
+  },
+});
+
+const googleExchangeRoute = createRoute({
+  method: "post",
+  path: "/google/exchange",
+  operationId: "authGoogleExchange",
+  tags: ["Auth"],
+  summary: "Canjear el código del login con Google por la sesión",
+  description:
+    "Servidor a servidor. Código de un solo uso (60 s) más el `code_verifier` PKCE. " +
+    "Devuelve lo mismo que /sign-in; el token de sesión largo va en la cabecera " +
+    "`set-auth-token`.",
+  request: {
+    body: { content: { "application/json": { schema: GoogleExchangeBodySchema } } },
+  },
+  responses: {
+    200: {
+      description: "Sesión iniciada",
+      content: { "application/json": { schema: AuthResultSchema } },
+    },
+    400: badRequestResponse,
+    503: serviceUnavailableResponse,
+  },
+});
+
 export const authRoutes = new OpenAPIHono<AppEnv>()
   .openapi(signUpRoute, signUpFn)
   .openapi(signInRoute, signInFn)
@@ -179,4 +230,9 @@ export const authRoutes = new OpenAPIHono<AppEnv>()
   .openapi(getTokenRoute, getTokenFn)
   .openapi(getJwksRoute, getJwksFn)
   .openapi(verifyEmailRoute, verifyEmailFn)
-  .openapi(setPasswordRoute, setPasswordFn);
+  .openapi(setPasswordRoute, setPasswordFn)
+  .openapi(googleStartRoute, googleStartFn)
+  .openapi(googleExchangeRoute, googleExchangeFn)
+  // Internas (sin documentar): las recorre el navegador, no las llama ninguna app.
+  .get("/google/finish", googleFinishFn)
+  .on(["GET", "POST"], "/callback/google", googleCallbackFn);
