@@ -65,9 +65,13 @@ describe("signInPassword (login)", () => {
 });
 
 describe("companyEmail vs loginEmail", () => {
-  test("crear cuenta exige el dominio corporativo", () => {
+  test("crear cuenta admite el dominio corporativo y gmail.com", () => {
     expect(companyEmail.safeParse("ada@mercadoelineas.com").success).toBe(true);
-    expect(companyEmail.safeParse("ada@gmail.com").success).toBe(false);
+    expect(companyEmail.safeParse("ada@gmail.com").success).toBe(true);
+    expect(companyEmail.safeParse("ada@outlook.com").success).toBe(false);
+    // Un subdominio o un dominio que solo termina igual no vale.
+    expect(companyEmail.safeParse("ada@evil-gmail.com").success).toBe(false);
+    expect(companyEmail.safeParse("ada@gmail.com.evil.com").success).toBe(false);
   });
 
   test("el dominio se compara sin distinguir mayúsculas", () => {

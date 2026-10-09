@@ -10,18 +10,27 @@ import { z } from "zod";
 // Los mensajes están en español porque llegan al usuario tal cual: el panel los
 // muestra bajo cada campo y el servidor los devuelve en el cuerpo del error.
 
-// Dominio corporativo único admitido para cuentas del IS: el alta de usuarios
-// no es autoservicio (la crea un admin), así que restringir el dominio evita
-// cuentas con correos ajenos a la empresa. Se aplica al CREAR una cuenta o
-// CAMBIAR el correo, nunca al iniciar sesión: una cuenta existente conserva el
-// correo que tenga, aunque sea de un alta anterior a esta regla.
+// Dominios admitidos para cuentas del IS: el alta de usuarios no es autoservicio
+// (la crea un admin), así que restringir el dominio evita cuentas con correos
+// ajenos. Además del corporativo se admite gmail.com para que esas personas
+// puedan entrar con Google (el correo de la cuenta debe coincidir con el de
+// Google). Se aplica al CREAR una cuenta o CAMBIAR el correo, nunca al iniciar
+// sesión: una cuenta existente conserva el correo que tenga, aunque sea de un
+// alta anterior a esta regla.
 export const COMPANY_EMAIL_DOMAIN = "mercadoelineas.com";
+export const ALLOWED_EMAIL_DOMAINS = [COMPANY_EMAIL_DOMAIN, "gmail.com"] as const;
 
 export const companyEmail = z
   .email("Debe ser un correo electrónico válido")
-  .refine((email) => email.toLowerCase().endsWith(`@${COMPANY_EMAIL_DOMAIN}`), {
-    message: `El correo debe ser del dominio @${COMPANY_EMAIL_DOMAIN}`,
-  });
+  .refine(
+    (email) => {
+      const domain = email.toLowerCase().split("@").pop() ?? "";
+      return (ALLOWED_EMAIL_DOMAINS as readonly string[]).includes(domain);
+    },
+    {
+      message: `El correo debe ser de @${COMPANY_EMAIL_DOMAIN} o @gmail.com`,
+    },
+  );
 
 // Correo sin restricción de dominio, para el login. Ver `signInPassword` para
 // el porqué de la asimetría entre iniciar sesión y crear/cambiar.
