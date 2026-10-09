@@ -24,6 +24,10 @@ Copia `apps/backend/.env.example` a `apps/backend/.env.local` y rellena los secr
 **debe** incluir el/los orígenes de los frontends/backends que consumirán
 este IS (lista separada por comas si son varios).
 
+Para habilitar el **login con Google** define además `GOOGLE_CLIENT_ID` y
+`GOOGLE_CLIENT_SECRET` (y `GOOGLE_REDIRECT_ORIGINS` si otras apps usan el flujo);
+ver [§5.3](#53-login-con-google-por-redirect).
+
 ### A) Local (sin Docker, con Bun)
 
 Necesitas Postgres y Redis accesibles (o levántalos con
@@ -499,6 +503,443 @@ async function verifyAgainstIdentityServer(bearerToken: string) {
 Esto añade una llamada de red por request — úsalo solo donde de verdad lo
 necesites, no como middleware global.
 
+#### Con TanStack Start: middleware completo
+
+**modules/auth/middlewares/auth.ts (TanStack Start: verificar, renovar, roles y cerrar sesión)**
+
+```typescript
+import { createMiddleware, createServerFn } from "@tanstack/react-start";
+import { redirect } from "@tanstack/react-router";
+import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import { createRemoteJWKSet, jwtVerify } from "jose";
+
+const AUTH_API_URL = process.env.AUTH_API_URL!;
+const jwks = createRemoteJWKSet(new URL("/api/auth/jwks", AUTH_API_URL));
+const cookieOpts = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as const;
+
+async function verify(jwt: string | undefined) {
+	if (!jwt) return null;
+	try {
+		return (await jwtVerify(jwt, jwks)).payload; // payload.sub = id de usuario
+	} catch {
+		return null; // firma inválida o expirado (~15 min)
+	}
+}
+
+// Middleware para tus server functions / rutas protegidas.
+export const authMiddleware = createMiddleware().server(async ({ next }) => {
+	let payload = await verify(getCookie("jwt"));
+
+	if (!payload) {
+		// JWT expirado: se renueva con el session token (larga duración).
+		const sessionToken = getCookie("session");
+		const res = sessionToken
+			? await fetch(new URL("/api/auth/token", AUTH_API_URL), {
+					headers: { Authorization: "Bearer " + sessionToken },
+				})
+			: null;
+		if (!res?.ok) {
+			deleteCookie("session", cookieOpts);
+			deleteCookie("jwt", cookieOpts);
+			throw redirect({ to: "/login" });
+		}
+		const { token } = (await res.json()) as { token: string };
+		setCookie("jwt", token, cookieOpts);
+		payload = await verify(token);
+	}
+
+	return next({ context: { userId: payload!.sub as string } });
+});
+
+// Autorización: el JWT prueba identidad, no permisos. Los roles se piden al IS
+// con el session token.
+export const getMyRolesFn = createServerFn({ method: "GET" })
+	.middleware([authMiddleware])
+	.handler(async () => {
+		const url = new URL("/api/user-roles/me", AUTH_API_URL);
+		url.searchParams.set("systemSlug", "mi-sistema");
+		const res = await fetch(url, {
+			headers: { Authorization: "Bearer " + getCookie("session") },
+		});
+		if (!res.ok) return [];
+		return ((await res.json()) as { roles: { name: string }[] }).roles;
+	});
+
+// Cerrar sesión: revoca la sesión en el IS y limpia tus cookies.
+export const signOutFn = createServerFn({ method: "POST" }).handler(async () => {
+	const sessionToken = getCookie("session");
+	if (sessionToken) {
+		await fetch(new URL("/api/auth/sign-out", AUTH_API_URL), {
+			method: "POST",
+			headers: { Authorization: "Bearer " + sessionToken },
+		}).catch(() => {}); // un 401 = la sesión ya no existía: da igual
+	}
+	deleteCookie("session", cookieOpts);
+	deleteCookie("jwt", cookieOpts);
+});
+```
+
+### 5.3 Login con Google (por redirect)
+
+Alternativa —o complemento— al login con contraseña, pensada para **otras apps**
+que usan este IS. La app nunca habla con Google: lo hace el IS.
+
+```
+ Navegador            Tu servidor                    IS                       Google
+     │  GET /login/google   │                         │                          │
+     │─────────────────────▶│ genera verifier + state │                          │
+     │◀── 302 /api/auth/google/start?redirect_to&code_challenge&state ──────────│
+     │───────────────────────────────────────────────▶│── 302 ──────────────────▶│
+     │◀──────────────────────────────── el usuario elige su cuenta ──────────────│
+     │                      │                         │◀── callback (enlaza por email, abre sesión)
+     │◀── 302 redirect_to?code=XXXX&state=… (o ?error=CODIGO) ───────────────────│
+     │──── GET /auth/callback?code&state ────────────▶│                          │
+     │                      │── POST /api/auth/google/exchange {code, code_verifier} ──▶│
+     │                      │◀── { user, token, system, tkc } + set-auth-token ─────────│
+```
+
+**Reglas del flujo**
+
+- **Google nunca crea cuentas.** El usuario debe existir ya en el IS (lo crea un
+  admin) con el mismo correo de su cuenta de Google, y tener al menos un rol (en
+  el sistema indicado o, sin `systemSlug`, en alguno). Funciona con `@gmail.com`
+  y con el dominio corporativo. El IS exige que Google declare el correo
+  verificado; la cuenta de Google queda enlazada al mismo usuario, así que
+  contraseña y Google conviven.
+- **Mismas reglas de acceso que `/sign-in`:** con `systemSlug` la sesión queda
+  ligada a ese sistema (una sola sesión por usuario y sistema: un login nuevo
+  cierra la anterior); sin él, el token es multi-sistema.
+- **Ningún token viaja por la URL.** Solo un código de un solo uso de 60 s, inútil
+  sin el `code_verifier` (PKCE, S256) que no sale de tu servidor.
+- **Avatar:** la foto de la cuenta de Google se guarda como imagen del usuario
+  (claim `image` del JWT), salvo que el usuario ya tenga una imagen propia.
+
+**Configuración en el IS (una vez)**
+
+1. En Google Cloud Console crea un ID de cliente OAuth de tipo *Aplicación web* y
+   registra como URI de redirección `${BETTER_AUTH_URL}/api/auth/callback/google`.
+2. En el `.env` del backend del IS: `GOOGLE_CLIENT_ID` y `GOOGLE_CLIENT_SECRET`.
+   Sin ellos, las rutas `/api/auth/google/*` responden `503 GOOGLE_NOT_CONFIGURED`.
+3. Añade el origen de cada app que usará el flujo a `GOOGLE_REDIRECT_ORIGINS`
+   (lista separada por comas, orígenes exactos; `https` salvo `localhost`). Los
+   de `ALLOWED_ORIGIN` ya se admiten. En Google Cloud no hay que tocar nada más
+   por cada app nueva.
+
+**Endpoints**
+
+| Método | Ruta                          | Entrada                                                                  | Respuesta |
+| ------ | ----------------------------- | ------------------------------------------------------------------------ | --------- |
+| GET    | `/api/auth/google/start`      | query: `redirect_to`, `code_challenge` (43 chars base64url), `state?`, `systemSlug?` | `302` a Google. `400 INVALID_REDIRECT` si el origen no está permitido |
+| POST   | `/api/auth/google/exchange`   | body: `{ code, code_verifier }` (servidor a servidor)                    | `200` igual que `/sign-in` + cabecera `set-auth-token`. `400 INVALID_CODE` |
+
+Al volver a `redirect_to` llega `?code=…&state=…` o `?error=CODIGO`:
+
+| Código                | Significado |
+| --------------------- | ----------- |
+| `ACCOUNT_NOT_FOUND`   | No existe un usuario con ese correo de Google. |
+| `NO_ROLES_IN_SYSTEM`  | Existe pero no tiene roles en el sistema indicado (o en ninguno). |
+| `SYSTEM_NOT_FOUND`    | `systemSlug` inexistente o inactivo. |
+| `GOOGLE_ACCESS_DENIED`| El usuario canceló o rechazó el acceso en Google. |
+| `GOOGLE_AUTH_FAILED`  | Cualquier otro fallo. |
+
+(`/api/auth/callback/google` y `/api/auth/google/finish` son pasos internos del IS:
+no los llama ninguna app.)
+
+#### Node / Express
+
+**server/google-login.ts — paso 1: iniciar (GET /login/google)**
+
+```typescript
+import { createHash, randomBytes } from "node:crypto";
+import type { Request, Response } from "express";
+
+// URL del IS tal como la ve el NAVEGADOR (puede diferir de AUTH_API_URL si tu
+// servidor lo alcanza por una dirección interna).
+const AUTH_PUBLIC_URL = process.env.AUTH_PUBLIC_URL!;
+const APP_URL = process.env.APP_URL!; // origen de TU app, p. ej. https://pos.midominio.com
+
+// El botón "Continuar con Google" de tu login es un simple <a href="/login/google">.
+export function startGoogleLogin(_req: Request, res: Response) {
+	const verifier = randomBytes(32).toString("base64url"); // PKCE
+	const state = randomBytes(16).toString("hex"); // anti-CSRF
+
+	// httpOnly + vida corta: el verifier nunca debe llegar al JS del navegador.
+	res.cookie("google_flow", JSON.stringify({ verifier, state }), {
+		httpOnly: true,
+		secure: true,
+		sameSite: "lax", // viaja en la navegación de vuelta desde el IS
+		maxAge: 10 * 60 * 1000,
+	});
+
+	const url = new URL("/api/auth/google/start", AUTH_PUBLIC_URL);
+	url.searchParams.set("redirect_to", new URL("/auth/callback", APP_URL).toString());
+	url.searchParams.set(
+		"code_challenge",
+		createHash("sha256").update(verifier).digest("base64url"),
+	);
+	url.searchParams.set("state", state);
+	url.searchParams.set("systemSlug", "mi-sistema"); // opcional
+	res.redirect(url.toString());
+}
+```
+
+**server/google-login.ts — paso 2: la vuelta y el canje (GET /auth/callback)**
+
+```typescript
+// Requiere cookie-parser (req.cookies).
+export async function googleCallback(req: Request, res: Response) {
+	const flow = req.cookies.google_flow
+		? (JSON.parse(req.cookies.google_flow) as { verifier: string; state: string })
+		: null;
+	res.clearCookie("google_flow"); // de un solo uso, pase lo que pase
+
+	const { code, state, error } = req.query as Record<string, string | undefined>;
+	const fail = (e: string) => res.redirect("/login?error=" + encodeURIComponent(e));
+
+	// El IS devuelve ?error=ACCOUNT_NOT_FOUND | NO_ROLES_IN_SYSTEM | ...
+	if (error) return fail(error);
+	if (!flow || !code || state !== flow.state) return fail("STATE_INVALID");
+
+	// Servidor a servidor: aquí viaja el code_verifier, que solo conoce tu backend.
+	const r = await fetch(new URL("/api/auth/google/exchange", process.env.AUTH_API_URL), {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ code, code_verifier: flow.verifier }),
+	});
+	if (!r.ok) return fail(((await r.json()) as { code?: string }).code ?? "GOOGLE_AUTH_FAILED");
+
+	// Misma respuesta que /api/auth/sign-in.
+	const { token } = (await r.json()) as { token: string | null };
+	const sessionToken = r.headers.get("set-auth-token")!;
+
+	res.cookie("session", sessionToken, { httpOnly: true, secure: true, sameSite: "lax" });
+	if (token) res.cookie("jwt", token, { httpOnly: true, secure: true, sameSite: "lax" });
+	res.redirect("/");
+}
+
+// app.get("/login/google", startGoogleLogin);
+// app.get("/auth/callback", googleCallback);
+```
+
+#### Next.js
+
+**app/login/google/route.ts — paso 1: iniciar**
+
+```typescript
+import { createHash, randomBytes } from "node:crypto";
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
+// El botón "Continuar con Google" es un <a href="/login/google">.
+export async function GET() {
+	const verifier = randomBytes(32).toString("base64url"); // PKCE
+	const state = randomBytes(16).toString("hex"); // anti-CSRF
+
+	(await cookies()).set("google_flow", JSON.stringify({ verifier, state }), {
+		httpOnly: true,
+		secure: true,
+		sameSite: "lax",
+		maxAge: 10 * 60,
+	});
+
+	// AUTH_PUBLIC_URL: URL del IS tal como la ve el NAVEGADOR.
+	const url = new URL("/api/auth/google/start", process.env.AUTH_PUBLIC_URL);
+	url.searchParams.set(
+		"redirect_to",
+		new URL("/auth/callback", process.env.APP_URL).toString(),
+	);
+	url.searchParams.set(
+		"code_challenge",
+		createHash("sha256").update(verifier).digest("base64url"),
+	);
+	url.searchParams.set("state", state);
+	url.searchParams.set("systemSlug", "mi-sistema"); // opcional
+	return NextResponse.redirect(url);
+}
+```
+
+**app/auth/callback/route.ts — paso 2: la vuelta y el canje**
+
+```typescript
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+
+export async function GET(req: Request) {
+	const jar = await cookies();
+	const raw = jar.get("google_flow")?.value;
+	const flow = raw ? (JSON.parse(raw) as { verifier: string; state: string }) : null;
+	jar.delete("google_flow"); // de un solo uso
+
+	const params = new URL(req.url).searchParams;
+	const code = params.get("code");
+	const fail = (e: string) =>
+		NextResponse.redirect(new URL("/login?error=" + encodeURIComponent(e), process.env.APP_URL));
+
+	// El IS devuelve ?error=ACCOUNT_NOT_FOUND | NO_ROLES_IN_SYSTEM | ...
+	const error = params.get("error");
+	if (error) return fail(error);
+	if (!flow || !code || params.get("state") !== flow.state) return fail("STATE_INVALID");
+
+	// Servidor a servidor: aquí viaja el code_verifier.
+	const r = await fetch(new URL("/api/auth/google/exchange", process.env.AUTH_API_URL), {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ code, code_verifier: flow.verifier }),
+	});
+	if (!r.ok) return fail(((await r.json()) as { code?: string }).code ?? "GOOGLE_AUTH_FAILED");
+
+	const { token } = (await r.json()) as { token: string | null };
+	const sessionToken = r.headers.get("set-auth-token")!;
+
+	const opts = { httpOnly: true, secure: true, sameSite: "lax" as const, path: "/" };
+	jar.set("session", sessionToken, opts);
+	if (token) jar.set("jwt", token, opts);
+	return NextResponse.redirect(new URL("/", process.env.APP_URL));
+}
+```
+
+#### TanStack Start
+
+**modules/auth/actions/google.ts — server functions (inicio y canje)**
+
+```typescript
+import { createHash, randomBytes } from "node:crypto";
+import { createServerFn } from "@tanstack/react-start";
+import { deleteCookie, getCookie, setCookie } from "@tanstack/react-start/server";
+import { z } from "zod";
+
+// AUTH_API_URL: el IS alcanzable desde tu servidor (puede ser interna).
+// AUTH_PUBLIC_URL: el IS tal como lo ve el NAVEGADOR. APP_URL: origen de tu app.
+const cookieOpts = { httpOnly: true, secure: true, sameSite: "lax", path: "/" } as const;
+
+// Paso 1: genera PKCE + state, los guarda en una cookie httpOnly y devuelve la
+// URL del IS a la que debe ir el navegador.
+export const startGoogleLoginFn = createServerFn({ method: "POST" }).handler(async () => {
+	const verifier = randomBytes(32).toString("base64url");
+	const state = randomBytes(16).toString("hex");
+	setCookie("google_flow", JSON.stringify({ verifier, state }), {
+		...cookieOpts,
+		maxAge: 10 * 60,
+	});
+
+	const url = new URL("/api/auth/google/start", process.env.AUTH_PUBLIC_URL);
+	url.searchParams.set(
+		"redirect_to",
+		new URL("/auth/google/callback", process.env.APP_URL).toString(),
+	);
+	url.searchParams.set(
+		"code_challenge",
+		createHash("sha256").update(verifier).digest("base64url"),
+	);
+	url.searchParams.set("state", state);
+	url.searchParams.set("systemSlug", "mi-sistema"); // opcional
+	return { url: url.toString() };
+});
+
+// Paso 2: el IS devolvió al usuario con ?code&state (o ?error). Se valida el
+// state, se canjea el código con el verifier y se abre la sesión.
+export const completeGoogleLoginFn = createServerFn({ method: "POST" })
+	.validator(
+		z.object({
+			code: z.string().optional(),
+			state: z.string().optional(),
+			error: z.string().optional(),
+		}),
+	)
+	.handler(async ({ data }) => {
+		const raw = getCookie("google_flow");
+		const flow = raw ? (JSON.parse(raw) as { verifier: string; state: string }) : null;
+		deleteCookie("google_flow", cookieOpts); // de un solo uso
+
+		// ACCOUNT_NOT_FOUND | NO_ROLES_IN_SYSTEM | GOOGLE_ACCESS_DENIED | ...
+		if (data.error) return { ok: false, error: data.error } as const;
+		if (!flow || !data.code || data.state !== flow.state) {
+			return { ok: false, error: "STATE_INVALID" } as const;
+		}
+
+		// Servidor a servidor: aquí viaja el code_verifier.
+		const r = await fetch(new URL("/api/auth/google/exchange", process.env.AUTH_API_URL), {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			body: JSON.stringify({ code: data.code, code_verifier: flow.verifier }),
+		});
+		if (!r.ok) {
+			const { code } = (await r.json()) as { code?: string };
+			return { ok: false, error: code ?? "GOOGLE_AUTH_FAILED" } as const;
+		}
+
+		// Misma respuesta que /api/auth/sign-in.
+		const { token } = (await r.json()) as { token: string | null };
+		setCookie("session", r.headers.get("set-auth-token")!, {
+			...cookieOpts,
+			maxAge: 60 * 60 * 24 * 7,
+		});
+		if (token) setCookie("jwt", token, cookieOpts);
+		return { ok: true } as const;
+	});
+```
+
+**routes/login.tsx — el botón**
+
+```tsx
+import { useServerFn } from "@tanstack/react-start";
+import { startGoogleLoginFn } from "#/modules/auth/actions/google.ts";
+
+export function GoogleButton() {
+	const start = useServerFn(startGoogleLoginFn);
+	return (
+		<button
+			type="button"
+			onClick={async () => {
+				const { url } = await start();
+				// Navegación completa (no fetch): el IS responde con redirects a Google.
+				window.location.assign(url);
+			}}
+		>
+			Continuar con Google
+		</button>
+	);
+}
+```
+
+**routes/auth.google.callback.tsx — la vuelta**
+
+```tsx
+import { createFileRoute, redirect } from "@tanstack/react-router";
+import { z } from "zod";
+import { completeGoogleLoginFn } from "#/modules/auth/actions/google.ts";
+
+// Ruta PÚBLICA (aún no hay sesión). El loader canjea el código en el servidor y,
+// si va bien, redirige; solo se renderiza la página si hubo un error.
+export const Route = createFileRoute("/auth/google/callback")({
+	validateSearch: z.object({
+		code: z.string().optional(),
+		state: z.string().optional(),
+		error: z.string().optional(),
+	}),
+	loaderDeps: ({ search }) => search,
+	loader: async ({ deps }) => {
+		const result = await completeGoogleLoginFn({ data: deps });
+		if (result.ok) throw redirect({ to: "/" });
+		return { error: result.error };
+	},
+	component: function Callback() {
+		const { error } = Route.useLoaderData();
+		return <p>No se pudo iniciar sesión con Google ({error}).</p>;
+	},
+});
+```
+
+**Notas**
+
+- El `code_verifier` y el session token no deben llegar nunca al JavaScript del
+  navegador: si tu app es una SPA pura, necesita un pequeño backend que haga el canje.
+- Valida siempre el `state` al volver.
+- En local, `http://localhost:<puerto>` es un `redirect_to` válido; en cualquier
+  otro host debe ser `https`.
+- Tras el canje, todo es igual que con contraseña: cookies httpOnly, verificación
+  del JWT con el JWKS (§5.1) y roles con `/api/user-roles/me` (§7.1).
+
 ## 6. CORS
 
 El IS refleja el `Origin` solo si está en `ALLOWED_ORIGIN`
@@ -710,6 +1151,10 @@ Endpoints con límite (`src/middleware/auth-rate-limits.ts`, `src/middleware/rat
 | `POST /api/users/admin/{id}/change-password` | 5/min     | IP                  |
 | `POST /api/auth/set-password`                | 10/min    | IP                  |
 | `POST /api/users/admin/{id}/invite`          | 5/min     | IP                  |
+| `GET /api/auth/google/start`         | 20/min            | IP                  |
+| `GET /api/auth/google/finish`        | 20/min            | IP                  |
+| `GET /api/auth/callback/google`      | 20/min            | IP                  |
+| `POST /api/auth/google/exchange`     | 10/min            | IP                  |
 | `GET /api/auth/jwks`                 | 60/min            | IP                  |
 | `GET /api/auth/token`                | 60/min            | IP                  |
 
@@ -739,6 +1184,8 @@ para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 | POST       | `/api/auth/sign-up`                                               | Sesión + admin   | Alta de usuario (no autoservicio)                                             |
 | POST       | `/api/employees/with-user`                                        | Sesión + admin   | Crea usuario **y** su empleado enlazado a la vez                              |
 | POST       | `/api/auth/sign-out`                                              | Sesión           | Cierra la sesión actual                                                       |
+| GET        | `/api/auth/google/start`                                          | — (navegador)    | Inicia el login con Google por redirect (ver §5.3)                            |
+| POST       | `/api/auth/google/exchange`                                       | Código + verifier| Canjea el código de un solo uso por la sesión (ver §5.3)                      |
 | GET        | `/api/auth/token`                                                 | Sesión           | Emite/renueva un JWT                                                          |
 | GET        | `/api/auth/jwks`                                                  | — (pública)      | Claves públicas para verificar JWT                                            |
 | GET        | `/api/sessions/session`                                           | Sesión           | Usuario, sesión y sistema actuales                                            |
@@ -967,6 +1414,7 @@ introducirlas.
 - [ ] El JWT se guarda solo en memoria en el frontend, nunca en `localStorage`/`sessionStorage`.
 - [ ] Tu backend verifica el JWT contra el JWKS del IS (`createRemoteJWKSet`), validando `issuer`.
 - [ ] Tu backend no confía en claims de rol del JWT (no existen); si necesita roles, los pide a `GET /api/user-roles/me` o implementa su propia autorización indexada por `sub`.
+- [ ] Si usas el login con Google: tu origen está en `GOOGLE_REDIRECT_ORIGINS` (https), el canje y el `code_verifier` viven solo en tu servidor, y validas el `state` al volver.
 - [ ] `APP_ENV=production` en el IS para que `/api/docs` y `/api/openapi.json` queden deshabilitados.
 - [ ] `BETTER_AUTH_SECRET` y `REDIS_PASSWORD` gestionados como secretos (no en el repo).
 - [ ] Tu cliente maneja `401` (token vencido → renovar o cerrar sesión) y `429` (backoff, sin reintento en bucle).

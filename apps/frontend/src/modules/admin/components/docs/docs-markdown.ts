@@ -2,13 +2,17 @@ import {
 	DOCS_DESCRIPTION,
 	DOCS_TITLE,
 	ENDPOINTS,
+	GOOGLE_ERROR_CODES,
+	GOOGLE_FLOW_STEPS,
 	SECTIONS,
 	SECURITY_NOTES,
 	STEPS,
 } from "./docs-content.ts";
 import {
 	frameworkExamples,
+	googleExamples,
 	rolesSnippet,
+	tanstackMiddlewareSnippet,
 	verifySnippet,
 } from "./integration-snippets.ts";
 
@@ -53,7 +57,23 @@ export function buildDocsMarkdown() {
 		`## ${SECTIONS.verify.title}`,
 		codeFence(verifySnippet),
 		codeFence(rolesSnippet),
+		codeFence(tanstackMiddlewareSnippet),
 	);
+
+	parts.push(
+		`## ${SECTIONS.google.title}`,
+		SECTIONS.google.intro,
+		GOOGLE_FLOW_STEPS.map((step, i) => `${i + 1}. ${step}`).join("\n"),
+		[
+			"| Código | Significado |",
+			"| --- | --- |",
+			...GOOGLE_ERROR_CODES.map((e) => `| \`${e.code}\` | ${e.meaning} |`),
+		].join("\n"),
+	);
+	for (const framework of googleExamples) {
+		parts.push(`### ${framework.label}`);
+		for (const block of framework.blocks) parts.push(codeFence(block));
+	}
 
 	parts.push(`## ${SECTIONS.examples.title}`, SECTIONS.examples.intro);
 	for (const framework of frameworkExamples) {

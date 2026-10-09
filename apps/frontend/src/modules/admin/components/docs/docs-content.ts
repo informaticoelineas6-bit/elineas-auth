@@ -25,6 +25,11 @@ export const SECTIONS = {
 			"El resto de la API (empleados, sistemas, roles…) es exclusiva de esta consola administrativa; un backend cliente solo necesita estos.",
 	},
 	verify: { title: "Verificar el JWT y consultar roles" },
+	google: {
+		title: "Login con Google (redirect)",
+		intro:
+			"Alternativa (o complemento) al login con contraseña: tu app manda al usuario al IS, este lo lleva a Google y lo devuelve a tu app con un código de un solo uso que tu SERVIDOR canjea por la sesión. Funciona con correos @gmail.com y del dominio corporativo. Google nunca crea cuentas: el usuario debe existir ya en el IS (lo crea un admin) con ese mismo correo y tener al menos un rol.",
+	},
 	examples: {
 		title: "Ejemplos de login por stack",
 		intro:
@@ -74,6 +79,55 @@ export const STEPS = [
 	},
 ] as const;
 
+// Markdown inline (**negrita** y `código`).
+export const GOOGLE_FLOW_STEPS = [
+	"**Configura el IS (una vez):** añade el origen de tu app a `GOOGLE_REDIRECT_ORIGINS` en el `.env` del backend del IS (https fuera de localhost). En Google Cloud no cambia nada: tu app nunca habla con Google, solo con el IS.",
+	"**Inicio:** tu servidor genera un `code_verifier` aleatorio (PKCE) y un `state`, los guarda en una cookie httpOnly de vida corta y redirige el navegador a `GET /api/auth/google/start` con `redirect_to`, `code_challenge` (base64url del SHA-256 del verifier), `state` y, opcional, `systemSlug`.",
+	"**Vuelta:** el IS devuelve al usuario a `redirect_to` con `?code=…&state=…` (o `?error=CODIGO`). Comprueba que el `state` coincide con el de tu cookie.",
+	"**Canje (servidor a servidor):** `POST /api/auth/google/exchange` con `{ code, code_verifier }`. Responde lo mismo que `/sign-in` (`{ user, token, system, tkc }`) y el session token en la cabecera `set-auth-token`. El código dura 60 s y es de un solo uso.",
+	"**Después** todo es igual que con contraseña: guarda el session token y el JWT en cookies httpOnly, verifica el JWT con el JWKS y consulta los roles.",
+] as const;
+
+export const GOOGLE_ERROR_CODES = [
+	{
+		code: "ACCOUNT_NOT_FOUND",
+		meaning:
+			"No existe un usuario con ese correo de Google. Un admin debe crearlo antes.",
+	},
+	{
+		code: "NO_ROLES_IN_SYSTEM",
+		meaning:
+			"El usuario existe pero no tiene roles en el sistema indicado (o en ninguno).",
+	},
+	{
+		code: "SYSTEM_NOT_FOUND",
+		meaning: "El `systemSlug` no existe o está inactivo.",
+	},
+	{
+		code: "GOOGLE_ACCESS_DENIED",
+		meaning: "El usuario canceló o rechazó el acceso en Google.",
+	},
+	{
+		code: "GOOGLE_AUTH_FAILED",
+		meaning: "Cualquier otro fallo del inicio de sesión con Google.",
+	},
+	{
+		code: "INVALID_REDIRECT",
+		meaning:
+			"(400 en /start) `redirect_to` no es un origen permitido: falta añadirlo a `GOOGLE_REDIRECT_ORIGINS`.",
+	},
+	{
+		code: "INVALID_CODE",
+		meaning:
+			"(400 en /exchange) Código caducado, ya usado o `code_verifier` incorrecto.",
+	},
+	{
+		code: "GOOGLE_NOT_CONFIGURED",
+		meaning:
+			"(503) El IS no tiene `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET`.",
+	},
+] as const;
+
 export const ENDPOINT_METHODS = {
 	GET: "secondary",
 	POST: "default",
@@ -92,6 +146,20 @@ export const ENDPOINTS: {
 		auth: "—",
 		description:
 			'Login con email + contraseña, y systemSlug opcional (sin él, token multi-sistema y system: null; se exige rol en el sistema indicado o, si no hay, en alguno). Devuelve { user, token, system } y el session token en la cabecera "set-auth-token".',
+	},
+	{
+		method: "GET",
+		path: "/api/auth/google/start",
+		auth: "Público (navegador)",
+		description:
+			"Inicia el login con Google por redirect. Query: redirect_to, code_challenge (PKCE S256), state?, systemSlug?. Redirige a Google; ver la sección «Login con Google».",
+	},
+	{
+		method: "POST",
+		path: "/api/auth/google/exchange",
+		auth: "Código + verifier",
+		description:
+			'Canjea el código de un solo uso (60 s) por la sesión: body { code, code_verifier }. Devuelve { user, token, system } y el session token en la cabecera "set-auth-token".',
 	},
 	{
 		method: "GET",
@@ -128,5 +196,7 @@ export const SECURITY_NOTES = [
 	"El **session token** es de larga duración (días): trátalo como una contraseña. Nunca lo expongas a JavaScript del navegador; guárdalo solo en una cookie httpOnly de tu backend.",
 	"El **JWT** es de corta duración (~15 min) y se verifica sin llamar al IS: es el que puedes exponer al cliente si tu arquitectura lo necesita (p. ej. para llamadas directas desde el navegador a tu propia API).",
 	"Agrega el origen de tu nuevo frontend a la lista de orígenes permitidos del Identity Server (variable `ALLOWED_ORIGIN`) o las peticiones desde el navegador serán bloqueadas por CORS.",
+	"En el login con Google, el `code_verifier` y el session token **nunca** deben llegar al JavaScript del navegador: si tu app es una SPA pura, necesita un pequeño backend que haga el canje. Valida siempre el `state` al volver.",
+	"El avatar de la cuenta de Google se guarda como imagen del usuario (claim `image` del JWT) salvo que el usuario ya tenga una imagen propia.",
 	"El alta de usuarios no es autoservicio: solo un admin crea cuentas, desde Usuarios en esta consola.",
 ];

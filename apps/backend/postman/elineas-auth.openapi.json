@@ -228,8 +228,7 @@
         },
         "required": [
           "name",
-          "email",
-          "password"
+          "email"
         ]
       },
       "SignInBody": {
@@ -361,6 +360,58 @@
         },
         "required": [
           "token"
+        ]
+      },
+      "SetPasswordResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "SetPasswordBody": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256,
+            "example": "tokenDelCorreo"
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128,
+            "description": "Entre 12 y 128 caracteres, con al menos una mayúscula, una minúscula y un carácter especial.",
+            "example": "tu-contraseña-segura"
+          }
+        },
+        "required": [
+          "token",
+          "newPassword"
+        ]
+      },
+      "GoogleExchangeBody": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "code_verifier": {
+            "type": "string",
+            "minLength": 43,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "code",
+          "code_verifier"
         ]
       },
       "StatusResponse": {
@@ -504,6 +555,17 @@
         "required": [
           "newPassword",
           "currentPassword"
+        ]
+      },
+      "InviteResponse": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "status"
         ]
       },
       "TkcKeySummaryResponse": {
@@ -879,8 +941,7 @@
             },
             "required": [
               "name",
-              "email",
-              "password"
+              "email"
             ]
           },
           "employee": {
@@ -1136,6 +1197,51 @@
           }
         }
       },
+      "RolePermission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource": {
+            "type": "string",
+            "example": "employees"
+          },
+          "action": {
+            "type": "string",
+            "example": "read"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "resource",
+          "action",
+          "description"
+        ]
+      },
+      "SetRolePermissionsBody": {
+        "type": "object",
+        "properties": {
+          "permissionIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "example": [
+              "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            ]
+          }
+        },
+        "required": [
+          "permissionIds"
+        ]
+      },
       "MyUserRole": {
         "type": "object",
         "properties": {
@@ -1318,6 +1424,156 @@
           "userId",
           "sessionId"
         ]
+      },
+      "MyPermission": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "example": "employees"
+          },
+          "action": {
+            "type": "string",
+            "example": "read"
+          }
+        },
+        "required": [
+          "resource",
+          "action"
+        ]
+      },
+      "Permission": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "resource": {
+            "type": "string",
+            "example": "employees"
+          },
+          "action": {
+            "type": "string",
+            "example": "read"
+          },
+          "description": {
+            "type": "string",
+            "nullable": true
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "resource",
+          "action",
+          "description",
+          "createdAt"
+        ]
+      },
+      "SystemPermissions": {
+        "type": "object",
+        "properties": {
+          "system": {
+            "$ref": "#/components/schemas/System"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Permission"
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "roles": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "roles"
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        "required": [
+          "system",
+          "permissions"
+        ]
+      },
+      "AssignPermissionBody": {
+        "type": "object",
+        "properties": {
+          "systemId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+          },
+          "roleId": {
+            "type": "string",
+            "format": "uuid",
+            "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+          },
+          "resource": {
+            "type": "string",
+            "minLength": 1,
+            "example": "employees"
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1,
+            "example": "read"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "systemId",
+          "roleId",
+          "resource",
+          "action"
+        ]
+      },
+      "UpdatePermissionBody": {
+        "type": "object",
+        "properties": {
+          "resource": {
+            "type": "string",
+            "minLength": 1
+          },
+          "action": {
+            "type": "string",
+            "minLength": 1
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
       }
     },
     "parameters": {}
@@ -1590,6 +1846,179 @@
           },
           "401": {
             "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/set-password": {
+      "post": {
+        "operationId": "setPassword",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Establecer la contraseña de una cuenta invitada con el token del correo",
+        "description": "Público: el token de un solo uso (48 h) es la credencial. Al usarse se invalida y se cierran las sesiones previas de la cuenta.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetPasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña establecida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetPasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google/start": {
+      "get": {
+        "operationId": "authGoogleStart",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Iniciar sesión con Google (redirect)",
+        "description": "Lo abre el NAVEGADOR de la app. Redirige a Google y, al terminar, devuelve al usuario a `redirect_to` con `?code=...&state=...` o `?error=CODIGO` (ACCOUNT_NOT_FOUND, NO_ROLES_IN_SYSTEM, SYSTEM_NOT_FOUND, GOOGLE_ACCESS_DENIED, GOOGLE_AUTH_FAILED). Google nunca crea cuentas: el usuario debe existir ya con ese correo. El código se canjea en POST /google/exchange.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2048,
+              "example": "https://pos.midominio.com/auth/google/callback",
+              "description": "URL a la que se devuelve al usuario. Su origen debe estar permitido."
+            },
+            "required": true,
+            "description": "URL a la que se devuelve al usuario. Su origen debe estar permitido.",
+            "name": "redirect_to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9_-]{43}$",
+              "description": "PKCE: base64url(SHA-256(code_verifier)), sin relleno (43 caracteres)."
+            },
+            "required": true,
+            "description": "PKCE: base64url(SHA-256(code_verifier)), sin relleno (43 caracteres).",
+            "name": "code_challenge",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 256,
+              "description": "Valor opaco de la app; se devuelve tal cual en redirect_to."
+            },
+            "required": false,
+            "description": "Valor opaco de la app; se devuelve tal cual en redirect_to.",
+            "name": "state",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "example": "pos"
+            },
+            "required": false,
+            "name": "systemSlug",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "302": {
+            "description": "Redirección a Google"
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/google/exchange": {
+      "post": {
+        "operationId": "authGoogleExchange",
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Canjear el código del login con Google por la sesión",
+        "description": "Servidor a servidor. Código de un solo uso (60 s) más el `code_verifier` PKCE. Devuelve lo mismo que /sign-in; el token de sesión largo va en la cabecera `set-auth-token`.",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GoogleExchangeBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1885,6 +2314,85 @@
           },
           "404": {
             "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/admin/{id}/invite": {
+      "post": {
+        "operationId": "resendUserInvite",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Reenviar la invitación para establecer la contraseña (requiere users:write)",
+        "description": "Envía al correo del usuario un enlace de un solo uso (48 h) para que fije su contraseña. El admin nunca ve ni fija la contraseña.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitación enviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
             "content": {
               "application/json": {
                 "schema": {
@@ -3940,6 +4448,182 @@
         }
       }
     },
+    "/api/roles/{id}/permissions": {
+      "get": {
+        "operationId": "getRolePermissions",
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Listar los permisos asignados a un rol",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permisos del rol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RolePermission"
+                      }
+                    }
+                  },
+                  "required": [
+                    "permissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "setRolePermissions",
+        "tags": [
+          "Roles"
+        ],
+        "summary": "Reemplazar el conjunto completo de permisos de un rol",
+        "description": "Sustituye TODOS los permisos del rol por `permissionIds` ([] los quita todos). El rol admin del sistema auth no necesita permisos aquí: siempre pasa como comodín.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRolePermissionsBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permisos del rol tras la actualización",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/RolePermission"
+                      }
+                    }
+                  },
+                  "required": [
+                    "permissions"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/user-roles/me": {
       "get": {
         "operationId": "listMyUserRoles",
@@ -4468,6 +5152,662 @@
           },
           "403": {
             "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/me": {
+      "get": {
+        "operationId": "listMyPermissions",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Listar los permisos efectivos del usuario autenticado en un sistema",
+        "description": "Sin `systemSlug`, resuelve los permisos en el sistema `auth`. Cualquier sistema consumidor puede pedir los suyos, igual que en GET /api/user-roles/me. Si el usuario tiene el rol admin en el sistema `auth` o en el propio `systemSlug` consultado, devuelve el catálogo completo (comodín global y comodín local, respectivamente). Es lo que cada panel usa para decidir qué secciones mostrar/ocultar.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "systemSlug",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permisos efectivos del usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/MyPermission"
+                      }
+                    }
+                  },
+                  "required": [
+                    "permissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions": {
+      "get": {
+        "operationId": "listPermissions",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Listar el catálogo completo de permisos (resource:action)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Catálogo de permisos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permissions": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Permission"
+                      }
+                    }
+                  },
+                  "required": [
+                    "permissions"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/by-system": {
+      "get": {
+        "operationId": "listPermissionsBySystem",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Listar los permisos agrupados por sistema",
+        "description": "Un sistema por card, con los permisos (resource:action) asignados a cualquiera de sus roles y en qué roles concretos de ese sistema quedó cada uno. Pensado para la vista de administración de permisos.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permisos agrupados por sistema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "systems": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SystemPermissions"
+                      }
+                    }
+                  },
+                  "required": [
+                    "systems"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/assign": {
+      "post": {
+        "operationId": "assignPermission",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Crear (o reutilizar) un permiso y asignarlo a un rol de un sistema",
+        "description": "`roleId` debe pertenecer a `systemId`. Si el permiso `resource:action` ya existe en el catálogo se reutiliza; si no, se crea. Es la vía del panel para 'crear un permiso para un sistema' sin tocar la API a mano.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AssignPermissionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Permiso asignado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permission": {
+                      "$ref": "#/components/schemas/Permission"
+                    }
+                  },
+                  "required": [
+                    "permission"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/{id}": {
+      "patch": {
+        "operationId": "updatePermission",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Actualizar un permiso del catálogo",
+        "description": "El permiso es global: editar resource/action/description afecta a todos los sistemas que lo tengan asignado, no solo al que se esté viendo.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePermissionBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Permiso actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "permission": {
+                      "$ref": "#/components/schemas/Permission"
+                    }
+                  },
+                  "required": [
+                    "permission"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "deletePermission",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Eliminar un permiso del catálogo (y sus asignaciones a roles)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permiso eliminado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/{id}/systems/{systemId}": {
+      "delete": {
+        "operationId": "removePermissionFromSystem",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Quitar un permiso de un sistema (badge 'eliminar' en el panel)",
+        "description": "Desasigna el permiso de todos los roles de `systemId`. Si tras eso no queda asignado a ningún rol de ningún otro sistema, también se borra del catálogo (`deleted: true` en la respuesta).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "systemId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permiso desasignado del sistema",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "deleted": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "deleted"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/permissions/{id}/roles/{roleId}": {
+      "put": {
+        "operationId": "assignPermissionToRole",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Asignar un permiso ya existente del catálogo a un rol",
+        "description": "Alta idempotente: si el rol ya tenía el permiso, no hace nada. Es el control fino del panel de edición (roles concretos de un sistema que llevan un permiso dado).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permiso asignado al rol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "unassignPermissionFromRole",
+        "tags": [
+          "Permissions"
+        ],
+        "summary": "Quitar un permiso de un rol puntual",
+        "description": "Solo quita esta asignación rol↔permiso; a diferencia de DELETE /{id}/systems/{systemId}, NO borra el permiso del catálogo aunque quede sin ningún rol.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": true,
+            "name": "roleId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Permiso quitado del rol",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
             "content": {
               "application/json": {
                 "schema": {

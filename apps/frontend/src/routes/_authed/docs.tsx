@@ -4,6 +4,8 @@ import { CopyDocsButton } from "@/modules/admin/components/docs/copy-docs-button
 import {
 	DOCS_DESCRIPTION,
 	DOCS_TITLE,
+	GOOGLE_ERROR_CODES,
+	GOOGLE_FLOW_STEPS,
 	SECTIONS,
 	SECURITY_NOTES,
 	STEPS,
@@ -12,7 +14,9 @@ import { EndpointReference } from "@/modules/admin/components/docs/endpoint-refe
 import { FrameworkTabs } from "@/modules/admin/components/docs/framework-tabs.tsx";
 import { InlineMarkdown } from "@/modules/admin/components/docs/inline-markdown.tsx";
 import {
+	googleExamples,
 	rolesSnippet,
+	tanstackMiddlewareSnippet,
 	verifySnippet,
 } from "@/modules/admin/components/docs/integration-snippets.ts";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
@@ -100,6 +104,48 @@ function DocsPage() {
 						language={rolesSnippet.language}
 					/>
 				</div>
+				<CodeBlock
+					title={tanstackMiddlewareSnippet.title}
+					code={tanstackMiddlewareSnippet.code}
+					language={tanstackMiddlewareSnippet.language}
+				/>
+			</section>
+
+			<section className="space-y-3">
+				<h2 className="font-heading text-lg font-semibold text-foreground">
+					{SECTIONS.google.title}
+				</h2>
+				<p className="text-sm text-muted-foreground">
+					{SECTIONS.google.intro}
+				</p>
+				<ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
+					{GOOGLE_FLOW_STEPS.map((step) => (
+						<li key={step}>
+							<InlineMarkdown text={step} />
+						</li>
+					))}
+				</ol>
+				<div className="overflow-x-auto rounded-md border">
+					<table className="w-full text-left text-sm">
+						<thead className="bg-muted/50 text-muted-foreground">
+							<tr>
+								<th className="px-3 py-2 font-medium">Código</th>
+								<th className="px-3 py-2 font-medium">Significado</th>
+							</tr>
+						</thead>
+						<tbody>
+							{GOOGLE_ERROR_CODES.map((e) => (
+								<tr key={e.code} className="border-t">
+									<td className="px-3 py-2 font-mono text-xs">{e.code}</td>
+									<td className="px-3 py-2 text-muted-foreground">
+										<InlineMarkdown text={e.meaning} />
+									</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+				<FrameworkTabs examples={googleExamples} />
 			</section>
 
 			<section className="space-y-3">
