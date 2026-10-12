@@ -28,6 +28,11 @@ export const auth = betterAuth({
   // se aceptaría en la validación y luego fallaría aquí con un error confuso.
   emailAndPassword: {
     enabled: true,
+    // El alta la hace un admin para OTRA persona: no se abre sesión para la
+    // cuenta nueva (si no, quedaría una sesión viva de 7 días y el admin
+    // recibiría un JWT de esa cuenta). El dueño inicia sesión tras fijar su
+    // contraseña con el enlace de invitación.
+    autoSignIn: false,
     minPasswordLength: 12,
     maxPasswordLength: 128,
     // Invitación de cuentas nuevas: el admin NO fija ni conoce la contraseña; la

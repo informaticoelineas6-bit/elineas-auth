@@ -31,7 +31,7 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     // (ver middleware requireAdmin en la ruta). Por eso NO se reenvían las
     // cabeceras de sesión de la respuesta: harían que el navegador del admin
     // adoptara la sesión/cookies del usuario recién creado. Se devuelve el
-    // usuario, su token y el sistema en el cuerpo, sin tocar la sesión del admin.
+    // usuario y el sistema en el cuerpo (sin token), sin tocar la sesión del admin.
     // Se usa el body ya validado por Zod (valid("json")), que descarta campos
     // desconocidos y evita reenviar propiedades no previstas a better-auth.
     const { systemSlug, tkc, ...credentials } = c.req.valid("json");
@@ -49,15 +49,9 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
-    if (sys && response.token) {
-      await bindSessionToSystem({
-        sessionToken: response.token,
-        userId: response.user.id,
-        systemId: sys.id,
-      });
-    }
     if (tkc) await setUserTkcCredentials(response.user.id, tkc);
-    const token = await issueJwt(response.token);
+    // Sin sesión ni JWT para la cuenta nueva (autoSignIn desactivado en
+    // lib/auth.ts): el admin no debe poder actuar como el usuario invitado.
     // Invitación sin await: un fallo del correo no debe hacer fallar un alta
     // que ya se completó (sendAccountInvite captura y loguea, nunca lanza).
     void sendAccountInvite(credentials.email);
@@ -66,7 +60,7 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     // repetiría lo que acaba de enviar, a cambio de que el secreto viaje una
     // vez más y quede en una respuesta que no lo necesita. Las credenciales se
     // entregan en el login de su dueño (ver signInFn).
-    return c.json({ user: response.user, token, system: sys, tkc: null }, 200);
+    return c.json({ user: response.user, token: null, system: sys, tkc: null }, 200);
   } catch (error) {
     return handleError(error, c);
   }
