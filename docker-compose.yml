@@ -115,7 +115,7 @@ services:
       context: .
       dockerfile: apps/frontend/Dockerfile
       target: dev
-    image: elineas-auth-frontend:3.13.0
+    image: elineas-auth-frontend:3.14.0
     container_name: elineas-auth-frontend
     restart: unless-stopped
     ports:
