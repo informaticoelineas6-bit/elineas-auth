@@ -136,7 +136,20 @@ export async function createEmployee(input: CreateEmployeeInput) {
 export async function createEmployeeWithUser(
   input: CreateEmployeeWithUserInput,
   headers: Headers,
+  callerId: string,
 ) {
+  // Fijar la contraseña de la cuenta nueva solo lo puede hacer un admin: un
+  // delegado con `employees:write` que la eligiera conocería las credenciales de
+  // una cuenta a la que un admin podría dar roles después (o podría pre-registrar
+  // el correo de otra persona). Sin contraseña, el dueño la fija con el enlace.
+  if (input.user.password !== undefined && !(await queryIsAdmin(callerId))) {
+    throw new HttpError(
+      403,
+      "Solo un administrador puede fijar la contraseña de una cuenta nueva",
+      "FORBIDDEN",
+    );
+  }
+
   // El CI ahora es opcional: el pre-chequeo de unicidad solo aplica cuando se
   // envía uno. Con múltiples empleados sin CI, la restricción UNIQUE de la BD
   // no los rechaza (Postgres permite varios NULL en una columna UNIQUE).

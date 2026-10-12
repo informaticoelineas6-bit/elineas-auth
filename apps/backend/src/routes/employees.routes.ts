@@ -241,7 +241,7 @@ export const employeesRoutes = employeesRoutesBase
   })
   .openapi(createWithUserRoute, async (c) => {
     const body = c.req.valid("json");
-    const result = await createEmployeeWithUser(body, c.req.raw.headers);
+    const result = await createEmployeeWithUser(body, c.req.raw.headers, c.get("user").id);
     return c.json(result, 201);
   })
   .openapi(updateRoute, async (c) => {
