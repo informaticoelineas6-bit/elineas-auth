@@ -18,6 +18,7 @@ import type {
   SignUpBodySchema,
   VerifyEmailBodySchema,
 } from "@backend/openapi/schemas.ts";
+import { isUserDeactivated } from "@backend/lib/user-active.ts";
 import { Context } from "hono";
 
 type SignUpInput = { out: { json: z.infer<typeof SignUpBodySchema> } };
@@ -76,14 +77,20 @@ export async function assertAccessOrRevoke(params: {
   sys: { id: string; slug: string } | null;
 }) {
   const { userId, sessionToken, sys } = params;
-  const allowed = sys
-    ? await userHasRoleInSystem(userId, sys.id)
-    : await userHasRoleInAnySystem(userId);
+  const deactivated = await isUserDeactivated(userId);
+  const allowed = deactivated
+    ? false
+    : sys
+      ? await userHasRoleInSystem(userId, sys.id)
+      : await userHasRoleInAnySystem(userId);
   if (allowed) return;
   await auth.api.revokeSession({
     body: { token: sessionToken },
     headers: new Headers({ authorization: `Bearer ${sessionToken}` }),
   });
+  if (deactivated) {
+    throw new HttpError(403, "La cuenta está desactivada", "ACCOUNT_DISABLED");
+  }
   throw new HttpError(
     403,
     sys

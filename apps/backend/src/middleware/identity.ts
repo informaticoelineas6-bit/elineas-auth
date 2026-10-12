@@ -3,6 +3,7 @@ import type { AppEnv } from "@backend/types/hono-env.ts";
 import type { Context, Next } from "hono";
 import { eq } from "drizzle-orm";
 import { user as userTable } from "@backend/db/auth-schema.ts";
+import { isUserDeactivated } from "@backend/lib/user-active.ts";
 import { db } from "@backend/db/index.ts";
 
 // Verificador del JWT que emite este propio IS (plugin `jwt()` de better-auth).
@@ -52,6 +53,9 @@ export async function requireIdentity(c: Context<AppEnv>, next: Next) {
     result = null;
   }
   if (result) {
+    if (await isUserDeactivated(result.user.id)) {
+      return c.json({ error: "La cuenta está desactivada" }, 403);
+    }
     c.set("user", result.user);
     c.set("session", result.session);
     return next();
@@ -76,6 +80,9 @@ export async function requireIdentity(c: Context<AppEnv>, next: Next) {
             .limit(1)
         : [];
       if (payload?.sub && exists) {
+        if (await isUserDeactivated(payload.sub)) {
+          return c.json({ error: "La cuenta está desactivada" }, 403);
+        }
         c.set("user", {
           id: payload.sub,
           email: (payload.email as string | undefined) ?? "",

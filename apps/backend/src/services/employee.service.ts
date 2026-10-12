@@ -4,6 +4,7 @@ import { db } from "@backend/db/index.ts";
 import { employee } from "@backend/db/business-schema.ts";
 import { user } from "@backend/db/auth-schema.ts";
 import { auth } from "@backend/lib/auth.ts";
+import { revokeAllUserSessions } from "@backend/lib/user-active.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { generateInitialPassword, sendAccountInvite } from "@backend/lib/invite.ts";
 import { queryIsAdmin } from "@backend/middleware/admin.ts";
@@ -235,6 +236,10 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
     .where(eq(employee.id, id))
     .returning();
   if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+  // Desactivar corta el acceso ya: se cierran sus sesiones abiertas.
+  if (input.active === false && row.userId) {
+    await revokeAllUserSessions(row.userId);
+  }
   return row;
 }
 
