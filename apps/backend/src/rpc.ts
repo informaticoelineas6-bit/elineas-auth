@@ -38,3 +38,5 @@ export type UserRolesRoutes =
   typeof import("./routes/user-roles.routes.ts").userRolesRoutes;
 export type RequestLogsRoutes =
   typeof import("./routes/request-logs.routes.ts").requestLogsRoutes;
+export type DatabaseRoutes =
+  typeof import("./routes/database.routes.ts").databaseRoutes;

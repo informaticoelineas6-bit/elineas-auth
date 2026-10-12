@@ -132,4 +132,10 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/users/admin/:id/change-password",
     rateLimit({ name: "admin-change-password", windowMs: 60_000, max: 5 }),
   );
+  // Exportación de la base de datos (admin): consulta pesada que además verifica
+  // la contraseña del admin, así que se limita fuerte por IP.
+  app.use(
+    "/api/database/export",
+    rateLimit({ name: "database-export", windowMs: 60_000, max: 3 }),
+  );
 }

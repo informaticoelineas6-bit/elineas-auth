@@ -20,7 +20,7 @@ import { Context } from "hono";
 // hash del account de credenciales (providerId "credential", el que usa el login
 // email/password) y lo compara con verifyPassword de better-auth. Lanza 401 si
 // no coincide o si el usuario no tiene contraseña local (p. ej. solo social).
-async function assertCurrentPassword(userId: string, password: string) {
+export async function assertCurrentPassword(userId: string, password: string) {
   const [row] = await db
     .select({ password: account.password })
     .from(account)
