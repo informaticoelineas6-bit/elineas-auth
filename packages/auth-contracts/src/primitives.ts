@@ -101,13 +101,14 @@ export const displayName = z
   .min(1, "Debe tener al menos 1 caracter")
   .max(100, "Debe tener menos de 100 caracteres");
 
-// URL de imagen (avatar): acotada en longitud y restringida a http(s) para
-// evitar almacenar un `javascript:`/`data:` que dispare XSS al renderizarse en
-// un <img src=...> de cualquier frontend consumidor.
+// URL de imagen (avatar): acotada en longitud y restringida a https para evitar
+// almacenar un `javascript:`/`data:` que dispare XSS al renderizarse en un
+// <img src=...> de cualquier frontend consumidor, y para que el navegador no
+// cargue la imagen por http en claro (contenido mixto).
 export const imageUrl = z
   .string()
   .max(2048, "Debe tener menos de 2048 caracteres")
-  .regex(/^https?:\/\//i, "Debe ser una URL http(s)");
+  .regex(/^https:\/\//i, "Debe ser una URL https");
 
 // URL de acceso a un sistema (enlace a la propia aplicación). Misma
 // restricción que `imageUrl` (solo http(s), tope de longitud) para no
