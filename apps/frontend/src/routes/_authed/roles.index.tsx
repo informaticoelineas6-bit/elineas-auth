@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Plus } from "lucide-react";
+import { Plus, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -8,6 +8,8 @@ import {
 	DataTableFilterSelect,
 	useListControls,
 } from "@/modules/common/components/data-table";
+import { ExportMenu } from "@/modules/common/components/import-export/export-menu.tsx";
+import { ImportDialog } from "@/modules/common/components/import-export/import-dialog.tsx";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
@@ -18,10 +20,19 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getRoleColumns } from "@/modules/roles/lib/columns.tsx";
+import { exportRoles } from "@/modules/roles/lib/import-export.ts";
+import { mapRoleRows } from "@/modules/roles/lib/import-validate.ts";
 import { roleFiltersSchema } from "@/modules/roles/lib/validation.ts";
-import { rolesQueries, useDeleteRole } from "@/modules/roles/queries/roles.ts";
+import {
+	rolesQueries,
+	useCreateRole,
+	useDeleteRole,
+	useExportRoles,
+	useUpdateRole,
+} from "@/modules/roles/queries/roles.ts";
 import type { Role, RoleFilters } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import type { System } from "@/modules/systems/shared/types.ts";
@@ -48,6 +59,10 @@ function RolesPage() {
 	// comparte por query cache (misma key en toda la app) y solo se pide una vez.
 	const systemsQuery = useQuery(systemsQueries.list({ limit: 100 }));
 	const deleteRole = useDeleteRole();
+	const createRole = useCreateRole();
+	const updateRole = useUpdateRole();
+	const exportRolesQuery = useExportRoles();
+	const [importOpen, setImportOpen] = useState(false);
 
 	const [target, setTarget] = useState<Role | null>(null);
 
@@ -60,6 +75,27 @@ function RolesPage() {
 			),
 		[systemsQuery.data],
 	);
+
+	// Exporta TODOS los roles que cumplan los filtros activos (no solo la página
+	// visible). Cada rol sale con el slug de su sistema, legible y estable.
+	function handleExport(format: ExportFormat) {
+		const { page: _page, limit: _limit, ...rest } = filters;
+		exportRolesQuery.mutate(rest, {
+			onSuccess: async (roles) => {
+				if (roles.length === 0) {
+					toast.info("No hay roles que exportar con estos filtros");
+					return;
+				}
+				try {
+					await exportRoles(roles, systemsById, format);
+					toast.success(`${roles.length} rol(es) exportado(s)`);
+				} catch (error) {
+					reportError(error, "No se pudo generar el archivo.");
+				}
+			},
+			onError: (error) => reportError(error, "No se pudo exportar el listado."),
+		});
+	}
 
 	function confirmDelete() {
 		if (!target) return;
@@ -97,10 +133,20 @@ function RolesPage() {
 				title="Roles"
 				description="Define los roles disponibles por sistema."
 				actions={
-					<Button onClick={() => navigate({ to: "/roles/new" })}>
-						<Plus />
-						Nuevo rol
-					</Button>
+					<>
+						<ExportMenu
+							onExport={handleExport}
+							pending={exportRolesQuery.isPending}
+						/>
+						<Button variant="outline" onClick={() => setImportOpen(true)}>
+							<Upload />
+							Importar
+						</Button>
+						<Button onClick={() => navigate({ to: "/roles/new" })}>
+							<Plus />
+							Nuevo rol
+						</Button>
+					</>
 				}
 			/>
 
@@ -148,6 +194,34 @@ function RolesPage() {
 				destructive
 				loading={deleteRole.isPending}
 				onConfirm={confirmDelete}
+			/>
+
+			<ImportDialog
+				open={importOpen}
+				onOpenChange={setImportOpen}
+				title="Importar roles"
+				description={
+					<>
+						Sube un archivo CSV, JSON o Excel con las columnas{" "}
+						<code>system</code> (slug del sistema), <code>name</code> y{" "}
+						<code>description</code>. Si una fila trae <code>id</code>,
+						actualiza el nombre y la descripción de ese rol (el sistema no se
+						puede cambiar); si no, crea uno nuevo.
+					</>
+				}
+				mapRows={async (raw) =>
+					mapRoleRows(
+						raw,
+						new Map(
+							(systemsQuery.data?.systems ?? []).map((system) => [
+								system.slug.toLowerCase(),
+								system.id,
+							]),
+						),
+					)
+				}
+				onCreate={(input) => createRole.mutateAsync(input)}
+				onUpdate={(id, input) => updateRole.mutateAsync({ id, input })}
 			/>
 		</div>
 	);

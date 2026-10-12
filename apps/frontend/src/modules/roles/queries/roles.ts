@@ -8,6 +8,7 @@ import {
 	createRoleFn,
 	deleteRoleFn,
 	getRoleFn,
+	listAllRolesFn,
 	listRolesFn,
 	updateRoleFn,
 } from "../actions/roles.ts";
@@ -68,5 +69,14 @@ export function useDeleteRole() {
 	return useMutation({
 		mutationFn: (id: string) => deleteRoleFn({ data: { id } }),
 		onSuccess: () => queryClient.invalidateQueries({ queryKey: roleKeys.all }),
+	});
+}
+
+// Exportar: petición puntual (disparada por el botón "Exportar"), no un listado
+// cacheado, por eso es una mutation y no una query.
+export function useExportRoles() {
+	return useMutation({
+		mutationFn: (filters: Omit<RoleFilters, "page" | "limit">) =>
+			listAllRolesFn({ data: filters }),
 	});
 }
