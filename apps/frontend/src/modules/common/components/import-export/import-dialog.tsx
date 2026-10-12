@@ -253,7 +253,10 @@ export function ImportDialog<C, U>({
 									disabled={importing || toCreate + toUpdate === 0}
 									onClick={runImport}
 								>
-									<LoadingSwap isLoading={importing}>
+									<LoadingSwap
+										isLoading={importing}
+										className="flex items-center justify-center gap-2"
+									>
 										<Upload />
 										Importar {toCreate + toUpdate} fila(s)
 									</LoadingSwap>
