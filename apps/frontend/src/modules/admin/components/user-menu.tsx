@@ -1,7 +1,8 @@
 import { useMutation } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { CircleUser, LogOut, MonitorSmartphone } from "lucide-react";
+import { CircleUser, Database, LogOut, MonitorSmartphone } from "lucide-react";
+import { useState } from "react";
 import { signOutFn } from "@/modules/auth/actions/auth.ts";
 import type { AuthSession } from "@/modules/auth/shared/types.ts";
 import {
@@ -18,11 +19,19 @@ import {
 	DropdownMenuTrigger,
 } from "@/modules/common/components/ui/dropdown-menu.tsx";
 import { reportError } from "@/modules/common/lib/errors.ts";
+import { ExportDatabaseDialog } from "@/modules/database/components/export-database-dialog.tsx";
 import { getInitials } from "../lib/initials.ts";
 import { ThemeMenuItem } from "./theme-menu-item.tsx";
 
-export function UserMenu({ session }: { session: AuthSession }) {
+export function UserMenu({
+	session,
+	isAdmin,
+}: {
+	session: AuthSession;
+	isAdmin: boolean;
+}) {
 	const navigate = useNavigate();
+	const [exportOpen, setExportOpen] = useState(false);
 	const logout = useServerFn(signOutFn);
 
 	const logoutMutation = useMutation({
@@ -41,65 +50,76 @@ export function UserMenu({ session }: { session: AuthSession }) {
 		// contenido centrado (mx-auto) del header y se percibe como un salto
 		// hacia la izquierda. Sin modal, el menú se comporta igual pero no
 		// toca el scroll ni el layout de la página.
-		<DropdownMenu modal={false}>
-			<DropdownMenuTrigger asChild>
-				<button
-					type="button"
-					aria-label="Abrir menú de usuario"
-					className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-				>
-					<Avatar>
-						<AvatarImage
-							src={
-								session.image ??
-								`https://api.dicebear.com/9.x/glass/svg?seed=${session.name}`
-							}
-							// Las fotos de Google rechazan peticiones con Referer ajeno.
-							referrerPolicy="no-referrer"
-						/>
-						<AvatarFallback>{getInitials(displayName)}</AvatarFallback>
-					</Avatar>
-				</button>
-			</DropdownMenuTrigger>
-			<DropdownMenuContent align="end" className="w-64 p-2">
-				<DropdownMenuLabel className="px-2 py-2.5">
-					<div className="flex flex-col gap-1">
-						<span className="truncate font-medium">{displayName}</span>
-						{session.email && (
-							<span className="truncate text-xs font-normal text-muted-foreground">
-								{session.email}
-							</span>
-						)}
-					</div>
-				</DropdownMenuLabel>
-				<DropdownMenuSeparator className="my-2" />
-				<DropdownMenuItem asChild>
-					<Link to="/profile">
-						<CircleUser />
-						Mi perfil
-					</Link>
-				</DropdownMenuItem>
-				<DropdownMenuItem asChild>
-					<Link to="/sessions">
-						<MonitorSmartphone />
-						Sesiones
-					</Link>
-				</DropdownMenuItem>
-				<ThemeMenuItem />
-				<DropdownMenuSeparator className="my-2" />
-				<DropdownMenuItem
-					variant="destructive"
-					disabled={logoutMutation.isPending}
-					onSelect={(event) => {
-						// Evita que el menú se cierre antes de disparar la mutación.
-						event.preventDefault();
-						logoutMutation.mutate();
-					}}
-				>
-					<LogOut />
-					{logoutMutation.isPending ? "Saliendo…" : "Cerrar sesión"}
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+		<>
+			<DropdownMenu modal={false}>
+				<DropdownMenuTrigger asChild>
+					<button
+						type="button"
+						aria-label="Abrir menú de usuario"
+						className="rounded-full outline-none ring-offset-background transition focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+					>
+						<Avatar>
+							<AvatarImage
+								src={
+									session.image ??
+									`https://api.dicebear.com/9.x/glass/svg?seed=${session.name}`
+								}
+								// Las fotos de Google rechazan peticiones con Referer ajeno.
+								referrerPolicy="no-referrer"
+							/>
+							<AvatarFallback>{getInitials(displayName)}</AvatarFallback>
+						</Avatar>
+					</button>
+				</DropdownMenuTrigger>
+				<DropdownMenuContent align="end" className="w-64 p-2">
+					<DropdownMenuLabel className="px-2 py-2.5">
+						<div className="flex flex-col gap-1">
+							<span className="truncate font-medium">{displayName}</span>
+							{session.email && (
+								<span className="truncate text-xs font-normal text-muted-foreground">
+									{session.email}
+								</span>
+							)}
+						</div>
+					</DropdownMenuLabel>
+					<DropdownMenuSeparator className="my-2" />
+					<DropdownMenuItem asChild>
+						<Link to="/profile">
+							<CircleUser />
+							Mi perfil
+						</Link>
+					</DropdownMenuItem>
+					<DropdownMenuItem asChild>
+						<Link to="/sessions">
+							<MonitorSmartphone />
+							Sesiones
+						</Link>
+					</DropdownMenuItem>
+					{isAdmin && (
+						<DropdownMenuItem onSelect={() => setExportOpen(true)}>
+							<Database />
+							Exportar base de datos
+						</DropdownMenuItem>
+					)}
+					<ThemeMenuItem />
+					<DropdownMenuSeparator className="my-2" />
+					<DropdownMenuItem
+						variant="destructive"
+						disabled={logoutMutation.isPending}
+						onSelect={(event) => {
+							// Evita que el menú se cierre antes de disparar la mutación.
+							event.preventDefault();
+							logoutMutation.mutate();
+						}}
+					>
+						<LogOut />
+						{logoutMutation.isPending ? "Saliendo…" : "Cerrar sesión"}
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			{isAdmin && (
+				<ExportDatabaseDialog open={exportOpen} onOpenChange={setExportOpen} />
+			)}
+		</>
 	);
 }

@@ -91,7 +91,7 @@ export function AdminHeader({
 						</DropdownMenuContent>
 					</DropdownMenu>
 
-					<UserMenu session={session} />
+					<UserMenu session={session} isAdmin={isAdmin} />
 				</div>
 			</div>
 		</header>

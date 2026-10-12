@@ -1,5 +1,6 @@
 import type {
 	AuthRoutes,
+	DatabaseRoutes,
 	EmployeesRoutes,
 	RequestLogsRoutes,
 	RolesRoutes,
@@ -73,6 +74,7 @@ export const userRolesRpc = hc<UserRolesRoutes>(
 	`${base}/api/user-roles`,
 	options,
 );
+export const databaseRpc = hc<DatabaseRoutes>(`${base}/api/database`, options);
 export const requestLogsRpc = hc<RequestLogsRoutes>(
 	`${base}/api/request-logs`,
 	options,
