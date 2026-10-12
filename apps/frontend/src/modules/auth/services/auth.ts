@@ -1,4 +1,5 @@
 import { readJson } from "#/modules/auth/lib/api.ts";
+import { clientForwardHeaders } from "#/modules/auth/lib/client-ip.ts";
 import { readSessionToken } from "#/modules/auth/lib/cookies.ts";
 import { env } from "#/modules/auth/lib/env.ts";
 import type { AuthApiSystem, AuthApiUser } from "../shared/types.ts";
@@ -11,7 +12,7 @@ export async function signIn(input: {
 }) {
 	const response = await fetch(new URL("/api/auth/sign-in", env.AUTH_API_URL), {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
+		headers: { "Content-Type": "application/json", ...clientForwardHeaders() },
 		body: JSON.stringify(input),
 	});
 	// El cuerpo del IS trae además un `tkc` con las credenciales de la persona en
@@ -38,7 +39,7 @@ export async function signOut() {
 		new URL("/api/auth/sign-out", env.AUTH_API_URL),
 		{
 			method: "POST",
-			headers: { Authorization: `Bearer ${sessionToken}` },
+			headers: { Authorization: `Bearer ${sessionToken}`, ...clientForwardHeaders() },
 		},
 	);
 	// Un 401 aquí solo significa que la sesión ya no era válida en el IS: da
@@ -56,7 +57,7 @@ export async function verifyEmailChange(token: string) {
 		new URL("/api/auth/verify-email", env.AUTH_API_URL),
 		{
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json", ...clientForwardHeaders() },
 			body: JSON.stringify({ token }),
 		},
 	);
@@ -71,7 +72,7 @@ export async function setPassword(token: string, newPassword: string) {
 		new URL("/api/auth/set-password", env.AUTH_API_URL),
 		{
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json", ...clientForwardHeaders() },
 			body: JSON.stringify({ token, newPassword }),
 		},
 	);
@@ -89,7 +90,7 @@ export async function refreshAccessToken(
 	let response: Response;
 	try {
 		response = await fetch(new URL("/api/auth/token", env.AUTH_API_URL), {
-			headers: { Authorization: `Bearer ${sessionToken}` },
+			headers: { Authorization: `Bearer ${sessionToken}`, ...clientForwardHeaders() },
 		});
 	} catch {
 		return null;
@@ -107,7 +108,7 @@ export async function exchangeGoogleCode(code: string, codeVerifier: string) {
 		new URL("/api/auth/google/exchange", env.AUTH_API_URL),
 		{
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: { "Content-Type": "application/json", ...clientForwardHeaders() },
 			body: JSON.stringify({ code, code_verifier: codeVerifier }),
 		},
 	);

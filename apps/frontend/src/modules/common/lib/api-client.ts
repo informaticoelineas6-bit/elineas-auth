@@ -1,5 +1,6 @@
 import { readJson } from "#/modules/auth/lib/api.ts";
 import { readSessionToken } from "#/modules/auth/lib/cookies.ts";
+import { clientForwardHeaders } from "#/modules/auth/lib/client-ip.ts";
 import { env } from "#/modules/auth/lib/env.ts";
 
 export function buildQuery(params: Record<string, unknown>): string {
@@ -18,6 +19,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	const response = await fetch(new URL(path, env.AUTH_API_URL), {
 		...init,
 		headers: {
+			...clientForwardHeaders(),
 			...(hasBody ? { "Content-Type": "application/json" } : {}),
 			...(token ? { Authorization: `Bearer ${token}` } : {}),
 			...init?.headers,
