@@ -28,6 +28,7 @@ import { Route as AuthedSystemsNewRouteImport } from './routes/_authed/systems.n
 import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
 import { Route as AuthedEmployeesEmployeeIdIndexRouteImport } from './routes/_authed/employees.$employeeId.index'
 import { Route as AuthedEmployeesEmployeeIdEditRouteImport } from './routes/_authed/employees.$employeeId.edit'
+import { Route as AuthedRolesRoleIdIndexRouteImport } from './routes/_authed/roles.$roleId.index'
 import { Route as AuthedRolesRoleIdEditRouteImport } from './routes/_authed/roles.$roleId.edit'
 import { Route as AuthedSystemsSystemIdIndexRouteImport } from './routes/_authed/systems.$systemId.index'
 import { Route as AuthedSystemsSystemIdEditRouteImport } from './routes/_authed/systems.$systemId.edit'
@@ -128,6 +129,11 @@ const AuthedEmployeesEmployeeIdEditRoute =
     path: '/employees/$employeeId/edit',
     getParentRoute: () => AuthedRoute,
   } as any)
+const AuthedRolesRoleIdIndexRoute = AuthedRolesRoleIdIndexRouteImport.update({
+  id: '/roles/$roleId/',
+  path: '/roles/$roleId/',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedRolesRoleIdEditRoute = AuthedRolesRoleIdEditRouteImport.update({
   id: '/roles/$roleId/edit',
   path: '/roles/$roleId/edit',
@@ -167,6 +173,7 @@ export interface FileRoutesByFullPath {
   '/roles/$roleId/edit': typeof AuthedRolesRoleIdEditRoute
   '/systems/$systemId/edit': typeof AuthedSystemsSystemIdEditRoute
   '/employees/$employeeId/': typeof AuthedEmployeesEmployeeIdIndexRoute
+  '/roles/$roleId/': typeof AuthedRolesRoleIdIndexRoute
   '/systems/$systemId/': typeof AuthedSystemsSystemIdIndexRoute
 }
 export interface FileRoutesByTo {
@@ -190,6 +197,7 @@ export interface FileRoutesByTo {
   '/roles/$roleId/edit': typeof AuthedRolesRoleIdEditRoute
   '/systems/$systemId/edit': typeof AuthedSystemsSystemIdEditRoute
   '/employees/$employeeId': typeof AuthedEmployeesEmployeeIdIndexRoute
+  '/roles/$roleId': typeof AuthedRolesRoleIdIndexRoute
   '/systems/$systemId': typeof AuthedSystemsSystemIdIndexRoute
 }
 export interface FileRoutesById {
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/_authed/roles/$roleId/edit': typeof AuthedRolesRoleIdEditRoute
   '/_authed/systems/$systemId/edit': typeof AuthedSystemsSystemIdEditRoute
   '/_authed/employees/$employeeId/': typeof AuthedEmployeesEmployeeIdIndexRoute
+  '/_authed/roles/$roleId/': typeof AuthedRolesRoleIdIndexRoute
   '/_authed/systems/$systemId/': typeof AuthedSystemsSystemIdIndexRoute
 }
 export interface FileRouteTypes {
@@ -240,6 +249,7 @@ export interface FileRouteTypes {
     | '/roles/$roleId/edit'
     | '/systems/$systemId/edit'
     | '/employees/$employeeId/'
+    | '/roles/$roleId/'
     | '/systems/$systemId/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -263,6 +273,7 @@ export interface FileRouteTypes {
     | '/roles/$roleId/edit'
     | '/systems/$systemId/edit'
     | '/employees/$employeeId'
+    | '/roles/$roleId'
     | '/systems/$systemId'
   id:
     | '__root__'
@@ -287,6 +298,7 @@ export interface FileRouteTypes {
     | '/_authed/roles/$roleId/edit'
     | '/_authed/systems/$systemId/edit'
     | '/_authed/employees/$employeeId/'
+    | '/_authed/roles/$roleId/'
     | '/_authed/systems/$systemId/'
   fileRoutesById: FileRoutesById
 }
@@ -433,6 +445,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedEmployeesEmployeeIdEditRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/roles/$roleId/': {
+      id: '/_authed/roles/$roleId/'
+      path: '/roles/$roleId'
+      fullPath: '/roles/$roleId/'
+      preLoaderRoute: typeof AuthedRolesRoleIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/roles/$roleId/edit': {
       id: '/_authed/roles/$roleId/edit'
       path: '/roles/$roleId/edit'
@@ -474,6 +493,7 @@ interface AuthedRouteChildren {
   AuthedRolesRoleIdEditRoute: typeof AuthedRolesRoleIdEditRoute
   AuthedSystemsSystemIdEditRoute: typeof AuthedSystemsSystemIdEditRoute
   AuthedEmployeesEmployeeIdIndexRoute: typeof AuthedEmployeesEmployeeIdIndexRoute
+  AuthedRolesRoleIdIndexRoute: typeof AuthedRolesRoleIdIndexRoute
   AuthedSystemsSystemIdIndexRoute: typeof AuthedSystemsSystemIdIndexRoute
 }
 
@@ -494,6 +514,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedRolesRoleIdEditRoute: AuthedRolesRoleIdEditRoute,
   AuthedSystemsSystemIdEditRoute: AuthedSystemsSystemIdEditRoute,
   AuthedEmployeesEmployeeIdIndexRoute: AuthedEmployeesEmployeeIdIndexRoute,
+  AuthedRolesRoleIdIndexRoute: AuthedRolesRoleIdIndexRoute,
   AuthedSystemsSystemIdIndexRoute: AuthedSystemsSystemIdIndexRoute,
 }
 

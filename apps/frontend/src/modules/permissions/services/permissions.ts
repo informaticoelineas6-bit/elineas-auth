@@ -2,6 +2,7 @@ import { buildQuery, isApi } from "#/modules/common/lib/api-client.ts";
 import type { StatusResponse } from "#/modules/common/shared/types.ts";
 import type {
 	AssignPermissionInput,
+	CatalogPermission,
 	MyPermission,
 	SystemPermissions,
 	UpdatePermissionInput,
@@ -57,4 +58,19 @@ export function assignPermissionToRole(id: string, roleId: string) {
 
 export function unassignPermissionFromRole(id: string, roleId: string) {
 	return isApi.delete<StatusResponse>(`/api/permissions/${id}/roles/${roleId}`);
+}
+
+// Catálogo plano completo (resource:action), para elegir qué asignar a un rol.
+export async function listPermissions() {
+	const { permissions } = await isApi.get<{
+		permissions: CatalogPermission[];
+	}>("/api/permissions");
+	return permissions;
+}
+
+export async function listRolePermissions(roleId: string) {
+	const { permissions } = await isApi.get<{
+		permissions: CatalogPermission[];
+	}>(`/api/roles/${roleId}/permissions`);
+	return permissions;
 }

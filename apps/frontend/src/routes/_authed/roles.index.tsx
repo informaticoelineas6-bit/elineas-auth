@@ -121,6 +121,8 @@ function RolesPage() {
 
 	const columns = getRoleColumns({
 		systemsById,
+		onView: (role) =>
+			navigate({ to: "/roles/$roleId", params: { roleId: role.id } }),
 		onEdit: (role) =>
 			navigate({ to: "/roles/$roleId/edit", params: { roleId: role.id } }),
 		onDelete: (role) => setTarget(role),

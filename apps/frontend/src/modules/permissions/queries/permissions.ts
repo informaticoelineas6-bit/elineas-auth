@@ -8,6 +8,8 @@ import {
 	assignPermissionFn,
 	assignPermissionToRoleFn,
 	listPermissionsBySystemFn,
+	listPermissionsFn,
+	listRolePermissionsFn,
 	removePermissionFromSystemFn,
 	unassignPermissionFromRoleFn,
 	updatePermissionFn,
@@ -20,6 +22,9 @@ import type {
 export const permissionKeys = {
 	all: ["permissions"] as const,
 	bySystem: () => [...permissionKeys.all, "by-system"] as const,
+	catalog: () => [...permissionKeys.all, "catalog"] as const,
+	byRole: (roleId: string) =>
+		[...permissionKeys.all, "by-role", roleId] as const,
 };
 
 export const permissionsQueries = {
@@ -31,6 +36,18 @@ export const permissionsQueries = {
 			queryFn: () => listPermissionsBySystemFn(),
 			staleTime: CATALOG_STALE_TIME,
 			refetchOnWindowFocus: false,
+		}),
+	catalog: () =>
+		queryOptions({
+			queryKey: permissionKeys.catalog(),
+			queryFn: () => listPermissionsFn(),
+			staleTime: CATALOG_STALE_TIME,
+			refetchOnWindowFocus: false,
+		}),
+	byRole: (roleId: string) =>
+		queryOptions({
+			queryKey: permissionKeys.byRole(roleId),
+			queryFn: () => listRolePermissionsFn({ data: { id: roleId } }),
 		}),
 };
 
@@ -70,7 +87,7 @@ export function useAssignPermissionToRole() {
 	return useMutation({
 		mutationFn: ({ id, roleId }: { id: string; roleId: string }) =>
 			assignPermissionToRoleFn({ data: { id, roleId } }),
-		onSuccess: () => invalidateBySystem(queryClient),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: permissionKeys.all }),
 	});
 }
 
@@ -79,6 +96,6 @@ export function useUnassignPermissionFromRole() {
 	return useMutation({
 		mutationFn: ({ id, roleId }: { id: string; roleId: string }) =>
 			unassignPermissionFromRoleFn({ data: { id, roleId } }),
-		onSuccess: () => invalidateBySystem(queryClient),
+		onSuccess: () => queryClient.invalidateQueries({ queryKey: permissionKeys.all }),
 	});
 }

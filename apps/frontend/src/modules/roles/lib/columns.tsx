@@ -1,4 +1,4 @@
-import { Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import type { DataTableColumn } from "@/modules/common/components/data-table";
 import { DataTableRowActions } from "@/modules/common/components/data-table";
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
@@ -13,10 +13,12 @@ import type { Role } from "../shared/types.ts";
 // muestra el id como último recurso.
 export function getRoleColumns({
 	systemsById,
+	onView,
 	onEdit,
 	onDelete,
 }: {
 	systemsById: Map<string, System>;
+	onView: (role: Role) => void;
 	onEdit: (role: Role) => void;
 	onDelete: (role: Role) => void;
 }): DataTableColumn<Role>[] {
@@ -68,6 +70,11 @@ export function getRoleColumns({
 			cell: ({ row }) => (
 				<DataTableRowActions
 					actions={[
+						{
+							label: "Ver permisos",
+							icon: Eye,
+							onSelect: () => onView(row.original),
+						},
 						{
 							label: "Editar",
 							icon: Pencil,

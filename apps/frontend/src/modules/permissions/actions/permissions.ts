@@ -8,7 +8,9 @@ import {
 import {
 	assignPermission,
 	assignPermissionToRole,
+	listPermissions,
 	listPermissionsBySystem,
+	listRolePermissions,
 	removePermissionFromSystem,
 	unassignPermissionFromRole,
 	updatePermission,
@@ -42,3 +44,12 @@ export const unassignPermissionFromRoleFn = createServerFn({ method: "POST" })
 	.middleware([requireAuthMiddleware])
 	.validator(idSchema.extend({ roleId: idSchema.shape.id }))
 	.handler(({ data }) => unassignPermissionFromRole(data.id, data.roleId));
+
+export const listPermissionsFn = createServerFn({ method: "GET" })
+	.middleware([requireAuthMiddleware])
+	.handler(() => listPermissions());
+
+export const listRolePermissionsFn = createServerFn({ method: "GET" })
+	.middleware([requireAuthMiddleware])
+	.validator(idSchema)
+	.handler(({ data }) => listRolePermissions(data.id));
