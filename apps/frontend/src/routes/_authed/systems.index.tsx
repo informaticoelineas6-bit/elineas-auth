@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -8,6 +8,8 @@ import {
 	DataTableFilterSelect,
 	useListControls,
 } from "@/modules/common/components/data-table";
+import { ExportMenu } from "@/modules/common/components/import-export/export-menu.tsx";
+import { ImportDialog } from "@/modules/common/components/import-export/import-dialog.tsx";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
@@ -18,12 +20,18 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getSystemColumns } from "@/modules/systems/lib/columns.tsx";
+import { exportSystems } from "@/modules/systems/lib/import-export.ts";
+import { mapSystemRows } from "@/modules/systems/lib/import-validate.ts";
 import { systemFiltersSchema } from "@/modules/systems/lib/validation.ts";
 import {
 	systemsQueries,
+	useCreateSystem,
 	useDeleteSystem,
+	useExportSystems,
+	useUpdateSystem,
 } from "@/modules/systems/queries/systems.ts";
 import type { System, SystemFilters } from "@/modules/systems/shared/types.ts";
 
@@ -45,6 +53,10 @@ function SystemsPage() {
 	const { filters, controls, setFilter } = useListControls<SystemFilters>();
 	const query = useQuery(systemsQueries.list(filters));
 	const deleteSystem = useDeleteSystem();
+	const createSystem = useCreateSystem();
+	const updateSystem = useUpdateSystem();
+	const exportSystemsQuery = useExportSystems();
+	const [importOpen, setImportOpen] = useState(false);
 
 	const [target, setTarget] = useState<System | null>(null);
 	const [bulk, setBulk] = useState<{
@@ -72,6 +84,27 @@ function SystemsPage() {
 			}),
 		onDelete: (system) => setTarget(system),
 	});
+
+	// Exporta TODOS los sistemas que cumplan los filtros activos (no solo la
+	// página visible) en el formato elegido.
+	function handleExport(format: ExportFormat) {
+		const { page: _page, limit: _limit, ...rest } = filters;
+		exportSystemsQuery.mutate(rest, {
+			onSuccess: async (systems) => {
+				if (systems.length === 0) {
+					toast.info("No hay sistemas que exportar con estos filtros");
+					return;
+				}
+				try {
+					await exportSystems(systems, format);
+					toast.success(`${systems.length} sistema(s) exportado(s)`);
+				} catch (error) {
+					reportError(error, "No se pudo generar el archivo.");
+				}
+			},
+			onError: (error) => reportError(error, "No se pudo exportar el listado."),
+		});
+	}
 
 	function confirmDelete() {
 		if (!target) return;
@@ -105,10 +138,20 @@ function SystemsPage() {
 				title="Sistemas"
 				description="Administra los sistemas integrados con el Identity Server."
 				actions={
-					<Button onClick={() => navigate({ to: "/systems/new" })}>
-						<Plus />
-						Nuevo sistema
-					</Button>
+					<>
+						<ExportMenu
+							onExport={handleExport}
+							pending={exportSystemsQuery.isPending}
+						/>
+						<Button variant="outline" onClick={() => setImportOpen(true)}>
+							<Upload />
+							Importar
+						</Button>
+						<Button onClick={() => navigate({ to: "/systems/new" })}>
+							<Plus />
+							Nuevo sistema
+						</Button>
+					</>
 				}
 			/>
 
@@ -184,6 +227,23 @@ function SystemsPage() {
 				destructive
 				loading={deleteSystem.isPending}
 				onConfirm={confirmBulkDelete}
+			/>
+
+			<ImportDialog
+				open={importOpen}
+				onOpenChange={setImportOpen}
+				title="Importar sistemas"
+				description={
+					<>
+						Sube un archivo CSV, JSON o Excel con las columnas <code>name</code>
+						, <code>slug</code>, <code>description</code>, <code>url</code> y{" "}
+						<code>active</code>. Si una fila trae <code>id</code>, actualiza ese
+						sistema; si no, crea uno nuevo.
+					</>
+				}
+				mapRows={async (raw) => mapSystemRows(raw)}
+				onCreate={(input) => createSystem.mutateAsync(input)}
+				onUpdate={(id, input) => updateSystem.mutateAsync({ id, input })}
 			/>
 		</div>
 	);

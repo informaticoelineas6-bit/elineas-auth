@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuthMiddleware } from "#/modules/auth/middlewares/auth.ts";
+import { fetchAllPages } from "#/modules/common/lib/paginate.ts";
 import { idSchema } from "#/modules/common/lib/validation.ts";
 import {
 	createSystemSchema,
@@ -38,3 +39,19 @@ export const deleteSystemFn = createServerFn({ method: "POST" })
 	.middleware([requireAuthMiddleware])
 	.validator(idSchema)
 	.handler(({ data }) => deleteSystem(data.id));
+
+// Todos los sistemas que cumplan los filtros (no solo la página visible), para
+// exportar. El cliente arma el CSV/JSON/Excel a partir del array completo.
+export const listAllSystemsFn = createServerFn({ method: "GET" })
+	.middleware([requireAuthMiddleware])
+	.validator(systemFiltersSchema.omit({ page: true, limit: true }))
+	.handler(({ data }) =>
+		fetchAllPages(async (page, limit) => {
+			const { systems, pagination } = await listSystems({
+				...data,
+				page,
+				limit,
+			});
+			return { rows: systems, totalPages: pagination.totalPages };
+		}),
+	);

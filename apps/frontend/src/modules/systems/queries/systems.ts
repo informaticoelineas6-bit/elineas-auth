@@ -8,6 +8,7 @@ import {
 	createSystemFn,
 	deleteSystemFn,
 	getSystemFn,
+	listAllSystemsFn,
 	listSystemsFn,
 	updateSystemFn,
 } from "../actions/systems.ts";
@@ -69,5 +70,14 @@ export function useDeleteSystem() {
 		mutationFn: (id: string) => deleteSystemFn({ data: { id } }),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: systemKeys.all }),
+	});
+}
+
+// Exportar: petición puntual (disparada por el botón "Exportar"), no un listado
+// cacheado, por eso es una mutation y no una query.
+export function useExportSystems() {
+	return useMutation({
+		mutationFn: (filters: Omit<SystemFilters, "page" | "limit">) =>
+			listAllSystemsFn({ data: filters }),
 	});
 }
