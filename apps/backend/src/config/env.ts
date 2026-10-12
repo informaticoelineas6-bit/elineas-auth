@@ -16,7 +16,12 @@
 // En los Dockerfiles se mantiene `--env-file=/dev/null` a propósito: dentro del
 // contenedor TODO el entorno viene de compose (env_file + environment), y así
 // un .env bind-mounteado no puede alterarlo.
-const environment = process.env.APP_ENV ?? "local";
+// Falla cerrado: si APP_ENV no está definida pero el proceso corre con
+// NODE_ENV=production (como en las imágenes Docker), se asume producción para no
+// exponer /api/docs ni el modo de logging local por un olvido de configuración.
+const environment =
+  process.env.APP_ENV ??
+  (process.env.NODE_ENV === "production" ? "production" : "local");
 
 function required(name: string): string {
   const value = process.env[name];

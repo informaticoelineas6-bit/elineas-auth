@@ -26,7 +26,9 @@ export function registerOpenApiDocs(app: OpenAPIHono<AppEnv>) {
   // La documentación (OpenAPI + Swagger UI) expone el mapa completo de la API,
   // por lo que solo se publica fuera de producción. En prod queda deshabilitada
   // para no dar información de reconocimiento a un atacante.
-  if (env.APP_ENV !== "production") {
+  // Lista blanca (no "distinto de production"): un valor inesperado de APP_ENV
+  // no debe publicar la documentación.
+  if (["local", "development", "staging"].includes(env.APP_ENV)) {
     // El servidor se deriva del origen de la petición que sirve la documentación,
     // de modo que "Try it out" en Swagger UI apunte siempre a esta misma API
     // (local, staging o producción) sin depender de BETTER_AUTH_URL.
