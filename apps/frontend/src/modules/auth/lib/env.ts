@@ -27,6 +27,11 @@ export const env = {
 	// como lo ve el navegador y debe estar permitido en el IS (ALLOWED_ORIGIN).
 	AUTH_PUBLIC_URL: process.env.AUTH_PUBLIC_URL ?? required("AUTH_API_URL"),
 	APP_PUBLIC_URL: process.env.APP_PUBLIC_URL,
+	// Emisor (y audiencia) esperados del JWT: la URL PÚBLICA del IS, es decir su
+	// BETTER_AUTH_URL (better-auth firma con iss = aud = baseURL). Si se define,
+	// jwtVerify rechaza tokens de otro emisor. Opcional para no romper despliegues
+	// existentes; en producción conviene definirla.
+	AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER,
 	TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
 	TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
 };

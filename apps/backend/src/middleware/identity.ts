@@ -1,6 +1,9 @@
 import { auth } from "@backend/lib/auth.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import type { Context, Next } from "hono";
+import { eq } from "drizzle-orm";
+import { user as userTable } from "@backend/db/auth-schema.ts";
+import { db } from "@backend/db/index.ts";
 
 // Verificador del JWT que emite este propio IS (plugin `jwt()` de better-auth).
 //
@@ -63,7 +66,16 @@ export async function requireIdentity(c: Context<AppEnv>, next: Next) {
       const { payload } = await auth.api.verifyJWT({
         body: { token: header.slice(7) },
       });
-      if (payload?.sub) {
+      // El JWT es stateless: se comprueba que la cuenta siga existiendo para que
+      // un usuario eliminado no conserve acceso hasta que el token caduque.
+      const [exists] = payload?.sub
+        ? await db
+            .select({ id: userTable.id })
+            .from(userTable)
+            .where(eq(userTable.id, payload.sub))
+            .limit(1)
+        : [];
+      if (payload?.sub && exists) {
         c.set("user", {
           id: payload.sub,
           email: (payload.email as string | undefined) ?? "",

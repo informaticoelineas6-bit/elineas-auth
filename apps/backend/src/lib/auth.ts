@@ -137,5 +137,10 @@ export const auth = betterAuth({
   account: {
     accountLinking: { enabled: true, requireLocalEmailVerified: false },
   },
-  plugins: [jwt(), bearer()],
+  plugins: [
+    // JWT de vida corta: es stateless, así que revocar la sesión (o cambiar la
+    // contraseña) no lo invalida; 5 min acota esa ventana (antes, 15).
+    jwt({ jwt: { expirationTime: "5m" } }),
+    bearer(),
+  ],
 });

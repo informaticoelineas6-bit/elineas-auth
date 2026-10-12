@@ -15,7 +15,13 @@ export async function verifyAccessToken(
 	token: string,
 ): Promise<AccessTokenPayload | null> {
 	try {
-		const { payload } = await jwtVerify(token, jwks);
+		const { payload } = await jwtVerify(
+			token,
+			jwks,
+			env.AUTH_JWT_ISSUER
+				? { issuer: env.AUTH_JWT_ISSUER, audience: env.AUTH_JWT_ISSUER }
+				: undefined,
+		);
 		if (!payload.sub) return null;
 		return payload as AccessTokenPayload;
 	} catch {
