@@ -1,5 +1,3 @@
-import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { currentPassword as CurrentPassword } from "@elineas/auth-contracts";
 import { requireAdmin } from "@backend/middleware/admin.ts";
 import { requireSession } from "@backend/middleware/session.ts";
 import {
@@ -11,6 +9,8 @@ import {
 import { generateDatabaseDump } from "@backend/services/db-export.service.ts";
 import { assertCurrentPassword } from "@backend/services/user.service.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
+import { currentPassword as CurrentPassword } from "@elineas/auth-contracts";
+import { createRoute, OpenAPIHono, z } from "@hono/zod-openapi";
 
 const DatabaseExportBodySchema = z
   .object({
@@ -22,10 +22,14 @@ const DatabaseExportBodySchema = z
 
 const DatabaseExportResponseSchema = z
   .object({
-    filename: z.string().openapi({ example: "elineas-auth-20261012-153000.sql" }),
+    filename: z
+      .string()
+      .openapi({ example: "elineas-auth-20261012-153000.sql" }),
     generatedAt: z.string(),
     tables: z.number().int(),
-    sql: z.string().openapi({ description: "Script SQL (esquema + datos, sin secretos)." }),
+    sql: z
+      .string()
+      .openapi({ description: "Script SQL (esquema + datos, sin secretos)." }),
   })
   .openapi("DatabaseExportResponse");
 
@@ -44,7 +48,9 @@ const exportRoute = createRoute({
   // Solo admin (no delegable con un permiso): entrega toda la base de datos.
   middleware: [requireSession, requireAdmin] as const,
   request: {
-    body: { content: { "application/json": { schema: DatabaseExportBodySchema } } },
+    body: {
+      content: { "application/json": { schema: DatabaseExportBodySchema } },
+    },
   },
   responses: {
     200: {
@@ -59,11 +65,14 @@ const exportRoute = createRoute({
 
 const databaseRoutesBase = new OpenAPIHono<AppEnv>();
 
-export const databaseRoutes = databaseRoutesBase.openapi(exportRoute, async (c) => {
-  const { currentPassword } = c.req.valid("json");
-  await assertCurrentPassword(c.get("user").id, currentPassword);
-  const dump = await generateDatabaseDump();
-  // El script lleva datos de personas: que no se quede en ninguna caché.
-  c.header("Cache-Control", "no-store");
-  return c.json(dump, 200);
-});
+export const databaseRoutes = databaseRoutesBase.openapi(
+  exportRoute,
+  async (c) => {
+    const { currentPassword } = c.req.valid("json");
+    await assertCurrentPassword(c.get("user").id, currentPassword);
+    const dump = await generateDatabaseDump();
+    // El script lleva datos de personas: que no se quede en ninguna caché.
+    c.header("Cache-Control", "no-store");
+    return c.json(dump, 200);
+  },
+);
