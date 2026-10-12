@@ -39,9 +39,11 @@ const BODY_MAX_BYTES = 16 * 1024;
 
 // Nombres de clave cuyo valor se enmascara en el cuerpo, a cualquier nivel de
 // anidamiento. Cubre las variantes de contraseña (newPassword, currentPassword)
-// vía "pass", además de tokens/secretos. Es una capa propia y determinista que
+// vía "pass", además de tokens/secretos y del código/verifier PKCE del login con
+// Google (`code`, `code_verifier`). Es una capa propia y determinista que
 // se suma a la redacción de PII de evlog (email, JWT, Bearer, …).
-const SENSITIVE_BODY_KEY = /pass|token|secret|otp|authorization|cookie|credential|apikey/i;
+const SENSITIVE_BODY_KEY =
+  /pass|token|secret|otp|authorization|cookie|credential|apikey|code|verifier/i;
 
 function trunc(value: string | undefined): string | undefined {
   if (value === undefined) return undefined;
