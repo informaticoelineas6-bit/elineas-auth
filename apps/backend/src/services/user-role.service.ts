@@ -47,6 +47,20 @@ export async function getUserRole(id: string) {
 }
 
 export async function createUserRole(input: CreateUserRoleInput) {
+  const [existing] = await db
+    .select({ id: userRole.id })
+    .from(userRole)
+    .where(
+      and(eq(userRole.userId, input.userId), eq(userRole.roleId, input.roleId)),
+    )
+    .limit(1);
+  if (existing) {
+    throw new HttpError(
+      409,
+      "Este usuario ya tiene ese rol asignado",
+      "CONFLICT",
+    );
+  }
   const [row] = await db.insert(userRole).values(input).returning();
   return row;
 }
