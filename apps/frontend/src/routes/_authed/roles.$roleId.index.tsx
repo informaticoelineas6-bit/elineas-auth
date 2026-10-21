@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
@@ -8,7 +9,10 @@ import { PageHeader } from "@/modules/common/components/partials/page-header.tsx
 import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
-import { getErrorMessage, getErrorStatus } from "@/modules/common/lib/errors.ts";
+import {
+	getErrorMessage,
+	getErrorStatus,
+} from "@/modules/common/lib/errors.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { permissionsQueries } from "@/modules/permissions/queries/permissions.ts";
 import { RolePermissionsCard } from "@/modules/roles/components/role-permissions-card.tsx";
@@ -19,12 +23,14 @@ import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 export const Route = createFileRoute("/_authed/roles/$roleId/")({
 	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	loader: ({ context: { queryClient }, params }) =>
-		Promise.all([
-			queryClient.prefetchQuery(rolesQueries.detail(params.roleId)),
-			queryClient.prefetchQuery(permissionsQueries.byRole(params.roleId)),
-			queryClient.prefetchQuery(permissionsQueries.catalog()),
-			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
-		]),
+		deferOnClient(
+			Promise.all([
+				queryClient.prefetchQuery(rolesQueries.detail(params.roleId)),
+				queryClient.prefetchQuery(permissionsQueries.byRole(params.roleId)),
+				queryClient.prefetchQuery(permissionsQueries.catalog()),
+				queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+			]),
+		),
 	component: RoleDetailPage,
 });
 

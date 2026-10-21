@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { canAccessResource } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -46,16 +47,18 @@ export const Route = createFileRoute("/_authed/dashboard")({
 	// esos endpoints).
 	loader: ({ context: { queryClient, isAdmin, permissions } }) => {
 		const access = { isAdmin, permissions };
-		return Promise.all([
-			canAccessResource("employees", access) &&
-				queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
-			canAccessResource(undefined, access) &&
-				queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
-			canAccessResource(undefined, access) &&
-				queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
-			canAccessResource(undefined, access) &&
-				queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
-		]);
+		return deferOnClient(
+			Promise.all([
+				canAccessResource("employees", access) &&
+					queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
+				canAccessResource(undefined, access) &&
+					queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
+				canAccessResource(undefined, access) &&
+					queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
+				canAccessResource(undefined, access) &&
+					queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
+			]),
+		);
 	},
 	component: Dashboard,
 });

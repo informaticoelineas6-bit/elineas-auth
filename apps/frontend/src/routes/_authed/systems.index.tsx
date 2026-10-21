@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Trash2, Upload } from "lucide-react";
@@ -44,7 +45,7 @@ export const Route = createFileRoute("/_authed/systems/")({
 	// hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,
 	loader: ({ context: { queryClient }, deps }) =>
-		queryClient.prefetchQuery(systemsQueries.list(deps)),
+		deferOnClient(queryClient.prefetchQuery(systemsQueries.list(deps))),
 	component: SystemsPage,
 });
 

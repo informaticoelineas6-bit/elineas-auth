@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { SearchIcon } from "lucide-react";
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/_authed/permissions/")({
 	// no tenga el rol admin. Mismo criterio que Systems/Roles.
 	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	loader: ({ context: { queryClient } }) =>
-		queryClient.prefetchQuery(permissionsQueries.bySystem()),
+		deferOnClient(queryClient.prefetchQuery(permissionsQueries.bySystem())),
 	component: PermissionsPage,
 });
 

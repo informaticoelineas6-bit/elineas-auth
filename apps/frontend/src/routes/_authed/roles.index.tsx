@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Upload } from "lucide-react";
@@ -44,10 +45,12 @@ export const Route = createFileRoute("/_authed/roles/")({
 	// componente) para calentar hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,
 	loader: ({ context: { queryClient }, deps }) =>
-		Promise.all([
-			queryClient.prefetchQuery(rolesQueries.list(deps)),
-			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
-		]),
+		deferOnClient(
+			Promise.all([
+				queryClient.prefetchQuery(rolesQueries.list(deps)),
+				queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+			]),
+		),
 	component: RolesPage,
 });
 

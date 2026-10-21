@@ -19,7 +19,8 @@ export function getRouter() {
 		// preload; el prefetch de cada loader respeta además el staleTime de la
 		// query, así que no hay refetch redundante dentro de esa ventana.
 		defaultPreloadStaleTime: 30_000,
-		defaultViewTransition: true,
+		// Sin animación de transición: se sumaba a la latencia percibida.
+		defaultPendingMs: 150,
 		defaultErrorComponent: AppError,
 		defaultNotFoundComponent: NotFound,
 	});

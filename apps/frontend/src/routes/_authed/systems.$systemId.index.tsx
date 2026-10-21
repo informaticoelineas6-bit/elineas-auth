@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Pencil, Power, PowerOff, Trash2 } from "lucide-react";
@@ -37,7 +38,9 @@ export const Route = createFileRoute("/_authed/systems/$systemId/")({
 	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
 	// Prefetch del detalle (misma query key) para calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>
-		queryClient.prefetchQuery(systemsQueries.detail(params.systemId)),
+		deferOnClient(
+			queryClient.prefetchQuery(systemsQueries.detail(params.systemId)),
+		),
 	component: SystemDetailPage,
 });
 

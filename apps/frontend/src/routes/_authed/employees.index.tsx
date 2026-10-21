@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -43,7 +44,7 @@ export const Route = createFileRoute("/_authed/employees/")({
 	// montaje→fetch. prefetchQuery no lanza: el 403 lo sigue mostrando ForbiddenState.
 	loaderDeps: ({ search }) => search,
 	loader: ({ context: { queryClient }, deps }) =>
-		queryClient.prefetchQuery(employeesQueries.list(deps)),
+		deferOnClient(queryClient.prefetchQuery(employeesQueries.list(deps))),
 	component: EmployeesPage,
 });
 

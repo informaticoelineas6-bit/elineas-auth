@@ -11,14 +11,26 @@ import { AdminRolesError } from "@/modules/admin/components/admin-roles-error.ts
 import { AdminShellSkeleton } from "@/modules/admin/components/admin-shell-skeleton.tsx";
 import { ForbiddenScreen } from "@/modules/admin/components/forbidden-screen.tsx";
 import { SectionError } from "@/modules/common/components/partials/section-error.tsx";
+import {
+	AUTHED_CONTEXT_KEY,
+	AUTHED_CONTEXT_STALE_TIME,
+} from "@/modules/common/lib/query.ts";
 
 export const Route = createFileRoute("/_authed")({
-	beforeLoad: async ({ location }) => {
+	beforeLoad: async ({ location, context: { queryClient } }) => {
 		// Una sola server fn resuelve sesión + roles + isAdmin (un round-trip, una
-		// verificación de JWT). Ver resolveAuthedContextFn.
-		const ctx = await resolveAuthedContextFn();
+		// verificación de JWT). Ver resolveAuthedContextFn. Se cachea en Query
+		// (fetchQuery respeta staleTime): beforeLoad corre en CADA navegación, y
+		// sin caché cada clic costaba JWT + 2 llamadas al IS. Las mutaciones y el
+		// 401 global lo invalidan (ver root-provider.tsx).
+		const ctx = await queryClient.fetchQuery({
+			queryKey: AUTHED_CONTEXT_KEY,
+			queryFn: () => resolveAuthedContextFn(),
+			staleTime: AUTHED_CONTEXT_STALE_TIME,
+		});
 		// Sesión ausente/caducada: al login, conservando la ruta para volver.
 		if (!ctx.session) {
+			queryClient.removeQueries({ queryKey: AUTHED_CONTEXT_KEY });
 			throw redirect({ to: "/", search: { redirect: location.href } });
 		}
 		return {
@@ -28,6 +40,7 @@ export const Route = createFileRoute("/_authed")({
 			isAdmin: ctx.isAdmin,
 		};
 	},
+	pendingMs: 150,
 	pendingComponent: AdminShellSkeleton,
 	errorComponent: AdminRolesError,
 	component: AuthedLayout,

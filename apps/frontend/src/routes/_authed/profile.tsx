@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
@@ -14,7 +15,7 @@ import { usersQueries } from "@/modules/users/queries/users.ts";
 export const Route = createFileRoute("/_authed/profile")({
 	// Prefetch del perfil (misma query key) para calentar hover/SSR.
 	loader: ({ context: { queryClient } }) =>
-		queryClient.prefetchQuery(usersQueries.me()),
+		deferOnClient(queryClient.prefetchQuery(usersQueries.me())),
 	component: ProfilePage,
 });
 

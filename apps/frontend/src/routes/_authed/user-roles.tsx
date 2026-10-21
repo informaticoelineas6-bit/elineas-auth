@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { TriangleAlert, UserPlus } from "lucide-react";
@@ -52,12 +53,14 @@ export const Route = createFileRoute("/_authed/user-roles")({
 	// hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,
 	loader: ({ context: { queryClient }, deps }) =>
-		Promise.all([
-			queryClient.prefetchQuery(userRolesQueries.list(deps)),
-			queryClient.prefetchQuery(employeesQueries.list({ limit: 100 })),
-			queryClient.prefetchQuery(rolesQueries.list({ limit: 100 })),
-			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
-		]),
+		deferOnClient(
+			Promise.all([
+				queryClient.prefetchQuery(userRolesQueries.list(deps)),
+				queryClient.prefetchQuery(employeesQueries.list({ limit: 100 })),
+				queryClient.prefetchQuery(rolesQueries.list({ limit: 100 })),
+				queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+			]),
+		),
 	component: UserRolesPage,
 });
 

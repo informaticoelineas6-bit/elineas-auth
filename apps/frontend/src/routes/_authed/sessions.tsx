@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { hasPermission } from "@elineas/auth-contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -42,11 +43,13 @@ export const Route = createFileRoute("/_authed/sessions")({
 	// sesión actual) con las mismas query keys, para calentar hover/SSR.
 	loaderDeps: ({ search }) => search,
 	loader: ({ context: { queryClient }, deps }) =>
-		Promise.all([
-			queryClient.prefetchQuery(sessionsQueries.allList(deps)),
-			queryClient.prefetchQuery(sessionsQueries.list()),
-			queryClient.prefetchQuery(sessionsQueries.current()),
-		]),
+		deferOnClient(
+			Promise.all([
+				queryClient.prefetchQuery(sessionsQueries.allList(deps)),
+				queryClient.prefetchQuery(sessionsQueries.list()),
+				queryClient.prefetchQuery(sessionsQueries.current()),
+			]),
+		),
 	component: SessionsPage,
 });
 

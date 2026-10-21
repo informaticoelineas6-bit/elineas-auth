@@ -14,6 +14,7 @@ import { useSignInForm } from "@/modules/auth/lib/form.ts";
 import { useTurnstile } from "@/modules/auth/lib/use-turnstile.ts";
 import SideRays from "@/modules/common/components/ui/side-rays.tsx";
 import { reportError } from "@/modules/common/lib/errors.ts";
+import { AUTHED_CONTEXT_KEY } from "@/modules/common/lib/query.ts";
 import { useCountdown } from "@/modules/common/lib/use-countdown.ts";
 
 // Solo se admiten rutas internas como destino de vuelta ("/algo"), nunca URLs
@@ -29,7 +30,10 @@ export const Route = createFileRoute("/")({
 	// `redirect` (ruta de origen) lo añade el guard de _authed / el 401 global
 	// para volver aquí tras autenticarse.
 	validateSearch: z.object({ redirect: z.string().optional() }),
-	beforeLoad: async ({ search }) => {
+	beforeLoad: async ({ search, context: { queryClient } }) => {
+		// Llegar al login implica sesión nueva o cerrada: descarta el contexto
+		// de auth cacheado para no reutilizar roles de otro usuario.
+		queryClient.removeQueries({ queryKey: AUTHED_CONTEXT_KEY });
 		const session = await getSessionFn();
 		if (session) throw redirect({ to: safeRedirect(search.redirect) });
 	},

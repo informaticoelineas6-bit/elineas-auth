@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -30,10 +31,12 @@ export const Route = createFileRoute("/_authed/roles/$roleId/edit")({
 	// Prefetch del detalle + catálogo de sistemas (mismas query keys) para
 	// calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>
-		Promise.all([
-			queryClient.prefetchQuery(rolesQueries.detail(params.roleId)),
-			queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
-		]),
+		deferOnClient(
+			Promise.all([
+				queryClient.prefetchQuery(rolesQueries.detail(params.roleId)),
+				queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
+			]),
+		),
 	component: EditRolePage,
 });
 

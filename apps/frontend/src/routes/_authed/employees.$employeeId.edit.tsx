@@ -1,3 +1,4 @@
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -32,7 +33,9 @@ export const Route = createFileRoute("/_authed/employees/$employeeId/edit")({
 		requirePermissionAccess("employees", "write", context),
 	// Prefetch del detalle (misma query key) para calentar hover/SSR.
 	loader: ({ context: { queryClient }, params }) =>
-		queryClient.prefetchQuery(employeesQueries.detail(params.employeeId)),
+		deferOnClient(
+			queryClient.prefetchQuery(employeesQueries.detail(params.employeeId)),
+		),
 	component: EditEmployeePage,
 });
 
