@@ -12,6 +12,9 @@ const config = defineConfig({
 		devtools(),
 		nitro({
 			preset: "bun",
+			// Precomprime (gzip+brotli) los assets en el build: el servidor Bun no
+			// comprime en caliente y la CSS/JS viajaban sin comprimir.
+			compressPublicAssets: { gzip: true, brotli: true },
 			rollupConfig: { external: [/^@sentry\//] },
 			// Cabecera anti-indexado en TODAS las respuestas (HTML, assets, server
 			// fns). Complementa el robots.txt (Disallow) y el <meta name="robots">

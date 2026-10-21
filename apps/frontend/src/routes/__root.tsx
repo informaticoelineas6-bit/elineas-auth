@@ -13,7 +13,12 @@ import { AppError } from "@/modules/common/components/partials/app-error.tsx";
 import { NotFound } from "@/modules/common/components/partials/not-found.tsx";
 import { Toaster } from "@/modules/common/components/ui/sonner.tsx";
 import { TooltipProvider } from "@/modules/common/components/ui/tooltip.tsx";
-import appCss from "../styles.css?url";
+import interLatin from "@fontsource-variable/inter/files/inter-latin-wght-normal.woff2?url";
+import spaceGroteskLatin from "@fontsource-variable/space-grotesk/files/space-grotesk-latin-wght-normal.woff2?url";
+// Import por efecto (no `?url`): con `?url` el build de SSR calculaba su propio
+// hash de la CSS (distinto del publicado por el build de cliente) y el HTML
+// apuntaba a un archivo inexistente (404), dejando la primera carga sin estilos.
+import "../styles.css";
 
 interface MyRouterContext {
 	queryClient: QueryClient;
@@ -39,9 +44,23 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			},
 		],
 		links: [
+			// Las fuentes solo se descubren al parsear el CSS; sin preload el texto
+			// se pinta primero con la fuente del sistema y salta al cargar la web
+			// font (parece que el CSS tarda en aplicarse). Se precargan solo los
+			// subsets latin, que cubren el español.
 			{
-				rel: "stylesheet",
-				href: appCss,
+				rel: "preload",
+				href: interLatin,
+				as: "font",
+				type: "font/woff2",
+				crossOrigin: "anonymous",
+			},
+			{
+				rel: "preload",
+				href: spaceGroteskLatin,
+				as: "font",
+				type: "font/woff2",
+				crossOrigin: "anonymous",
 			},
 			{
 				rel: "icon",
