@@ -84,7 +84,7 @@ export const GOOGLE_FLOW_STEPS = [
 	"**Configura el IS (una vez):** añade el origen de tu app a `GOOGLE_REDIRECT_ORIGINS` en el `.env` del backend del IS (https fuera de localhost). En Google Cloud no cambia nada: tu app nunca habla con Google, solo con el IS.",
 	"**Inicio:** tu servidor genera un `code_verifier` aleatorio (PKCE) y un `state`, los guarda en una cookie httpOnly de vida corta y redirige el navegador a `GET /api/auth/google/start` con `redirect_to`, `code_challenge` (base64url del SHA-256 del verifier), `state` y, opcional, `systemSlug`.",
 	"**Vuelta:** el IS devuelve al usuario a `redirect_to` con `?code=…&state=…` (o `?error=CODIGO`). Comprueba que el `state` coincide con el de tu cookie.",
-	"**Canje (servidor a servidor):** `POST /api/auth/google/exchange` con `{ code, code_verifier }`. Responde lo mismo que `/sign-in` (`{ user, token, system, tkc }`) y el session token en la cabecera `set-auth-token`. El código dura 60 s y es de un solo uso.",
+	"**Canje (servidor a servidor):** `POST /api/auth/google/exchange` con `{ code, code_verifier }`. Responde lo mismo que `/sign-in` (`{ user, token, system }`) y el session token en la cabecera `set-auth-token`. El código dura 60 s y es de un solo uso.",
 	"**Después** todo es igual que con contraseña: guarda el session token y el JWT en cookies httpOnly, verifica el JWT con el JWKS y consulta los roles.",
 ] as const;
 

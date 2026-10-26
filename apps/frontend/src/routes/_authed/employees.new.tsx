@@ -12,7 +12,6 @@ import {
 	TabsTrigger,
 } from "@/modules/common/components/ui/tabs.tsx";
 import {
-	getErrorCode,
 	getErrorMessage,
 	getErrorStatus,
 	reportError,
@@ -24,7 +23,6 @@ import {
 } from "@/modules/employees/lib/form.ts";
 import { useCreateEmployeeWithUser } from "@/modules/employees/queries/employees.ts";
 import { requirePermissionAccess } from "@/modules/permissions/lib/guard.ts";
-import { TkcFields } from "@/modules/tkc/components/tkc-fields.tsx";
 import { UserAccountFields } from "@/modules/users/components/user-account-fields.tsx";
 
 export const Route = createFileRoute("/_authed/employees/new")({
@@ -40,7 +38,6 @@ function NewEmployeePage() {
 	const [fieldErrors, setFieldErrors] = useState<{
 		email?: string;
 		ci?: string;
-		tkcUsername?: string;
 	}>({});
 
 	const form = useEmployeeWithUserForm(async (value) => {
@@ -62,32 +59,13 @@ function NewEmployeePage() {
 		} catch (error) {
 			const status = getErrorStatus(error);
 			if (status === 409) {
-				// Duplicado: se muestra sobre el campo, sin perder lo tecleado. El
-				// usuario de TKC se distingue por `code` y no por el texto —el IS lo
-				// devuelve explícitamente— porque la heurística sobre el mensaje solo
-				// sabe separar CI de email.
+				// Duplicado: se muestra sobre el campo, sin perder lo tecleado.
 				const message = getErrorMessage(error);
-				if (getErrorCode(error) === "TKC_USERNAME_TAKEN") {
-					setFieldErrors({ tkcUsername: message });
-				} else if (message.toUpperCase().includes("CI")) {
+				if (message.toUpperCase().includes("CI")) {
 					setFieldErrors({ ci: message });
 				} else {
 					setFieldErrors({ email: message });
 				}
-			} else if (status === 503) {
-				// El alta trae credenciales de TKC pero el servidor no tiene con qué
-				// cifrarlas. El IS rechaza la operación entera antes de crear nada,
-				// así que no queda ningún usuario a medio configurar.
-				toast.error(
-					getErrorMessage(
-						error,
-						"El servidor no puede guardar credenciales de TKC ahora mismo.",
-					),
-					{
-						description:
-							"Crea el usuario sin ellas y enlázalas después desde su ficha.",
-					},
-				);
 			} else if (status === 429) {
 				toast.error(
 					"Demasiados intentos. Espera unos segundos antes de reintentar.",
@@ -119,16 +97,12 @@ function NewEmployeePage() {
 					<TabsList>
 						<TabsTrigger value="user">Cuenta de usuario</TabsTrigger>
 						<TabsTrigger value="employee">Datos personales</TabsTrigger>
-						<TabsTrigger value="tkc">Credenciales TKC</TabsTrigger>
 					</TabsList>
 					<TabsContent value="user">
 						<UserAccountFields form={form} emailError={fieldErrors.email} />
 					</TabsContent>
 					<TabsContent value="employee">
 						<EmployeeFields form={form} ciError={fieldErrors.ci} />
-					</TabsContent>
-					<TabsContent value="tkc">
-						<TkcFields form={form} usernameError={fieldErrors.tkcUsername} />
 					</TabsContent>
 				</Tabs>
 

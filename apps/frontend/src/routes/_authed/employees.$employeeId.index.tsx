@@ -33,7 +33,6 @@ import {
 } from "@/modules/employees/queries/employees.ts";
 import type { Employee } from "@/modules/employees/shared/types.ts";
 import type { MyPermission } from "@/modules/permissions/shared/types.ts";
-import { TkcCredentialsCard } from "@/modules/tkc/components/tkc-credentials-card.tsx";
 import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/$employeeId/")({
@@ -282,13 +281,6 @@ function EmployeeDetail({
 					userId={employee.userId}
 					userLabel={`${employee.name} ${employee.lastName}`}
 					canManage={isAdmin}
-				/>
-
-				<TkcCredentialsCard
-					userId={employee.userId}
-					userLabel={`${employee.name} ${employee.lastName}`}
-					canWrite={hasPermission("tkc", "write", access)}
-					canDelete={hasPermission("tkc", "delete", access)}
 				/>
 			</div>
 

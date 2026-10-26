@@ -101,7 +101,7 @@ export function ExportDatabaseDialog({
 					<DialogDescription>
 						Descarga un script SQL con el esquema y los datos actuales de todas
 						las tablas. No incluye secretos: sin sesiones, tokens, claves de
-						firma ni credenciales de TKC, y sin los hashes de contraseña. Aun
+						firma, y sin los hashes de contraseña. Aun
 						así contiene datos personales: guárdalo con cuidado.
 					</DialogDescription>
 				</DialogHeader>

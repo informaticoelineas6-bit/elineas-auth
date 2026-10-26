@@ -15,12 +15,6 @@ export async function signIn(input: {
 		headers: { "Content-Type": "application/json", ...clientForwardHeaders() },
 		body: JSON.stringify(input),
 	});
-	// El cuerpo del IS trae además un `tkc` con las credenciales de la persona en
-	// el sistema externo TKC. NO se declara aquí ni se propaga a propósito: este
-	// panel administra el IS, no consume TKC, así que no tiene nada que hacer con
-	// ese secreto. Reenviarlo al navegador (p. ej. devolviendo el `result` entero
-	// desde `signInFn`) lo dejaría en el payload de la página, que es justo lo que
-	// el IS evita entregándolo una sola vez y con `Cache-Control: no-store`.
 	const body = (await readJson(response)) as {
 		user: AuthApiUser;
 		token: string | null;
@@ -101,8 +95,7 @@ export async function refreshAccessToken(
 }
 
 // Canjea el código del login con Google (servidor a servidor) por la sesión.
-// Devuelve lo mismo que signIn, incluida la cabecera con el token de sesión. Al
-// igual que en signIn, el `tkc` del cuerpo NO se propaga a propósito.
+// Devuelve lo mismo que signIn, incluida la cabecera con el token de sesión.
 export async function exchangeGoogleCode(code: string, codeVerifier: string) {
 	const response = await fetch(
 		new URL("/api/auth/google/exchange", env.AUTH_API_URL),

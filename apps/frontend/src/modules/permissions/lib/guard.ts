@@ -15,7 +15,7 @@ import { toast } from "sonner";
 // requirePermission en el backend: "Requiere privilegios de administrador" /
 // `Requiere el permiso "resource:action"`), para que decir "qué permiso hace
 // falta" sea consistente en toda la app: tanto si un componente descubre el
-// 403 llamando a la API (p. ej. TkcCredentialsCard, vía getErrorMessage) como
+// 403 llamando a la API (p. ej. una tarjeta que pide datos, vía getErrorMessage) como
 // si esta guarda lo corta ANTES de llegar a pedir nada.
 export function requireResourceAccess(
 	resource: string | undefined,
