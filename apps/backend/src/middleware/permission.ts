@@ -103,7 +103,7 @@ async function hasPermission(
 // `systemSlug`. Sin ese tercer argumento, comprueba el sistema que
 // representa a este propio identity server (env.ADMIN_SYSTEM_SLUG) — el
 // caso de todas las rutas de este backend (employees, sessions, users,
-// tkc, request-logs), que no cambian de comportamiento con esta
+// request-logs), que no cambian de comportamiento con esta
 // generalización. Un sistema consumidor externo que delegue su
 // autorización fina en el IS pasa aquí su propio slug.
 //

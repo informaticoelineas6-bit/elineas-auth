@@ -60,11 +60,7 @@ const signUpRoute = createRoute({
     400: badRequestResponse,
     401: unauthorizedResponse,
     403: forbiddenResponse,
-    // El `tkc` opcional traía un usuario del sistema externo ya enlazado a otra
-    // persona (code "TKC_USERNAME_TAKEN").
     409: conflictResponse,
-    // Traía credenciales de TKC y el servidor no tiene con qué cifrarlas.
-    503: serviceUnavailableResponse,
   },
 });
 

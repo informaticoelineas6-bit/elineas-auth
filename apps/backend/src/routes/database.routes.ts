@@ -41,8 +41,8 @@ const exportRoute = createRoute({
   summary: "Exportar la base de datos como script SQL (requiere rol admin)",
   description:
     "Genera en el momento un script SQL con el esquema y los datos de todas las " +
-    "tablas. No incluye secretos: sin filas de session, verification, jwks, " +
-    "tkc_key, user_tkc_key ni request_log, y con los hashes de contraseña y " +
+    "tablas. No incluye secretos: sin filas de session, verification, jwks " +
+    "ni request_log, y con los hashes de contraseña y " +
     "tokens OAuth de account a NULL. Exige la contraseña del admin.",
   security: bearerAuthSecurity,
   // Solo admin (no delegable con un permiso): entrega toda la base de datos.

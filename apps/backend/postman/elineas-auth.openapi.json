@@ -33,15 +33,11 @@
           },
           "system": {
             "$ref": "#/components/schemas/System"
-          },
-          "tkc": {
-            "$ref": "#/components/schemas/TkcCredentialsBody"
           }
         },
         "required": [
           "user",
-          "token",
-          "tkc"
+          "token"
         ]
       },
       "User": {
@@ -148,28 +144,6 @@
           "updatedAt"
         ]
       },
-      "TkcCredentialsBody": {
-        "type": "object",
-        "nullable": true,
-        "properties": {
-          "username": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 100,
-            "example": "ada.lovelace"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 1,
-            "maxLength": 200,
-            "example": "la-contraseña-de-tkc"
-          }
-        },
-        "required": [
-          "username",
-          "password"
-        ]
-      },
       "ErrorResponse": {
         "type": "object",
         "properties": {
@@ -210,7 +184,7 @@
           "image": {
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^https?:\\/\\//i"
+            "pattern": "^https:\\/\\//i"
           },
           "callbackURL": {
             "type": "string"
@@ -221,9 +195,6 @@
           "systemSlug": {
             "type": "string",
             "example": "pos"
-          },
-          "tkc": {
-            "$ref": "#/components/schemas/TkcCredentialsBody"
           }
         },
         "required": [
@@ -436,7 +407,7 @@
           "image": {
             "type": "string",
             "maxLength": 2048,
-            "pattern": "^https?:\\/\\//i"
+            "pattern": "^https:\\/\\//i"
           }
         }
       },
@@ -566,45 +537,6 @@
         },
         "required": [
           "status"
-        ]
-      },
-      "TkcKeySummaryResponse": {
-        "type": "object",
-        "properties": {
-          "tkc": {
-            "$ref": "#/components/schemas/TkcKeySummary"
-          }
-        },
-        "required": [
-          "tkc"
-        ]
-      },
-      "TkcKeySummary": {
-        "type": "object",
-        "nullable": true,
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "username": {
-            "type": "string",
-            "example": "ada.lovelace"
-          },
-          "linkedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updatedAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        },
-        "required": [
-          "id",
-          "username",
-          "linkedAt",
-          "updatedAt"
         ]
       },
       "SafeSession": {
@@ -898,15 +830,11 @@
           },
           "employee": {
             "$ref": "#/components/schemas/Employee"
-          },
-          "tkc": {
-            "$ref": "#/components/schemas/TkcKeySummary"
           }
         },
         "required": [
           "user",
-          "employee",
-          "tkc"
+          "employee"
         ]
       },
       "CreateEmployeeWithUserBody": {
@@ -936,7 +864,7 @@
               "image": {
                 "type": "string",
                 "maxLength": 2048,
-                "pattern": "^https?:\\/\\//i"
+                "pattern": "^https:\\/\\//i"
               }
             },
             "required": [
@@ -995,9 +923,6 @@
               "name",
               "lastName"
             ]
-          },
-          "tkc": {
-            "$ref": "#/components/schemas/TkcCredentialsBody"
           }
         },
         "required": [
@@ -1574,6 +1499,43 @@
             "maxLength": 500
           }
         }
+      },
+      "DatabaseExportResponse": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "example": "elineas-auth-20261012-153000.sql"
+          },
+          "generatedAt": {
+            "type": "string"
+          },
+          "tables": {
+            "type": "integer"
+          },
+          "sql": {
+            "type": "string",
+            "description": "Script SQL (esquema + datos, sin secretos)."
+          }
+        },
+        "required": [
+          "filename",
+          "generatedAt",
+          "tables",
+          "sql"
+        ]
+      },
+      "DatabaseExportBody": {
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "currentPassword"
+        ]
       }
     },
     "parameters": {}
@@ -1643,16 +1605,6 @@
           },
           "409": {
             "description": "Conflicto de unicidad",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
             "content": {
               "application/json": {
                 "schema": {
@@ -1967,7 +1919,7 @@
             }
           },
           "503": {
-            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
+            "description": "Función no disponible por configuración del servidor",
             "content": {
               "application/json": {
                 "schema": {
@@ -2018,7 +1970,7 @@
             }
           },
           "503": {
-            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
+            "description": "Función no disponible por configuración del servidor",
             "content": {
               "application/json": {
                 "schema": {
@@ -2392,238 +2344,7 @@
             }
           },
           "503": {
-            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/users/admin/{id}/tkc": {
-      "get": {
-        "operationId": "getUserTkcKey",
-        "tags": [
-          "Users"
-        ],
-        "summary": "Ver qué credencial de TKC tiene enlazada un usuario (requiere admin)",
-        "description": "Devuelve el usuario de TKC enlazado, SIN su contraseña. La contraseña solo se entrega a su propio dueño al iniciar sesión.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Credencial enlazada (o null si no tiene)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TkcKeySummaryResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No hay una sesión válida",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Requiere privilegios de administrador",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "operationId": "setUserTkcKey",
-        "tags": [
-          "Users"
-        ],
-        "summary": "Fijar las credenciales de TKC de un usuario (requiere admin)",
-        "description": "Crea o reemplaza las credenciales. PUT y no PATCH porque la operación es un reemplazo completo: usuario y contraseña van siempre juntos (una contraseña sin su usuario no identifica ninguna cuenta de TKC). Responde 409 si ese usuario de TKC ya está enlazado a otra persona: una cuenta del sistema externo pertenece a una sola.",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TkcCredentialsBody"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Credenciales guardadas (se devuelven sin la contraseña)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TkcKeySummaryResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Solicitud inválida",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No hay una sesión válida",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Requiere privilegios de administrador",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Recurso no encontrado",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "Conflicto de unicidad",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "operationId": "deleteUserTkcKey",
-        "tags": [
-          "Users"
-        ],
-        "summary": "Desvincular las credenciales de TKC de un usuario (requiere admin)",
-        "security": [
-          {
-            "bearerAuth": []
-          }
-        ],
-        "parameters": [
-          {
-            "schema": {
-              "type": "string",
-              "format": "uuid",
-              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
-            },
-            "required": true,
-            "name": "id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Credenciales desvinculadas",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StatusResponse"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "No hay una sesión válida",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Requiere privilegios de administrador",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Recurso no encontrado",
+            "description": "Función no disponible por configuración del servidor",
             "content": {
               "application/json": {
                 "schema": {
@@ -3504,7 +3225,6 @@
           "Employees"
         ],
         "summary": "Crear un usuario y su empleado enlazado en una sola operación",
-        "description": "Acepta además un `tkc` opcional con las credenciales del sistema externo, que quedan enlazadas al usuario recién creado.",
         "security": [
           {
             "bearerAuth": []
@@ -3562,16 +3282,6 @@
           },
           "409": {
             "description": "Conflicto de unicidad",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponse"
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "Función no disponible por configuración del servidor (p. ej. falta TKC_SECRET_KEY para operar con credenciales de TKC)",
             "content": {
               "application/json": {
                 "schema": {
@@ -5808,6 +5518,72 @@
           },
           "404": {
             "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/database/export": {
+      "post": {
+        "operationId": "exportDatabase",
+        "tags": [
+          "Database"
+        ],
+        "summary": "Exportar la base de datos como script SQL (requiere rol admin)",
+        "description": "Genera en el momento un script SQL con el esquema y los datos de todas las tablas. No incluye secretos: sin filas de session, verification, jwks ni request_log, y con los hashes de contraseña y tokens OAuth de account a NULL. Exige la contraseña del admin.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatabaseExportBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Volcado generado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatabaseExportResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
             "content": {
               "application/json": {
                 "schema": {

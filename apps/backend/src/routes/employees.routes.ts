@@ -18,7 +18,6 @@ import {
   forbiddenResponse,
   notFoundResponse,
   StatusResponseSchema,
-  serviceUnavailableResponse,
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
@@ -116,9 +115,6 @@ const createWithUserRoute = createRoute({
   operationId: "createEmployeeWithUser",
   tags: ["Employees"],
   summary: "Crear un usuario y su empleado enlazado en una sola operación",
-  description:
-    "Acepta además un `tkc` opcional con las credenciales del sistema externo, " +
-    "que quedan enlazadas al usuario recién creado.",
   security: bearerAuthSecurity,
   middleware: [
     requireSession,
@@ -141,12 +137,8 @@ const createWithUserRoute = createRoute({
     400: badRequestResponse,
     401: unauthorizedResponse,
     403: forbiddenResponse,
-    // 409: CI o email ya existentes, y también un usuario de TKC ya enlazado a
-    // otra persona (code "TKC_USERNAME_TAKEN").
+    // 409: CI o email ya existentes.
     409: conflictResponse,
-    // El alta traía credenciales de TKC y el servidor no tiene con qué
-    // cifrarlas. Se rechaza entera, antes de crear nada.
-    503: serviceUnavailableResponse,
   },
 });
 

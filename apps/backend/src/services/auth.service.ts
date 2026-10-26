@@ -6,11 +6,6 @@ import {
   resolveActiveSystem,
 } from "@backend/services/session-system.service.ts";
 import { userHasRoleInAnySystem, userHasRoleInSystem } from "@backend/services/user-role.service.ts";
-import {
-  assertTkcCredentialsUsable,
-  getUserTkcCredentials,
-  setUserTkcCredentials,
-} from "@backend/services/tkc-key.service.ts";
 import type { z } from "@hono/zod-openapi";
 import type {
   SignInBodySchema,
@@ -35,13 +30,8 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     // usuario y el sistema en el cuerpo (sin token), sin tocar la sesión del admin.
     // Se usa el body ya validado por Zod (valid("json")), que descarta campos
     // desconocidos y evita reenviar propiedades no previstas a better-auth.
-    const { systemSlug, tkc, ...credentials } = c.req.valid("json");
+    const { systemSlug, ...credentials } = c.req.valid("json");
     const sys = systemSlug ? await resolveActiveSystem(systemSlug) : null;
-    // Si el alta trae credenciales de TKC, se comprueba ANTES de crear nada que
-    // el servidor puede cifrarlas. Sin esto, un servidor sin TKC_SECRET_KEY
-    // crearía el usuario y fallaría después, dejando una cuenta a medio
-    // configurar que el llamante cree que no existe.
-    if (tkc) assertTkcCredentialsUsable();
     const { response } = await auth.api.signUpEmail({
       // Sin contraseña en la petición: aleatoria e inservible, el dueño fija la
       // suya con el enlace de invitación. Si el llamador envía una, se respeta
@@ -50,18 +40,12 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
       headers: c.req.raw.headers,
       returnHeaders: true,
     });
-    if (tkc) await setUserTkcCredentials(response.user.id, tkc);
     // Sin sesión ni JWT para la cuenta nueva (autoSignIn desactivado en
     // lib/auth.ts): el admin no debe poder actuar como el usuario invitado.
     // Invitación sin await: un fallo del correo no debe hacer fallar un alta
     // que ya se completó (sendAccountInvite captura y loguea, nunca lanza).
     void sendAccountInvite(credentials.email);
-    // `tkc: null` a propósito, aunque el alta las haya guardado: esta respuesta
-    // va al ADMIN que crea la cuenta, no a su dueño. Devolvérselas solo le
-    // repetiría lo que acaba de enviar, a cambio de que el secreto viaje una
-    // vez más y quede en una respuesta que no lo necesita. Las credenciales se
-    // entregan en el login de su dueño (ver signInFn).
-    return c.json({ user: response.user, token: null, system: sys, tkc: null }, 200);
+    return c.json({ user: response.user, token: null, system: sys }, 200);
   } catch (error) {
     return handleError(error, c);
   }
@@ -136,23 +120,11 @@ export const signInFn = async (c: Context<any, string, SignInInput>) => {
     }
     const token = await issueJwt(response.token);
 
-    // Credenciales del sistema externo TKC, en claro y SOLO aquí: este es el
-    // único punto de la API que las devuelve, y se las lleva su propio dueño
-    // recién autenticado, no un tercero (las rutas de administración exponen el
-    // usuario de TKC pero nunca su contraseña).
-    //
-    // `getUserTkcCredentials` no lanza nunca: si faltara la clave de cifrado o
-    // una fila estuviera alterada, devuelve null y el login sigue funcionando.
-    // TKC es una comodidad, no un requisito para entrar al IS.
-    const tkc = await getUserTkcCredentials(response.user.id);
-
-    // La respuesta lleva un secreto reutilizable, así que no debe quedarse en
-    // ninguna caché intermedia ni en el historial del navegador. `no-store` es
-    // el único valor que lo impide en todas ellas (`no-cache` permite
-    // almacenar y revalidar, que aquí no basta).
+    // La respuesta lleva el token de sesión, así que no debe quedarse en
+    // ninguna caché intermedia ni en el historial del navegador.
     c.header("Cache-Control", "no-store");
 
-    return c.json({ user: response.user, token, system: sys, tkc }, 200);
+    return c.json({ user: response.user, token, system: sys }, 200);
   } catch (error) {
     return handleError(error, c);
   }

@@ -18,7 +18,6 @@ import {
   bindSessionToSystem,
   resolveActiveSystem,
 } from "@backend/services/session-system.service.ts";
-import { getUserTkcCredentials } from "@backend/services/tkc-key.service.ts";
 
 // Login con Google por REDIRECT, pensado para que lo use cualquier app (incluido
 // el propio frontend del IS). Flujo:
@@ -313,12 +312,11 @@ export const googleExchangeFn = async (c: Context<any, string, ExchangeInput>) =
     if (!session) throw invalid;
     const sys = stored.systemSlug ? await resolveActiveSystem(stored.systemSlug) : null;
     const token = await issueJwt(stored.sessionToken);
-    const tkc = await getUserTkcCredentials(session.user.id);
 
     // Igual que /sign-in: el token de sesión de largo plazo va en la cabecera.
     c.header("set-auth-token", stored.sessionToken);
     c.header("Cache-Control", "no-store");
-    return c.json({ user: session.user, token, system: sys, tkc }, 200);
+    return c.json({ user: session.user, token, system: sys }, 200);
   } catch (error) {
     return handleError(error, c);
   }

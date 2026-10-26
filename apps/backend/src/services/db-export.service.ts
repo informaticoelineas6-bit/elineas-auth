@@ -18,15 +18,12 @@ const SCHEMA = "public";
 //   - session: tokens de sesión vivos.
 //   - verification: tokens de reset/verificación y códigos del login con Google.
 //   - jwks: claves PRIVADAS con las que el IS firma los JWT.
-//   - tkc_key / user_tkc_key: credenciales cifradas del sistema externo TKC.
 //   - request_log: bitácora de peticiones (IPs, cuerpos), voluminosa y purgada
 //     por retención.
 const EXCLUDED_DATA = new Set([
   "session",
   "verification",
   "jwks",
-  "tkc_key",
-  "user_tkc_key",
   "request_log",
 ]);
 

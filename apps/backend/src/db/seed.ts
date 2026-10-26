@@ -197,21 +197,6 @@ const PERMISSION_CATALOG: Array<{
     description: "Cambiar la contraseña de otro usuario",
   },
   {
-    resource: "tkc",
-    action: "read",
-    description: "Ver qué credencial de TKC tiene enlazada un usuario",
-  },
-  {
-    resource: "tkc",
-    action: "write",
-    description: "Fijar las credenciales de TKC de un usuario",
-  },
-  {
-    resource: "tkc",
-    action: "delete",
-    description: "Desvincular las credenciales de TKC de un usuario",
-  },
-  {
     resource: "request-logs",
     action: "read",
     description: "Ver logs de peticiones (auditoría)",

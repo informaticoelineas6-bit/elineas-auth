@@ -595,7 +595,7 @@ que usan este IS. La app nunca habla con Google: lo hace el IS.
      │◀── 302 redirect_to?code=XXXX&state=… (o ?error=CODIGO) ───────────────────│
      │──── GET /auth/callback?code&state ────────────▶│                          │
      │                      │── POST /api/auth/google/exchange {code, code_verifier} ──▶│
-     │                      │◀── { user, token, system, tkc } + set-auth-token ─────────│
+     │                      │◀── { user, token, system } + set-auth-token ─────────│
 ```
 
 **Reglas del flujo**
@@ -1204,7 +1204,6 @@ para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 | POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
 | POST       | `/api/users/admin/{id}/invite`                                    | Sesión + admin   | Reenvía el enlace para establecer la contraseña                               |
 | POST       | `/api/auth/set-password`                                          | Pública (token)  | Fija la contraseña con el token de un solo uso del correo                     |
-| GET/PUT/DELETE | `/api/users/admin/{id}/tkc`                                   | Sesión + admin   | Credenciales del sistema externo TKC (ver §10.4); nunca devuelven la contraseña |
 | GET        | `/health`                                                         | — (pública)      | Liveness: el proceso responde (no toca BD)                                    |
 | GET        | `/health/ready`                                                   | — (pública)      | Readiness: además comprueba la BD (`503` si no responde)                      |
 
@@ -1331,81 +1330,6 @@ Detalles que conviene conocer:
   silencioso sin haber cambiado nada.
 - **Rate limit** de 5/min por IP (ver §8): verifica una contraseña, así que sin
   límite sería un oráculo de fuerza bruta contra la del admin.
-
-### 10.4 Credenciales del sistema externo TKC
-
-TKC es un sistema **externo**: el IS no autentica contra él. Lo que hace es
-custodiar las credenciales que cada persona usa allí y entregárselas a su
-cliente al iniciar sesión, para no tener que pedírselas otra vez.
-
-Esto invierte el tratamiento habitual de una contraseña. Las del propio IS se
-**hashean** y no se recuperan jamás; la de TKC tiene que devolverse literal,
-porque es el sistema externo quien la comprueba. Un hash no serviría, así que
-se guarda **cifrada** con AES-256-GCM y una clave que no vive en la base de
-datos (`TKC_SECRET_KEY`). Lo que eso protege es el caso realista —un volcado de
-la BD (backup, réplica, acceso de solo lectura) no entrega ninguna credencial—
-y no un atacante que ya controle el proceso, donde la clave está en memoria por
-definición.
-
-Alrededor de eso, el resto del diseño se ocupa de que el secreto salga del
-servidor por **un solo camino**:
-
-- **Solo el login lo devuelve**, y a su propio dueño recién autenticado. La
-  respuesta va con `Cache-Control: no-store`.
-- **Ninguna ruta de administración devuelve la contraseña**, ni siquiera la de
-  lectura: un admin ve qué usuario de TKC tiene asignado cada persona y puede
-  reemplazarlo, que es lo que necesita para administrarlo.
-- El middleware de logging **enmascara** cualquier clave que case con `/pass/`,
-  así que no llega a la tabla de peticiones.
-
-```jsonc
-// POST /api/auth/sign-in → 200
-{
-  "user": { /* User */ },
-  "token": "eyJhbGciOi...",
-  "system": { /* System */ },
-  // null si no tiene credenciales enlazadas (el caso habitual)
-  "tkc": { "username": "ada.lovelace", "password": "la-contraseña-de-tkc" },
-}
-```
-
-Se enlazan al crear el usuario (`tkc` opcional en `POST /api/auth/sign-up` y en
-`POST /api/employees/with-user`) o después, sobre un usuario existente:
-
-```jsonc
-// PUT /api/users/admin/{id}/tkc   (sesión + admin)
-{ "username": "ada.lovelace", "password": "la-contraseña-de-tkc" }
-// 200 → { "tkc": { "id": "...", "username": "ada.lovelace", "linkedAt": "...", "updatedAt": "..." } }
-```
-
-`PUT` y no `PATCH` porque es un **reemplazo completo**: usuario y contraseña van
-siempre juntos, ya que una contraseña sin su usuario no identifica ninguna
-cuenta de TKC. `DELETE` deshace el enlace (la cuenta en TKC no se toca) y `GET`
-devuelve `{ "tkc": null }` si no hay ninguna.
-
-**Un usuario de TKC pertenece a una sola persona.** Intentar enlazar uno que ya
-tiene dueño responde `409` con code `TKC_USERNAME_TAKEN`, sin tocar nada: la
-primera persona conserva sus credenciales. La regla la sostienen dos `UNIQUE` de
-la base de datos —`tkc_key.username` y `user_tkc_key.tkc_key_id`—, no solo la
-comprobación previa del servicio: dos altas simultáneas con el mismo usuario de
-TKC pasarían ambas comprobaciones y solo Postgres puede rechazar la segunda (ahí
-el `409` es el genérico de unicidad, menos explícito pero igual de correcto).
-
-El `409` también lo pueden devolver `POST /api/auth/sign-up` y
-`POST /api/employees/with-user` cuando su `tkc` opcional trae un usuario ya
-tomado.
-
-Al cambiar el usuario de TKC de una persona, o al desvincularlo, la credencial
-anterior se **borra**: es suya y de nadie más, así que quedaría inservible, y
-además su `username` seguiría ocupado bloqueando a quien lo necesitara de
-verdad.
-
-**`TKC_SECRET_KEY` es opcional.** Sin ella el IS arranca y sirve todo lo demás
-con normalidad; solo fallan, con `503` y un mensaje que dice qué falta, las
-operaciones con credenciales de TKC. El login nunca falla por esto: si la clave
-no está o una fila quedó cifrada con otra, devuelve `"tkc": null` y se registra.
-Cambiar la clave **inutiliza** las credenciales ya guardadas: hay que volver a
-introducirlas.
 
 ## 11. Checklist de seguridad para producción
 
