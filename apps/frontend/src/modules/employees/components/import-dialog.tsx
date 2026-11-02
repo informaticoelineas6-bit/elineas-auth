@@ -16,6 +16,7 @@ import { parseEmployeeFile } from "@/modules/employees/lib/import-export.ts";
 import type { ImportRowResult } from "@/modules/employees/lib/import-validate.ts";
 import {
 	useCreateEmployee,
+	useExportEmployees,
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
 
@@ -35,6 +36,7 @@ export function ImportDialog({
 }) {
 	const createEmployee = useCreateEmployee();
 	const updateEmployee = useUpdateEmployee();
+	const loadExisting = useExportEmployees();
 
 	const [parsing, setParsing] = useState(false);
 	const [parseError, setParseError] = useState<string | undefined>();
@@ -61,11 +63,21 @@ export function ImportDialog({
 		try {
 			// La validación (zod → libphonenumber) se carga bajo demanda aquí, no
 			// en el bundle del listado (ver import-validate.ts).
-			const [raw, { mapImportRow }] = await Promise.all([
-				parseEmployeeFile(file),
-				import("../lib/import-validate.ts"),
-			]);
-			setRows(raw.map((row, index) => mapImportRow(row, index)));
+			// Se traen también los empleados existentes para detectar duplicados
+			// (CI, correo, ids inexistentes) ANTES de enviar nada.
+			const [raw, { mapImportRow, flagImportDuplicates }, existing] =
+				await Promise.all([
+					parseEmployeeFile(file),
+					import("../lib/import-validate.ts"),
+					loadExisting.mutateAsync({}),
+				]);
+			setRows(
+				flagImportDuplicates(
+					raw.map((row, index) => mapImportRow(row, index)),
+					raw,
+					existing,
+				),
+			);
 		} catch (error) {
 			setParseError(getErrorMessage(error, "No se pudo leer el archivo."));
 		} finally {

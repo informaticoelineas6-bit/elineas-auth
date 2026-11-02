@@ -113,3 +113,112 @@ export function mapImportRow(
 	}
 	return { kind: "create", row: index + 1, input: result.data };
 }
+
+// Empleado ya existente, reducido a lo que hace falta para detectar duplicados.
+export type ExistingEmployee = {
+	id: string;
+	name: string;
+	lastName: string;
+	ci: string | null;
+	user?: { email: string } | null;
+};
+
+// Nombre completo normalizado (sin tildes, mayúsculas ni espacios de más).
+function fullName(name: string, lastName: string): string {
+	return `${name} ${lastName}`
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.toLowerCase()
+		.replace(/\s+/g, " ")
+		.trim();
+}
+
+const normEmail = (value: unknown) => cleanString(value)?.toLowerCase();
+
+// Segunda pasada sobre las filas ya validadas: marca como error las que
+// duplicarían datos únicos, antes de tocar la API. Comprueba (a) duplicados
+// dentro del propio archivo (id, CI, email) y (b) choques con los empleados
+// existentes (CI, email, y que el `id` de una actualización exista de verdad).
+// La primera aparición en el archivo se conserva; las siguientes son error.
+// El email no se importa (no crea cuentas), pero si ya pertenece a otra
+// persona delata un duplicado y se rechaza igualmente.
+export function flagImportDuplicates(
+	results: ImportRowResult[],
+	raw: RawImportRow[],
+	existing: ExistingEmployee[],
+): ImportRowResult[] {
+	const byId = new Map(existing.map((e) => [e.id, e]));
+	const ciOwner = new Map<string, string>();
+	const emailOwner = new Map<string, string>();
+	for (const e of existing) {
+		if (e.ci) ciOwner.set(e.ci, e.id);
+		const mail = normEmail(e.user?.email);
+		if (mail) emailOwner.set(mail, e.id);
+	}
+
+	// Respaldo para filas sin CI ni id (caso típico de este import): sin clave
+	// única, reimportar el mismo archivo duplicaría a todos. Se compara por
+	// nombre completo. Solo aplica a filas que CREAN; una actualización (con id)
+	// ya identifica a su empleado.
+	const nameOwner = new Map<string, string>();
+	for (const e of existing) nameOwner.set(fullName(e.name, e.lastName), e.id);
+	const seenNames = new Set<string>();
+
+	const seenIds = new Set<string>();
+	const seenCis = new Set<string>();
+	const seenEmails = new Set<string>();
+
+	return results.map((result, i) => {
+		if (result.kind === "error") return result;
+		const fail = (message: string): ImportRowResult => ({
+			kind: "error",
+			row: result.row,
+			message,
+		});
+		const selfId = result.kind === "update" ? result.id : undefined;
+
+		if (selfId) {
+			if (!byId.has(selfId)) {
+				return fail("No existe un empleado con ese id (quita el id para crearlo)");
+			}
+			if (seenIds.has(selfId)) return fail("id repetido en el archivo");
+			seenIds.add(selfId);
+		}
+
+		const ci = result.input.ci;
+		if (ci) {
+			if (seenCis.has(ci)) return fail(`CI ${ci} repetido en el archivo`);
+			const owner = ciOwner.get(ci);
+			if (owner && owner !== selfId) {
+				return fail(`Ya existe un empleado con el CI ${ci}`);
+			}
+			seenCis.add(ci);
+		}
+
+		if (result.kind === "create") {
+			const key = fullName(result.input.name, result.input.lastName);
+			if (seenNames.has(key)) {
+				return fail(`"${result.input.name} ${result.input.lastName}" repetido en el archivo`);
+			}
+			if (nameOwner.has(key)) {
+				return fail(
+					`Ya existe un empleado llamado "${result.input.name} ${result.input.lastName}"`,
+				);
+			}
+			seenNames.add(key);
+		}
+
+		const mail = normEmail(raw[i]?.email);
+		if (mail) {
+			if (seenEmails.has(mail)) {
+				return fail(`Correo ${mail} repetido en el archivo`);
+			}
+			const owner = emailOwner.get(mail);
+			if (owner && owner !== selfId) {
+				return fail(`Ya existe un usuario con el correo ${mail}`);
+			}
+			seenEmails.add(mail);
+		}
+		return result;
+	});
+}
