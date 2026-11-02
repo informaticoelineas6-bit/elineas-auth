@@ -182,6 +182,9 @@ export const CreateEmployeeWithUserBodySchema = z
       image: true,
     }),
     employee: CreateEmployeeBodySchema.omit({ userId: true }),
+    // Si es false, la cuenta se crea sin enviar la invitación por correo (se
+    // puede enviar después). Por defecto se envía.
+    sendInvite: z.boolean().optional(),
   })
   .openapi("CreateEmployeeWithUserBody");
 

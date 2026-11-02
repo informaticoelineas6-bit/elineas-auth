@@ -4,6 +4,7 @@ import type {
 	UpdateEmployeeInput,
 } from "../shared/types.ts";
 import type { RawImportRow } from "./import-export.ts";
+import { companyEmailSchema } from "#/modules/common/lib/validation.ts";
 import { createEmployeeSchema, updateEmployeeSchema } from "./validation.ts";
 
 // Validación/normalización de filas importadas, EN SU PROPIO módulo a propósito:
@@ -66,14 +67,21 @@ function describeError(error: ZodError): string {
 }
 
 export type ImportRowResult =
-	| { kind: "create"; row: number; input: CreateEmployeeInput }
+	| {
+			kind: "create";
+			row: number;
+			input: CreateEmployeeInput;
+			// Si viene, se crea también la cuenta de usuario con este correo.
+			email?: string;
+	  }
 	| { kind: "update"; row: number; id: string; input: UpdateEmployeeInput }
 	| { kind: "error"; row: number; message: string };
 
 // Valida y normaliza una fila "cruda" del archivo. Con `id` presente, la fila
-// actualiza ese usuario existente; sin `id`, crea uno nuevo. No toca la
-// cuenta de usuario (email/contraseña): ese enlace se gestiona aparte, desde
-// "Nuevo usuario" o la ficha del empleado.
+// actualiza ese usuario existente; sin `id`, crea uno nuevo (y, si trae
+// `email`, también su cuenta de acceso). `flagImportDuplicates` convierte luego
+// en actualización las filas que ya existen (por CI, correo o nombre).
+// Una actualización nunca toca la cuenta de usuario.
 export function mapImportRow(
 	row: RawImportRow,
 	index: number,
@@ -111,7 +119,23 @@ export function mapImportRow(
 			message: describeError(result.error),
 		};
 	}
-	return { kind: "create", row: index + 1, input: result.data };
+	const email = cleanString(row.email);
+	if (email) {
+		const parsed = companyEmailSchema.safeParse(email);
+		if (!parsed.success) {
+			return {
+				kind: "error",
+				row: index + 1,
+				message: `Correo: ${parsed.error.issues[0]?.message ?? "no válido"}`,
+			};
+		}
+	}
+	return {
+		kind: "create",
+		row: index + 1,
+		input: result.data,
+		email: email?.toLowerCase(),
+	};
 }
 
 // Empleado ya existente, reducido a lo que hace falta para detectar duplicados.
@@ -135,13 +159,12 @@ function fullName(name: string, lastName: string): string {
 
 const normEmail = (value: unknown) => cleanString(value)?.toLowerCase();
 
-// Segunda pasada sobre las filas ya validadas: marca como error las que
-// duplicarían datos únicos, antes de tocar la API. Comprueba (a) duplicados
-// dentro del propio archivo (id, CI, email) y (b) choques con los empleados
-// existentes (CI, email, y que el `id` de una actualización exista de verdad).
+// Segunda pasada sobre las filas ya validadas. Las filas sin `id` que ya existen
+// (mismo CI, correo o nombre completo, en ese orden de prioridad) pasan de crear
+// a ACTUALIZAR ese empleado. Después marca como error las que chocarían con
+// datos únicos: duplicados dentro del propio archivo (id/empleado, CI, email) y
+// choques con OTRO empleado (CI, email, `id` inexistente).
 // La primera aparición en el archivo se conserva; las siguientes son error.
-// El email no se importa (no crea cuentas), pero si ya pertenece a otra
-// persona delata un duplicado y se rechaza igualmente.
 export function flagImportDuplicates(
 	results: ImportRowResult[],
 	raw: RawImportRow[],
@@ -156,10 +179,8 @@ export function flagImportDuplicates(
 		if (mail) emailOwner.set(mail, e.id);
 	}
 
-	// Respaldo para filas sin CI ni id (caso típico de este import): sin clave
-	// única, reimportar el mismo archivo duplicaría a todos. Se compara por
-	// nombre completo. Solo aplica a filas que CREAN; una actualización (con id)
-	// ya identifica a su empleado.
+	// Respaldo para filas sin CI ni id (caso típico de este import): se compara
+	// por nombre completo.
 	const nameOwner = new Map<string, string>();
 	for (const e of existing) nameOwner.set(fullName(e.name, e.lastName), e.id);
 	const seenNames = new Set<string>();
@@ -168,8 +189,24 @@ export function flagImportDuplicates(
 	const seenCis = new Set<string>();
 	const seenEmails = new Set<string>();
 
-	return results.map((result, i) => {
-		if (result.kind === "error") return result;
+	return results.map((original, i) => {
+		if (original.kind === "error") return original;
+		let result: ImportRowResult = original;
+		const rowMail = normEmail(raw[i]?.email);
+		if (result.kind === "create") {
+			const matchId =
+				(result.input.ci ? ciOwner.get(result.input.ci) : undefined) ??
+				(rowMail ? emailOwner.get(rowMail) : undefined) ??
+				nameOwner.get(fullName(result.input.name, result.input.lastName));
+			if (matchId) {
+				result = {
+					kind: "update",
+					row: result.row,
+					id: matchId,
+					input: result.input,
+				};
+			}
+		}
 		const fail = (message: string): ImportRowResult => ({
 			kind: "error",
 			row: result.row,
@@ -199,11 +236,6 @@ export function flagImportDuplicates(
 			const key = fullName(result.input.name, result.input.lastName);
 			if (seenNames.has(key)) {
 				return fail(`"${result.input.name} ${result.input.lastName}" repetido en el archivo`);
-			}
-			if (nameOwner.has(key)) {
-				return fail(
-					`Ya existe un empleado llamado "${result.input.name} ${result.input.lastName}"`,
-				);
 			}
 			seenNames.add(key);
 		}

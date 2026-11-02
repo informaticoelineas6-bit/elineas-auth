@@ -121,6 +121,8 @@ export const createEmployeeWithUserSchema = z.object({
 		image: z.string().optional(),
 	}),
 	employee: employeeSectionSchema,
+	// false = crea la cuenta sin enviar la invitación (por defecto se envía).
+	sendInvite: z.boolean().optional(),
 });
 
 // Esquema del formulario de alta (solo cliente): espeja las reglas del servidor.

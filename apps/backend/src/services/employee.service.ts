@@ -9,7 +9,7 @@ import {
   revokeAllUserSessions,
 } from "@backend/lib/user-active.ts";
 import { HttpError } from "@backend/lib/http.ts";
-import { generateInitialPassword, sendAccountInvite } from "@backend/lib/invite.ts";
+import { enqueueAccountInvite, generateInitialPassword } from "@backend/lib/invite.ts";
 import { queryIsAdmin } from "@backend/middleware/admin.ts";
 import { escapeLike } from "@backend/lib/search.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
@@ -178,9 +178,9 @@ export async function createEmployeeWithUser(
       .returning();
     // La invitación se envía solo cuando el alta completa (usuario + empleado)
     // tuvo éxito: si el insert falla, el usuario se compensa/borra y no debe
-    // recibir aviso. Sin await: un fallo del correo no aborta el alta
-    // (sendAccountInvite captura y loguea, nunca lanza).
-    void sendAccountInvite(input.user.email);
+    // recibir aviso. Va a una cola serializada (sin await): un fallo del correo
+    // no aborta el alta (sendAccountInvite captura y loguea, nunca lanza).
+    if (input.sendInvite !== false) enqueueAccountInvite(input.user.email);
     return { user: response.user, employee: row };
   } catch (error) {
     // Compensación: borra el usuario recién creado para no dejar una cuenta

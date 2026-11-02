@@ -9,6 +9,19 @@ export function generateInitialPassword(): string {
   return `Aa1!${randomBytes(32).toString("base64url")}`;
 }
 
+// Cola de invitaciones en memoria: un envío a la vez con una pausa entre
+// correos, para que un alta masiva (p. ej. importar decenas de usuarios) no
+// sature el proveedor SMTP ni el proceso. Si el proceso se reinicia, los
+// pendientes se pierden; se pueden reenviar con `resendUserInvite`.
+const INVITE_GAP_MS = 1500;
+let inviteQueue: Promise<void> = Promise.resolve();
+
+export function enqueueAccountInvite(email: string): void {
+  inviteQueue = inviteQueue
+    .then(() => sendAccountInvite(email))
+    .then(() => new Promise<void>((resolve) => setTimeout(resolve, INVITE_GAP_MS)));
+}
+
 // Envía (o reenvía) el enlace de un solo uso para establecer la contraseña.
 // better-auth genera el token y llama a `sendResetPassword` (ver lib/auth.ts).
 // Nunca lanza: un fallo de correo no debe abortar un alta ya completada; se

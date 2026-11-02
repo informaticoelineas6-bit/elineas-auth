@@ -8,10 +8,10 @@ import type { Employee } from "../shared/types.ts";
 const loadXlsx = () => import("hucre/xlsx");
 
 // Columnas del CSV/JSON/Excel de exportación e importación. `id` y `email`
-// son informativos: `email` es de solo lectura (viene de la cuenta de
-// usuario enlazada, si existe, y se ignora al importar — este flujo no crea
-// ni enlaza cuentas de usuario); `id`, si viene informado en la importación,
-// hace que la fila actualice ese usuario en vez de crear uno nuevo.
+// son informativos al exportar. Al importar, `email` crea la cuenta de acceso
+// de las filas nuevas (y sirve para reconocer usuarios existentes; nunca
+// modifica una cuenta ya existente); `id`, si viene informado, hace que la fila
+// actualice ese usuario en vez de crear uno nuevo.
 export const EMPLOYEE_EXPORT_COLUMNS = [
 	"id",
 	"name",

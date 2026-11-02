@@ -1,5 +1,6 @@
 import { AlertTriangle, CheckCircle2, Upload, XCircle } from "lucide-react";
 import { useState } from "react";
+import { Checkbox } from "@/modules/common/components/ui/checkbox.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	Dialog,
@@ -16,6 +17,7 @@ import { parseEmployeeFile } from "@/modules/employees/lib/import-export.ts";
 import type { ImportRowResult } from "@/modules/employees/lib/import-validate.ts";
 import {
 	useCreateEmployee,
+	useCreateEmployeeWithUser,
 	useExportEmployees,
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
@@ -35,17 +37,22 @@ export function ImportDialog({
 	onOpenChange: (open: boolean) => void;
 }) {
 	const createEmployee = useCreateEmployee();
+	const createWithUser = useCreateEmployeeWithUser();
 	const updateEmployee = useUpdateEmployee();
 	const loadExisting = useExportEmployees();
 
 	const [parsing, setParsing] = useState(false);
 	const [parseError, setParseError] = useState<string | undefined>();
 	const [rows, setRows] = useState<ImportRowResult[] | null>(null);
+	// Por defecto NO se envían invitaciones: las cuentas se crean y se invita
+	// después (evita una ráfaga de correos en importaciones grandes).
+	const [sendInvites, setSendInvites] = useState(false);
 	const [importing, setImporting] = useState(false);
 	const [progress, setProgress] = useState(0);
 	const [outcomes, setOutcomes] = useState<RowOutcome[] | null>(null);
 
 	function reset() {
+		setSendInvites(false);
 		setParsing(false);
 		setParseError(undefined);
 		setRows(null);
@@ -105,8 +112,31 @@ export function ImportDialog({
 			}
 			try {
 				if (result.kind === "create") {
-					await createEmployee.mutateAsync(result.input);
-					results.push({ row: result.row, label: "Creado", status: "ok" });
+					if (result.email) {
+						// Crea la cuenta y envía la invitación para fijar la contraseña.
+						const { userId: _userId, ...employeeInput } = result.input;
+						await createWithUser.mutateAsync({
+							user: {
+								name: `${result.input.name} ${result.input.lastName}`.slice(
+									0,
+									100,
+								),
+								email: result.email,
+							},
+							employee: employeeInput,
+							sendInvite: sendInvites,
+						});
+						results.push({
+							row: result.row,
+							label: sendInvites
+								? "Creado con cuenta (invitación en cola)"
+								: "Creado con cuenta",
+							status: "ok",
+						});
+					} else {
+						await createEmployee.mutateAsync(result.input);
+						results.push({ row: result.row, label: "Creado", status: "ok" });
+					}
 				} else {
 					await updateEmployee.mutateAsync({
 						id: result.id,
@@ -129,6 +159,8 @@ export function ImportDialog({
 	}
 
 	const toCreate = rows?.filter((r) => r.kind === "create").length ?? 0;
+	const toCreateWithAccount =
+		rows?.filter((r) => r.kind === "create" && r.email).length ?? 0;
 	const toUpdate = rows?.filter((r) => r.kind === "update").length ?? 0;
 	const invalid = rows?.filter((r) => r.kind === "error") ?? [];
 	const okCount = outcomes?.filter((o) => o.status === "ok").length ?? 0;
@@ -147,10 +179,12 @@ export function ImportDialog({
 				<DialogHeader>
 					<DialogTitle>Importar usuarios</DialogTitle>
 					<DialogDescription>
-						Sube un archivo CSV, JSON o Excel con los datos de empleado (nombre,
-						apellido, CI…). Si una fila trae <code>id</code>, actualiza ese
-						usuario; si no, crea uno nuevo. No crea cuentas de acceso
-						(email/contraseña): eso se gestiona desde "Nuevo usuario".
+						Sube un archivo CSV, JSON o Excel con nombre y apellido (el resto es
+						opcional). Si la fila trae <code>id</code>, o coincide con un
+						usuario existente (CI, correo o nombre completo), lo actualiza; si
+						no, crea uno nuevo. Si trae <code>email</code>, al crear también se
+						crea también la cuenta (la invitación por correo es opcional, tras
+						la vista previa). A usuarios existentes no se les crea cuenta.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -204,6 +238,22 @@ export function ImportDialog({
 									<p>… y {invalid.length - 20} fila(s) más.</p>
 								)}
 							</div>
+						)}
+
+						{toCreateWithAccount > 0 && (
+							<label className="flex items-start gap-2 text-sm">
+								<Checkbox
+									checked={sendInvites}
+									disabled={importing}
+									onCheckedChange={(v) => setSendInvites(v === true)}
+									className="mt-0.5"
+								/>
+								<span>
+									Enviar invitación por correo a las {toCreateWithAccount}{" "}
+									cuenta(s) nuevas. Se envían una a una, con pausa. Si no, se
+									crean sin correo y puedes invitarlas después.
+								</span>
+							</label>
 						)}
 
 						{importing && (
