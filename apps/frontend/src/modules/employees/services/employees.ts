@@ -39,6 +39,16 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
 	return employee;
 }
 
+export function createEmployeeAccount(
+	id: string,
+	input: { email: string; sendInvite?: boolean },
+) {
+	return isApi.post<EmployeeWithUserResult>(
+		`/api/employees/${id}/account`,
+		input,
+	);
+}
+
 export function deleteEmployee(id: string) {
 	return isApi.delete<StatusResponse>(`/api/employees/${id}`);
 }

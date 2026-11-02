@@ -17,11 +17,13 @@ import {
   EmployeeWithUserResultSchema,
   forbiddenResponse,
   notFoundResponse,
+  SignUpBodySchema,
   StatusResponseSchema,
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
   createEmployee,
+  createAccountForEmployee,
   createEmployeeWithUser,
   deleteEmployee,
   getEmployee,
@@ -142,6 +144,45 @@ const createWithUserRoute = createRoute({
   },
 });
 
+const createAccountRoute = createRoute({
+  method: "post",
+  path: "/{id}/account",
+  operationId: "createEmployeeAccount",
+  tags: ["Employees"],
+  summary: "Crear la cuenta de acceso de un empleado que no la tiene",
+  security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("employees", "write"),
+  ] as const,
+  request: {
+    params: IdParamSchema,
+    body: {
+      content: {
+        "application/json": {
+          schema: SignUpBodySchema.pick({ email: true }).extend({
+            sendInvite: z.boolean().optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    201: {
+      description: "Cuenta creada y enlazada al empleado",
+      content: {
+        "application/json": { schema: EmployeeWithUserResultSchema },
+      },
+    },
+    400: badRequestResponse,
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+    // 409: el empleado ya tiene cuenta o el email ya existe.
+    409: conflictResponse,
+  },
+});
+
 const updateRoute = createRoute({
   method: "patch",
   path: "/{id}",
@@ -234,6 +275,12 @@ export const employeesRoutes = employeesRoutesBase
   .openapi(createWithUserRoute, async (c) => {
     const body = c.req.valid("json");
     const result = await createEmployeeWithUser(body, c.req.raw.headers, c.get("user").id);
+    return c.json(result, 201);
+  })
+  .openapi(createAccountRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    const body = c.req.valid("json");
+    const result = await createAccountForEmployee(id, body, c.req.raw.headers);
     return c.json(result, 201);
   })
   .openapi(updateRoute, async (c) => {

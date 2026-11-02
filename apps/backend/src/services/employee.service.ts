@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, ne, or } from "drizzle-orm";
+import { and, count, desc, eq, ilike, isNull, ne, or } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
 import { employee } from "@backend/db/business-schema.ts";
@@ -192,6 +192,55 @@ export async function createEmployeeWithUser(
     } catch (cleanupError) {
       console.error(
         `No se pudo revertir el usuario huérfano ${response.user.id} tras fallar el alta del empleado:`,
+        cleanupError instanceof Error ? cleanupError.message : cleanupError,
+      );
+    }
+    throw error;
+  }
+}
+
+// Crea la cuenta de acceso de un empleado que aún no tiene una y la enlaza.
+// Mismo patrón que `createEmployeeWithUser`: crea el usuario (contraseña
+// aleatoria) y enlaza; si el enlace falla, borra el usuario para no dejar
+// cuentas huérfanas.
+export async function createAccountForEmployee(
+  id: string,
+  input: { email: string; name?: string; sendInvite?: boolean },
+  headers: Headers,
+) {
+  const emp = await getEmployee(id);
+  if (emp.userId) {
+    throw new HttpError(409, "El empleado ya tiene una cuenta de usuario", "CONFLICT");
+  }
+
+  const { response } = await auth.api.signUpEmail({
+    body: {
+      name: (input.name ?? `${emp.name} ${emp.lastName}`).slice(0, 100),
+      email: input.email,
+      password: generateInitialPassword(),
+    },
+    headers,
+    returnHeaders: true,
+  });
+
+  try {
+    // Condición `userId IS NULL`: evita enlazar dos cuentas si hubo una carrera.
+    const [row] = await db
+      .update(employee)
+      .set({ userId: response.user.id })
+      .where(and(eq(employee.id, id), isNull(employee.userId)))
+      .returning();
+    if (!row) {
+      throw new HttpError(409, "El empleado ya tiene una cuenta de usuario", "CONFLICT");
+    }
+    if (input.sendInvite !== false) enqueueAccountInvite(input.email);
+    return { user: response.user, employee: row };
+  } catch (error) {
+    try {
+      await db.delete(user).where(eq(user.id, response.user.id));
+    } catch (cleanupError) {
+      console.error(
+        `No se pudo revertir el usuario huérfano ${response.user.id}:`,
         cleanupError instanceof Error ? cleanupError.message : cleanupError,
       );
     }

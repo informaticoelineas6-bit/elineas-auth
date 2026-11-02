@@ -6,6 +6,7 @@ import {
 import { sessionKeys } from "@/modules/sessions/queries/sessions.ts";
 import { userRoleKeys } from "@/modules/user-roles/queries/user-roles.ts";
 import {
+	createEmployeeAccountFn,
 	createEmployeeFn,
 	createEmployeeWithUserFn,
 	deleteEmployeeFn,
@@ -61,6 +62,25 @@ export function useCreateEmployeeWithUser() {
 			createEmployeeWithUserFn({ data: input }),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: employeeKeys.lists() }),
+	});
+}
+
+export function useCreateEmployeeAccount() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: {
+			id: string;
+			email: string;
+			sendInvite?: boolean;
+		}) =>
+			createEmployeeAccountFn({
+				data: {
+					id: input.id,
+					body: { email: input.email, sendInvite: input.sendInvite },
+				},
+			}),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: employeeKeys.all }),
 	});
 }
 

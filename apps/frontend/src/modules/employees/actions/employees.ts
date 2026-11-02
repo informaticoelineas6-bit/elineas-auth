@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuthMiddleware } from "#/modules/auth/middlewares/auth.ts";
-import { idSchema } from "#/modules/common/lib/validation.ts";
+import { z } from "zod";
+import {
+	companyEmailSchema,
+	idSchema,
+} from "#/modules/common/lib/validation.ts";
 import {
 	createEmployeeSchema,
 	createEmployeeWithUserSchema,
@@ -9,6 +13,7 @@ import {
 } from "../lib/validation.ts";
 import {
 	createEmployee,
+	createEmployeeAccount,
 	createEmployeeWithUser,
 	deleteEmployee,
 	getEmployee,
@@ -35,6 +40,18 @@ export const createEmployeeWithUserFn = createServerFn({ method: "POST" })
 	.middleware([requireAuthMiddleware])
 	.validator(createEmployeeWithUserSchema)
 	.handler(({ data }) => createEmployeeWithUser(data));
+
+export const createEmployeeAccountFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(
+		idSchema.extend({
+			body: z.object({
+				email: companyEmailSchema,
+				sendInvite: z.boolean().optional(),
+			}),
+		}),
+	)
+	.handler(({ data }) => createEmployeeAccount(data.id, data.body));
 
 export const updateEmployeeFn = createServerFn({ method: "POST" })
 	.middleware([requireAuthMiddleware])

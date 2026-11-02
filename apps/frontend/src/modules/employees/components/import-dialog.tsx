@@ -17,6 +17,7 @@ import { parseEmployeeFile } from "@/modules/employees/lib/import-export.ts";
 import type { ImportRowResult } from "@/modules/employees/lib/import-validate.ts";
 import {
 	useCreateEmployee,
+	useCreateEmployeeAccount,
 	useCreateEmployeeWithUser,
 	useExportEmployees,
 	useUpdateEmployee,
@@ -38,6 +39,7 @@ export function ImportDialog({
 }) {
 	const createEmployee = useCreateEmployee();
 	const createWithUser = useCreateEmployeeWithUser();
+	const createAccount = useCreateEmployeeAccount();
 	const updateEmployee = useUpdateEmployee();
 	const loadExisting = useExportEmployees();
 
@@ -142,7 +144,25 @@ export function ImportDialog({
 						id: result.id,
 						input: result.input,
 					});
-					results.push({ row: result.row, label: "Actualizado", status: "ok" });
+					// Empleado existente sin cuenta y con correo en la fila: se crea y
+					// enlaza la cuenta. Si falla, la fila sale como error (los datos
+					// del empleado ya quedaron actualizados).
+					if (result.email) {
+						await createAccount.mutateAsync({
+							id: result.id,
+							email: result.email,
+							sendInvite: sendInvites,
+						});
+					}
+					results.push({
+						row: result.row,
+						label: result.email
+							? sendInvites
+								? "Actualizado y cuenta creada (invitación en cola)"
+								: "Actualizado y cuenta creada"
+							: "Actualizado",
+						status: "ok",
+					});
 				}
 			} catch (error) {
 				results.push({
@@ -160,7 +180,7 @@ export function ImportDialog({
 
 	const toCreate = rows?.filter((r) => r.kind === "create").length ?? 0;
 	const toCreateWithAccount =
-		rows?.filter((r) => r.kind === "create" && r.email).length ?? 0;
+		rows?.filter((r) => r.kind !== "error" && r.email).length ?? 0;
 	const toUpdate = rows?.filter((r) => r.kind === "update").length ?? 0;
 	const invalid = rows?.filter((r) => r.kind === "error") ?? [];
 	const okCount = outcomes?.filter((o) => o.status === "ok").length ?? 0;
@@ -182,9 +202,10 @@ export function ImportDialog({
 						Sube un archivo CSV, JSON o Excel con nombre y apellido (el resto es
 						opcional). Si la fila trae <code>id</code>, o coincide con un
 						usuario existente (CI, correo o nombre completo), lo actualiza; si
-						no, crea uno nuevo. Si trae <code>email</code>, al crear también se
-						crea también la cuenta (la invitación por correo es opcional, tras
-						la vista previa). A usuarios existentes no se les crea cuenta.
+						no, crea uno nuevo. Si trae <code>email</code>, también se crea la
+						cuenta (en usuarios nuevos y en existentes que aún no tengan una);
+						la invitación por correo es opcional, tras la vista previa. Una
+						cuenta que ya existe no se modifica.
 					</DialogDescription>
 				</DialogHeader>
 
@@ -250,7 +271,7 @@ export function ImportDialog({
 								/>
 								<span>
 									Enviar invitación por correo a las {toCreateWithAccount}{" "}
-									cuenta(s) nuevas. Se envían una a una, con pausa. Si no, se
+									cuenta(s) a crear. Se envían una a una, con pausa. Si no, se
 									crean sin correo y puedes invitarlas después.
 								</span>
 							</label>

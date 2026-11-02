@@ -74,14 +74,22 @@ export type ImportRowResult =
 			// Si viene, se crea también la cuenta de usuario con este correo.
 			email?: string;
 	  }
-	| { kind: "update"; row: number; id: string; input: UpdateEmployeeInput }
+	| {
+			kind: "update";
+			row: number;
+			id: string;
+			input: UpdateEmployeeInput;
+			// Si viene, el empleado no tiene cuenta: se le crea y enlaza con este correo.
+			email?: string;
+	  }
 	| { kind: "error"; row: number; message: string };
 
 // Valida y normaliza una fila "cruda" del archivo. Con `id` presente, la fila
 // actualiza ese usuario existente; sin `id`, crea uno nuevo (y, si trae
 // `email`, también su cuenta de acceso). `flagImportDuplicates` convierte luego
 // en actualización las filas que ya existen (por CI, correo o nombre).
-// Una actualización nunca toca la cuenta de usuario.
+// Una actualización no modifica una cuenta existente; solo crea una si el
+// empleado no tiene y la fila trae correo (ver flagImportDuplicates).
 export function mapImportRow(
 	row: RawImportRow,
 	index: number,
@@ -213,6 +221,17 @@ export function flagImportDuplicates(
 			message,
 		});
 		const selfId = result.kind === "update" ? result.id : undefined;
+
+		// Empleado existente SIN cuenta y fila con correo: se le creará la cuenta.
+		if (result.kind === "update" && rowMail && !byId.get(result.id)?.user) {
+			const parsed = companyEmailSchema.safeParse(rowMail);
+			if (!parsed.success) {
+				return fail(
+					`Correo: ${parsed.error.issues[0]?.message ?? "no válido"}`,
+				);
+			}
+			result = { ...result, email: rowMail };
+		}
 
 		if (selfId) {
 			if (!byId.has(selfId)) {
