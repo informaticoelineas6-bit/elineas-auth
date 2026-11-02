@@ -103,6 +103,11 @@ export const jwks = pgTable("jwks", {
   privateKey: text("private_key").notNull(),
   createdAt: timestamp("created_at").notNull(),
   expiresAt: timestamp("expires_at"),
+  // Los escribe el plugin jwt de better-auth >= 1.7 al crear una clave: sin estas
+  // columnas, `sign-in` falla con 500 («The field "alg" does not exist in the
+  // "jwks" Drizzle schema») sobre una base nueva y en la primera rotación de claves.
+  alg: text("alg"),
+  crv: text("crv"),
 });
 
 export const relations = defineRelations(
