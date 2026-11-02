@@ -1,5 +1,5 @@
 import { deferOnClient } from "@/modules/common/lib/query.ts";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -23,9 +23,16 @@ import {
 } from "@/modules/common/lib/errors.ts";
 import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import {
+	permissionsQueries,
+	useAssignPermission,
+} from "@/modules/permissions/queries/permissions.ts";
 import { getRoleColumns } from "@/modules/roles/lib/columns.tsx";
 import { exportRoles } from "@/modules/roles/lib/import-export.ts";
-import { mapRoleRows } from "@/modules/roles/lib/import-validate.ts";
+import {
+	mapRoleRows,
+	type PermissionSpec,
+} from "@/modules/roles/lib/import-validate.ts";
 import { roleFiltersSchema } from "@/modules/roles/lib/validation.ts";
 import {
 	rolesQueries,
@@ -64,6 +71,8 @@ function RolesPage() {
 	const deleteRole = useDeleteRole();
 	const createRole = useCreateRole();
 	const updateRole = useUpdateRole();
+	const assignPermission = useAssignPermission();
+	const queryClient = useQueryClient();
 	const exportRolesQuery = useExportRoles();
 	const [importOpen, setImportOpen] = useState(false);
 
@@ -90,7 +99,22 @@ function RolesPage() {
 					return;
 				}
 				try {
-					await exportRoles(roles, systemsById, format);
+					// Permisos por rol: el catálogo agrupado por sistema ya trae, por
+					// permiso, los roles que lo tienen.
+					const bySystem = await queryClient.fetchQuery(
+						permissionsQueries.bySystem(),
+					);
+					const permissionsByRole = new Map<string, string[]>();
+					for (const { permissions } of bySystem) {
+						for (const perm of permissions) {
+							for (const r of perm.roles) {
+								const list = permissionsByRole.get(r.id) ?? [];
+								list.push(`${perm.resource}:${perm.action}`);
+								permissionsByRole.set(r.id, list);
+							}
+						}
+					}
+					await exportRoles(roles, systemsById, permissionsByRole, format);
 					toast.success(`${roles.length} rol(es) exportado(s)`);
 				} catch (error) {
 					reportError(error, "No se pudo generar el archivo.");
@@ -98,6 +122,34 @@ function RolesPage() {
 			},
 			onError: (error) => reportError(error, "No se pudo exportar el listado."),
 		});
+	}
+
+	// Asigna (creando si hace falta) cada permiso al rol, uno a uno. Solo añade:
+	// nunca quita permisos que el rol ya tenga. Si alguno falla, lanza con el
+	// detalle para que la fila salga como error (el rol ya está guardado).
+	async function applyPermissions(
+		roleId: string,
+		systemId: string,
+		permissions: PermissionSpec[],
+	) {
+		const failed: string[] = [];
+		for (const { resource, action } of permissions) {
+			try {
+				await assignPermission.mutateAsync({
+					systemId,
+					roleId,
+					resource,
+					action,
+				});
+			} catch {
+				failed.push(`${resource}:${action}`);
+			}
+		}
+		if (failed.length > 0) {
+			throw new Error(
+				`Rol guardado, pero no se pudieron asignar: ${failed.join(", ")}`,
+			);
+		}
 	}
 
 	function confirmDelete() {
@@ -209,13 +261,18 @@ function RolesPage() {
 					<>
 						Sube un archivo CSV, JSON o Excel con las columnas{" "}
 						<code>system</code> (slug del sistema), <code>name</code> y{" "}
-						<code>description</code>. Si una fila trae <code>id</code>,
-						actualiza el nombre y la descripción de ese rol (el sistema no se
-						puede cambiar); si no, crea uno nuevo.
+						<code>description</code> y, opcionalmente, <code>permissions</code>{" "}
+						(lista <code>recurso:acción</code> separada por <code>;</code>, p.
+						ej. <code>users:read;users:write</code>). Los permisos que no existan
+						se crean y se asignan al rol; los que el rol ya tenga no se quitan.
+						Si una fila trae <code>id</code>, actualiza ese rol (el sistema no
+						se puede cambiar); si no, crea uno nuevo.
 					</>
 				}
-				mapRows={async (raw) =>
-					mapRoleRows(
+				mapRows={async (raw) => {
+					// Todos los roles (no solo la página visible) para validar los ids.
+					const allRoles = await exportRolesQuery.mutateAsync({});
+					return mapRoleRows(
 						raw,
 						new Map(
 							(systemsQuery.data?.systems ?? []).map((system) => [
@@ -223,10 +280,19 @@ function RolesPage() {
 								system.id,
 							]),
 						),
-					)
-				}
-				onCreate={(input) => createRole.mutateAsync(input)}
-				onUpdate={(id, input) => updateRole.mutateAsync({ id, input })}
+						new Map(allRoles.map((r) => [r.id, r.systemId])),
+					);
+				}}
+				onCreate={async ({ permissions, ...input }) => {
+					const role = await createRole.mutateAsync(input);
+					await applyPermissions(role.id, input.systemId, permissions);
+				}}
+				onUpdate={async (id, { permissions, systemId, ...input }) => {
+					if (input.name !== undefined || input.description !== undefined) {
+						await updateRole.mutateAsync({ id, input });
+					}
+					await applyPermissions(id, systemId, permissions);
+				}}
 			/>
 		</div>
 	);

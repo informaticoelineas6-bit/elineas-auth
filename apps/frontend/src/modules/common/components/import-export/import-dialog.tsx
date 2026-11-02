@@ -35,6 +35,7 @@ export function ImportDialog<C, U>({
 	mapRows,
 	onCreate,
 	onUpdate,
+	createdLabel = "Creado",
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -43,6 +44,8 @@ export function ImportDialog<C, U>({
 	mapRows: (raw: RawImportRow[]) => Promise<ImportRowResult<C, U>[]>;
 	onCreate: (input: C) => Promise<unknown>;
 	onUpdate: (id: string, input: U) => Promise<unknown>;
+	// Texto del resultado de las filas "create" (p. ej. "Asignado").
+	createdLabel?: string;
 }) {
 	const [parsing, setParsing] = useState(false);
 	const [parseError, setParseError] = useState<string | undefined>();
@@ -94,7 +97,7 @@ export function ImportDialog<C, U>({
 			try {
 				if (result.kind === "create") {
 					await onCreate(result.input);
-					results.push({ row: result.row, label: "Creado", status: "ok" });
+					results.push({ row: result.row, label: createdLabel, status: "ok" });
 				} else {
 					await onUpdate(result.id, result.input);
 					results.push({ row: result.row, label: "Actualizado", status: "ok" });

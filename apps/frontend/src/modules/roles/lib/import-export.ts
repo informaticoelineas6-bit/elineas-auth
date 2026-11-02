@@ -9,12 +9,15 @@ import type { Role } from "../shared/types.ts";
 // hace que la fila actualice ese rol (solo nombre y descripción: el IS no
 // permite cambiar el sistema de un rol); sin `id` crea uno nuevo. `system` es el
 // SLUG del sistema, legible en una hoja de cálculo y estable entre entornos (a
-// diferencia del id).
+// diferencia del id). `permissions` lista los permisos del rol como
+// "recurso:acción" separados por ";" (p. ej. "users:read;users:write"); al
+// importar se crean si no existen y se asignan al rol (nunca se quitan).
 export const ROLE_EXPORT_COLUMNS = [
 	"id",
 	"system",
 	"name",
 	"description",
+	"permissions",
 ] as const;
 
 type RoleExportRow = Record<(typeof ROLE_EXPORT_COLUMNS)[number], string>;
@@ -22,22 +25,27 @@ type RoleExportRow = Record<(typeof ROLE_EXPORT_COLUMNS)[number], string>;
 function roleToRow(
 	role: Role,
 	systemsById: Map<string, System>,
+	permissions: string[],
 ): RoleExportRow {
 	return {
 		id: role.id,
 		system: systemsById.get(role.systemId)?.slug ?? "",
 		name: role.name,
 		description: role.description ?? "",
+		permissions: permissions.join(";"),
 	};
 }
 
 export function exportRoles(
 	roles: Role[],
 	systemsById: Map<string, System>,
+	permissionsByRole: Map<string, string[]>,
 	format: ExportFormat,
 ) {
 	return exportTable({
-		rows: roles.map((role) => roleToRow(role, systemsById)),
+		rows: roles.map((role) =>
+			roleToRow(role, systemsById, permissionsByRole.get(role.id) ?? []),
+		),
 		columns: ROLE_EXPORT_COLUMNS,
 		format,
 		filename: "roles",
