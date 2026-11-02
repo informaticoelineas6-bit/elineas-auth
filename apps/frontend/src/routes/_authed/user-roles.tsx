@@ -1,7 +1,7 @@
 import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { TriangleAlert, UserPlus } from "lucide-react";
+import { Trash2, TriangleAlert, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dial
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
+import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	getErrorMessage,
@@ -81,6 +82,10 @@ function UserRolesPage() {
 
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [toRevoke, setToRevoke] = useState<UserRole | null>(null);
+	const [bulk, setBulk] = useState<{
+		rows: UserRole[];
+		clear: () => void;
+	} | null>(null);
 
 	const isForbidden = getErrorStatus(query.error) === 403;
 
@@ -139,6 +144,21 @@ function UserRolesPage() {
 				role.systemId === authSystemId &&
 				role.name.toLowerCase() === ADMIN_ROLE_NAME,
 		);
+	}
+
+	async function confirmBulk() {
+		if (!bulk) return;
+		const { ok, failed } = await runBulk(bulk.rows, (row) =>
+			deleteUserRole.mutateAsync(row.id),
+		);
+		if (ok > 0) toast.success(`${ok} asignación(es) revocada(s)`);
+		if (failed.length > 0) {
+			toast.error(`No se pudieron revocar ${failed.length} asignación(es)`, {
+				description: getErrorMessage(failed[0].error),
+			});
+		}
+		bulk.clear();
+		setBulk(null);
 	}
 
 	function confirmRevoke() {
@@ -243,10 +263,51 @@ function UserRolesPage() {
 							/>
 						</>
 					}
+					enableRowSelection
+					renderSelectionActions={(rows, clear) => (
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={() => setBulk({ rows, clear })}
+						>
+							<Trash2 />
+							Revocar
+						</Button>
+					)}
 				/>
 			)}
 
 			<AssignRoleDialog open={assignOpen} onOpenChange={setAssignOpen} />
+
+			<ConfirmDialog
+				open={bulk !== null}
+				onOpenChange={(open) => !open && setBulk(null)}
+				title="Revocar asignaciones"
+				description={
+					bulk ? (
+						<span className="space-y-3">
+							<span className="block">
+								¿Seguro que quieres revocar {bulk.rows.length} asignación(es)?
+								Los usuarios perderán el acceso que dependa de esos roles.
+							</span>
+							{bulk.rows.some(isAuthAdminAssignment) && (
+								<span className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+									<TriangleAlert className="mt-0.5 size-4 shrink-0" />
+									<span>
+										La selección incluye roles <strong>admin</strong> de esta
+										consola. Si te los quitas a ti mismo, o dejas la consola sin
+										administradores, nadie podrá volver a gestionarla.
+									</span>
+								</span>
+							)}
+						</span>
+					) : undefined
+				}
+				confirmLabel="Revocar"
+				destructive
+				loading={deleteUserRole.isPending}
+				onConfirm={confirmBulk}
+			/>
 
 			<ConfirmDialog
 				open={toRevoke !== null}

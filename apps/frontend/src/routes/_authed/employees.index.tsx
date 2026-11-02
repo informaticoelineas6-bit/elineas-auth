@@ -2,7 +2,7 @@ import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Upload, UserPlus } from "lucide-react";
+import { Trash2, Upload, UserPlus } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -14,6 +14,7 @@ import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dial
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
+import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	getErrorMessage,
@@ -71,6 +72,10 @@ function EmployeesPage() {
 	);
 	const [toDeactivate, setToDeactivate] = useState<Employee | null>(null);
 	const [importOpen, setImportOpen] = useState(false);
+	const [bulk, setBulk] = useState<{
+		rows: Employee[];
+		clear: () => void;
+	} | null>(null);
 
 	// Un 403 del IS es "sin permisos", no un error genérico con reintentar.
 	const isForbidden = getErrorStatus(query.error) === 403;
@@ -102,6 +107,21 @@ function EmployeesPage() {
 				onError: (error) => reportError(error),
 			},
 		);
+	}
+
+	async function confirmBulk() {
+		if (!bulk) return;
+		const { ok, failed } = await runBulk(bulk.rows, (row) =>
+			deleteEmployee.mutateAsync(row.id),
+		);
+		if (ok > 0) toast.success(`${ok} usuario(s) eliminado(s)`);
+		if (failed.length > 0) {
+			toast.error(`No se pudieron eliminar ${failed.length} usuario(s)`, {
+				description: getErrorMessage(failed[0].error),
+			});
+		}
+		bulk.clear();
+		setBulk(null);
 	}
 
 	function confirmDelete() {
@@ -227,8 +247,35 @@ function EmployeesPage() {
 							]}
 						/>
 					}
+					enableRowSelection
+					renderSelectionActions={(rows, clear) => (
+						<Button
+							variant="destructive"
+							size="sm"
+							disabled={!canDelete}
+							onClick={() => setBulk({ rows, clear })}
+						>
+							<Trash2 />
+							Eliminar
+						</Button>
+					)}
 				/>
 			)}
+
+			<ConfirmDialog
+				open={bulk !== null}
+				onOpenChange={(open) => !open && setBulk(null)}
+				title="Eliminar usuarios"
+				description={
+					bulk
+						? `¿Seguro que quieres eliminar ${bulk.rows.length} usuario(s)? Se eliminan también sus cuentas, asignaciones de rol y sesiones activas. Esta acción no se puede deshacer.`
+						: undefined
+				}
+				confirmLabel="Eliminar"
+				destructive
+				loading={deleteEmployee.isPending}
+				onConfirm={confirmBulk}
+			/>
 
 			<ConfirmDialog
 				open={toDeactivate !== null}

@@ -1,7 +1,7 @@
 import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -15,6 +15,7 @@ import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dial
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
+import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	getErrorMessage,
@@ -77,6 +78,10 @@ function RolesPage() {
 	const [importOpen, setImportOpen] = useState(false);
 
 	const [target, setTarget] = useState<Role | null>(null);
+	const [bulk, setBulk] = useState<{
+		rows: Role[];
+		clear: () => void;
+	} | null>(null);
 
 	const isForbidden = getErrorStatus(query.error) === 403;
 
@@ -150,6 +155,22 @@ function RolesPage() {
 				`Rol guardado, pero no se pudieron asignar: ${failed.join(", ")}`,
 			);
 		}
+	}
+
+	async function confirmBulk() {
+		if (!bulk) return;
+		const { ok, failed } = await runBulk(bulk.rows, (row) =>
+			deleteRole.mutateAsync(row.id),
+		);
+		if (ok > 0) toast.success(`${ok} rol(es) eliminado(s)`);
+		if (failed.length > 0) {
+			// Un 409 es un rol con asignaciones que aún dependen de él.
+			toast.error(`No se pudieron eliminar ${failed.length} rol(es)`, {
+				description: getErrorMessage(failed[0].error),
+			});
+		}
+		bulk.clear();
+		setBulk(null);
 	}
 
 	function confirmDelete() {
@@ -235,8 +256,34 @@ function RolesPage() {
 							}))}
 						/>
 					}
+					enableRowSelection
+					renderSelectionActions={(rows, clear) => (
+						<Button
+							variant="destructive"
+							size="sm"
+							onClick={() => setBulk({ rows, clear })}
+						>
+							<Trash2 />
+							Eliminar
+						</Button>
+					)}
 				/>
 			)}
+
+			<ConfirmDialog
+				open={bulk !== null}
+				onOpenChange={(open) => !open && setBulk(null)}
+				title="Eliminar roles"
+				description={
+					bulk
+						? `¿Seguro que quieres eliminar ${bulk.rows.length} rol(es)? Los usuarios que los tengan asignados perderán el acceso que dependa de ellos. Esta acción no se puede deshacer.`
+						: undefined
+				}
+				confirmLabel="Eliminar"
+				destructive
+				loading={deleteRole.isPending}
+				onConfirm={confirmBulk}
+			/>
 
 			<ConfirmDialog
 				open={target !== null}
