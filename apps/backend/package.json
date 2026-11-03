@@ -32,7 +32,7 @@
     "@hono/zod-openapi": "^1.6.2",
     "@react-email/components": "^1.0.12",
     "@react-email/render": "^2.1.0",
-    "better-auth": "^1.7.2",
+    "better-auth": "^1.7.15",
     "drizzle-orm": "1.0.0-rc.4",
     "evlog": "^2.28.0",
     "hono": "^4.13.5",
