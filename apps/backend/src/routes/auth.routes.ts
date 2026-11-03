@@ -75,9 +75,20 @@ const signInRoute = createRoute({
     "Exige un token de captcha (Cloudflare Turnstile) en la cabecera " +
     "`X-Turnstile-Token` cuando el servidor tiene `TURNSTILE_SECRET_KEY`. " +
     "Sin token válido responde `403` con `code: CAPTCHA_FAILED`. El token es de " +
-    "un solo uso y se obtiene del widget en el navegador.",
+    "un solo uso y se obtiene del widget en el navegador. Los clientes sin " +
+    "navegador pueden enviar en su lugar la clave de servicio del sistema en " +
+    "`X-Service-Key` (junto con `systemSlug`), que sustituye al captcha; una " +
+    "clave inválida responde `403` con `code: SERVICE_KEY_INVALID`.",
   request: {
     headers: z.object({
+      "x-service-key": z
+        .string()
+        .optional()
+        .openapi({
+          description:
+            "Clave de servicio del sistema (se genera en POST /api/systems/{id}/service-key). Sustituye al captcha; exige `systemSlug` en el cuerpo.",
+          example: "elsk_...",
+        }),
       "x-turnstile-token": z
         .string()
         .optional()

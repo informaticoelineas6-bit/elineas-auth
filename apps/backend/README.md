@@ -1207,6 +1207,22 @@ Puntos a tener en cuenta:
   });
   ```
 
+- **Clave de servicio (clientes sin navegador):** un backend o Postman no puede
+  obtener un token de Turnstile. Un admin genera una clave por sistema con
+  `POST /api/systems/{id}/service-key` (se muestra **una sola vez**; en BD solo
+  queda su hash SHA-256; volver a llamar la rota e invalida la anterior;
+  `DELETE` la revoca; `GET` indica si existe). El cliente la envía en
+  `X-Service-Key` junto con `systemSlug` en el cuerpo y **sustituye al captcha**:
+
+  ```ts
+  headers: { "Content-Type": "application/json", "X-Service-Key": process.env.AUTH_SERVICE_KEY }
+  body: JSON.stringify({ email, password, systemSlug: "mi-sistema" })
+  ```
+
+  Si la cabecera viene, solo se valida la clave (no hay vuelta al captcha):
+  clave incorrecta, de otro sistema, sistema inactivo o sin `systemSlug` =>
+  `403 SERVICE_KEY_INVALID`. Sigue aplicando el rate limit por IP y por cuenta.
+  Guárdala solo en servidor, nunca en código de navegador.
 - **Dominios:** el widget solo emite tokens en los hostnames declarados en el
   sitio de Turnstile (Cloudflare → Turnstile → tu widget → _Hostname
   Management_). Añade el dominio de cada sistema consumidor que muestre el

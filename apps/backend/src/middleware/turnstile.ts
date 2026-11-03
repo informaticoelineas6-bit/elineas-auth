@@ -1,6 +1,7 @@
 import type { Context, Next } from "hono";
 import { env } from "@backend/config/env.ts";
 import { clientIp } from "@backend/lib/client-ip.ts";
+import { verifyServiceKey } from "@backend/services/service-key.service.ts";
 
 const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 
@@ -13,7 +14,31 @@ const VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 // middleware no hace nada. Falla cerrado: token ausente, rechazado o Cloudflare
 // inalcanzable => 403. Los tokens son de un solo uso, por eso solo debe
 // verificarse una vez (aquí; el panel ya no lo verifica por su cuenta).
+//
+// Clientes sin navegador (backends, Postman) no pueden generar el token: usan la
+// clave de servicio de su sistema en `X-Service-Key` junto con `systemSlug` en
+// el cuerpo, y eso sustituye al captcha. Si la cabecera viene, se valida SOLO la
+// clave (no hay vuelta atrás al captcha): clave incorrecta => 403
+// SERVICE_KEY_INVALID. Funciona aunque no haya TURNSTILE_SECRET_KEY.
 export async function requireTurnstile(c: Context, next: Next) {
+  const serviceKey = c.req.header("x-service-key");
+  if (serviceKey) {
+    let slug: unknown;
+    try {
+      slug = ((await c.req.json()) as { systemSlug?: unknown }).systemSlug;
+    } catch {
+      slug = undefined;
+    }
+    const ok = typeof slug === "string" && (await verifyServiceKey(slug, serviceKey));
+    if (!ok) {
+      return c.json(
+        { error: "Clave de servicio inválida para el sistema indicado.", code: "SERVICE_KEY_INVALID" },
+        403,
+      );
+    }
+    return next();
+  }
+
   const secret = env.TURNSTILE_SECRET_KEY;
   if (!secret) return next();
 

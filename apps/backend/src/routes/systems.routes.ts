@@ -21,6 +21,11 @@ import {
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
+  getServiceKeyStatus,
+  revokeServiceKey,
+  rotateServiceKey,
+} from "@backend/services/service-key.service.ts";
+import {
   createSystem,
   deleteSystem,
   getSystem,
@@ -143,6 +148,76 @@ const deleteRoute = createRoute({
   },
 });
 
+const ServiceKeyStatusSchema = z
+  .object({ hasKey: z.boolean(), createdAt: z.date().nullable() })
+  .openapi("ServiceKeyStatus");
+
+const ServiceKeyCreatedSchema = z
+  .object({
+    key: z.string().openapi({ description: "Clave en claro. Solo se muestra esta vez." }),
+    createdAt: z.date(),
+  })
+  .openapi("ServiceKeyCreated");
+
+const getServiceKeyRoute = createRoute({
+  method: "get",
+  path: "/{id}/service-key",
+  operationId: "getSystemServiceKey",
+  tags: ["Systems"],
+  summary: "Ver si el sistema tiene clave de servicio",
+  security: bearerAuthSecurity,
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "Estado de la clave (nunca la clave)",
+      content: { "application/json": { schema: ServiceKeyStatusSchema } },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+  },
+});
+
+const rotateServiceKeyRoute = createRoute({
+  method: "post",
+  path: "/{id}/service-key",
+  operationId: "rotateSystemServiceKey",
+  tags: ["Systems"],
+  summary: "Generar o rotar la clave de servicio del sistema",
+  description:
+    "Devuelve la clave una sola vez; en BD solo queda su hash. Rotarla invalida la anterior. " +
+    "Se envía en `X-Service-Key` a POST /api/auth/sign-in en lugar del captcha.",
+  security: bearerAuthSecurity,
+  request: { params: IdParamSchema },
+  responses: {
+    201: {
+      description: "Clave generada",
+      content: { "application/json": { schema: ServiceKeyCreatedSchema } },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+  },
+});
+
+const revokeServiceKeyRoute = createRoute({
+  method: "delete",
+  path: "/{id}/service-key",
+  operationId: "revokeSystemServiceKey",
+  tags: ["Systems"],
+  summary: "Revocar la clave de servicio del sistema",
+  security: bearerAuthSecurity,
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "Clave revocada",
+      content: { "application/json": { schema: StatusResponseSchema } },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+  },
+});
+
 // Todo el recurso requiere rol admin (lecturas incluidas). requireSession va
 // primero porque requireAdmin usa el user que aquél puebla.
 // El middleware se registra sobre la instancia base (no dentro de la cadena):
@@ -181,5 +256,18 @@ export const systemsRoutes = systemsRoutesBase
   .openapi(deleteRoute, async (c) => {
     const { id } = c.req.valid("param");
     await deleteSystem(id);
+    return c.json({ status: true }, 200);
+  })
+  .openapi(getServiceKeyRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    return c.json(await getServiceKeyStatus(id), 200);
+  })
+  .openapi(rotateServiceKeyRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    return c.json(await rotateServiceKey(id), 201);
+  })
+  .openapi(revokeServiceKeyRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    await revokeServiceKey(id);
     return c.json({ status: true }, 200);
   });

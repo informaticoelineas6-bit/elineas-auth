@@ -30,6 +30,11 @@
       "key": "turnstileToken",
       "value": "XXXX.DUMMY.TOKEN.XXXX",
       "type": "string"
+    },
+    {
+      "key": "serviceKey",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -149,6 +154,13 @@
                 "key": "X-Turnstile-Token",
                 "value": "{{turnstileToken}}",
                 "description": "Token de Cloudflare Turnstile (un solo uso). Por defecto se envía el token de prueba, válido con la clave secreta de prueba 1x0000000000000000000000000000000AA (la de .env.example). Contra un servidor con claves reales, pega un token real del widget.",
+                "type": "text"
+              },
+              {
+                "key": "X-Service-Key",
+                "value": "{{serviceKey}}",
+                "description": "Clave de servicio del sistema (POST /api/systems/{id}/service-key). Sustituye al captcha: con ella activa, desactiva X-Turnstile-Token. Exige systemSlug en el cuerpo.",
+                "disabled": true,
                 "type": "text"
               }
             ],

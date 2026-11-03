@@ -58,6 +58,19 @@ export const system = pgTable("system", {
     .notNull(),
 });
 
+// Clave de servicio de un sistema: sustituye al captcha en POST /api/auth/sign-in
+// para clientes sin navegador (backends, Postman). Se guarda solo el hash
+// SHA-256 (la clave es aleatoria de 256 bits, no hace falta un KDF lento). Va
+// en tabla aparte para que ninguna consulta que devuelva filas de `system`
+// pueda filtrarla por accidente.
+export const systemServiceKey = pgTable("system_service_key", {
+  systemId: uuid("system_id")
+    .primaryKey()
+    .references(() => system.id, { onDelete: "cascade" }),
+  keyHash: text("key_hash").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Los roles pertenecen a un sistema (no son globales): el mismo nombre de
 // rol puede existir en distintos sistemas con significados independientes.
 export const role = pgTable(

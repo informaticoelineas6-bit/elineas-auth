@@ -1051,6 +1051,40 @@
           }
         }
       },
+      "ServiceKeyStatus": {
+        "type": "object",
+        "properties": {
+          "hasKey": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "nullable": true,
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "hasKey",
+          "createdAt"
+        ]
+      },
+      "ServiceKeyCreated": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "description": "Clave en claro. Solo se muestra esta vez."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "key",
+          "createdAt"
+        ]
+      },
       "Role": {
         "type": "object",
         "properties": {
@@ -1690,8 +1724,19 @@
           "Auth"
         ],
         "summary": "Iniciar sesión con email y contraseña",
-        "description": "Exige un token de captcha (Cloudflare Turnstile) en la cabecera `X-Turnstile-Token` cuando el servidor tiene `TURNSTILE_SECRET_KEY`. Sin token válido responde `403` con `code: CAPTCHA_FAILED`. El token es de un solo uso y se obtiene del widget en el navegador.",
+        "description": "Exige un token de captcha (Cloudflare Turnstile) en la cabecera `X-Turnstile-Token` cuando el servidor tiene `TURNSTILE_SECRET_KEY`. Sin token válido responde `403` con `code: CAPTCHA_FAILED`. El token es de un solo uso y se obtiene del widget en el navegador. Los clientes sin navegador pueden enviar en su lugar la clave de servicio del sistema en `X-Service-Key` (junto con `systemSlug`), que sustituye al captcha; una clave inválida responde `403` con `code: SERVICE_KEY_INVALID`.",
         "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Clave de servicio del sistema (se genera en POST /api/systems/{id}/service-key). Sustituye al captcha; exige `systemSlug` en el cuerpo.",
+              "example": "elsk_..."
+            },
+            "required": false,
+            "description": "Clave de servicio del sistema (se genera en POST /api/systems/{id}/service-key). Sustituye al captcha; exige `systemSlug` en el cuerpo.",
+            "name": "x-service-key",
+            "in": "header"
+          },
           {
             "schema": {
               "type": "string",
@@ -3877,6 +3922,197 @@
         "responses": {
           "200": {
             "description": "Sistema eliminado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/systems/{id}/service-key": {
+      "get": {
+        "operationId": "getSystemServiceKey",
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Ver si el sistema tiene clave de servicio",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Estado de la clave (nunca la clave)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceKeyStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "rotateSystemServiceKey",
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Generar o rotar la clave de servicio del sistema",
+        "description": "Devuelve la clave una sola vez; en BD solo queda su hash. Rotarla invalida la anterior. Se envía en `X-Service-Key` a POST /api/auth/sign-in en lugar del captcha.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Clave generada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ServiceKeyCreated"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "revokeSystemServiceKey",
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Revocar la clave de servicio del sistema",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Clave revocada",
             "content": {
               "application/json": {
                 "schema": {
