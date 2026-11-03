@@ -14,6 +14,14 @@ if (
 	throw new Error("Falta TURNSTILE_SECRET_KEY en el entorno (obligatoria en producción)");
 }
 
+// Sin emisor/audiencia esperados, jwtVerify aceptaría un JWT firmado por la
+// misma clave pero emitido para otro destino. Obligatoria en producción.
+if (process.env.NODE_ENV === "production" && !process.env.AUTH_JWT_ISSUER) {
+	throw new Error(
+		"Falta AUTH_JWT_ISSUER en el entorno (obligatoria en producción): la URL pública del IS (su BETTER_AUTH_URL)",
+	);
+}
+
 export const env = {
 	AUTH_API_URL: required("AUTH_API_URL"),
 	AUTH_SYSTEM_SLUG: required("AUTH_SYSTEM_SLUG"),
@@ -29,8 +37,8 @@ export const env = {
 	APP_PUBLIC_URL: process.env.APP_PUBLIC_URL,
 	// Emisor (y audiencia) esperados del JWT: la URL PÚBLICA del IS, es decir su
 	// BETTER_AUTH_URL (better-auth firma con iss = aud = baseURL). Si se define,
-	// jwtVerify rechaza tokens de otro emisor. Opcional para no romper despliegues
-	// existentes; en producción conviene definirla.
+	// jwtVerify rechaza tokens de otro emisor. Obligatoria en producción (ver arriba);
+	// en desarrollo es opcional.
 	AUTH_JWT_ISSUER: process.env.AUTH_JWT_ISSUER,
 	TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,
 	TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
