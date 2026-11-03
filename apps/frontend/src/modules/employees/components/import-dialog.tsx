@@ -12,7 +12,10 @@ import {
 } from "@/modules/common/components/ui/dialog.tsx";
 import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
 import { Spinner } from "@/modules/common/components/ui/spinner.tsx";
-import { getErrorMessage } from "@/modules/common/lib/errors.ts";
+import {
+	getErrorMessage,
+	getErrorStatus,
+} from "@/modules/common/lib/errors.ts";
 import { parseEmployeeFile } from "@/modules/employees/lib/import-export.ts";
 import type { ImportRowResult } from "@/modules/employees/lib/import-validate.ts";
 import {
@@ -22,6 +25,9 @@ import {
 	useExportEmployees,
 	useUpdateEmployee,
 } from "@/modules/employees/queries/employees.ts";
+import { useExportRoles } from "@/modules/roles/queries/roles.ts";
+import { useExportSystems } from "@/modules/systems/queries/systems.ts";
+import { useCreateUserRole } from "@/modules/user-roles/queries/user-roles.ts";
 
 type RowOutcome = { row: number; label: string; status: "ok" | "error" };
 
@@ -42,6 +48,9 @@ export function ImportDialog({
 	const createAccount = useCreateEmployeeAccount();
 	const updateEmployee = useUpdateEmployee();
 	const loadExisting = useExportEmployees();
+	const loadRoles = useExportRoles();
+	const loadSystems = useExportSystems();
+	const createUserRole = useCreateUserRole();
 
 	const [parsing, setParsing] = useState(false);
 	const [parseError, setParseError] = useState<string | undefined>();
@@ -74,19 +83,35 @@ export function ImportDialog({
 			// en el bundle del listado (ver import-validate.ts).
 			// Se traen también los empleados existentes para detectar duplicados
 			// (CI, correo, ids inexistentes) ANTES de enviar nada.
-			const [raw, { mapImportRow, flagImportDuplicates }, existing] =
-				await Promise.all([
-					parseEmployeeFile(file),
-					import("../lib/import-validate.ts"),
-					loadExisting.mutateAsync({}),
-				]);
-			setRows(
-				flagImportDuplicates(
-					raw.map((row, index) => mapImportRow(row, index)),
-					raw,
-					existing,
-				),
+			const [
+				raw,
+				{ mapImportRow, flagImportDuplicates, importHasRoles, resolveImportRoles },
+				existing,
+			] = await Promise.all([
+				parseEmployeeFile(file),
+				import("../lib/import-validate.ts"),
+				loadExisting.mutateAsync({}),
+			]);
+			let validated = flagImportDuplicates(
+				raw.map((row, index) => mapImportRow(row, index)),
+				raw,
+				existing,
 			);
+			// El catálogo de roles/sistemas solo se pide si el archivo asigna roles.
+			if (importHasRoles(raw)) {
+				const [roles, systems] = await Promise.all([
+					loadRoles.mutateAsync({}),
+					loadSystems.mutateAsync({}),
+				]);
+				validated = resolveImportRoles(
+					validated,
+					raw,
+					roles,
+					systems,
+					existing,
+				);
+			}
+			setRows(validated);
 		} catch (error) {
 			setParseError(getErrorMessage(error, "No se pudo leer el archivo."));
 		} finally {
@@ -102,6 +127,37 @@ export function ImportDialog({
 
 		// Secuencial a propósito: reporta progreso fila a fila y no dispara
 		// decenas de peticiones concurrentes contra el IS.
+		// Asigna los roles de la fila a la cuenta. Un 409 ("ya tiene ese rol") no es
+		// un fallo: el resultado buscado ya está. Devuelve cuántos se asignaron.
+		async function assignRoles(userId: string, roleIds: string[]) {
+			let assigned = 0;
+			for (const roleId of roleIds) {
+				try {
+					await createUserRole.mutateAsync({ userId, roleId });
+					assigned++;
+				} catch (error) {
+					if (getErrorStatus(error) !== 409) throw error;
+				}
+			}
+			return assigned;
+		}
+
+		// Texto para el resultado de la fila. Si falla la asignación, se relanza con
+		// contexto: la fila ya está creada/actualizada y así se ve en el error.
+		async function roleSuffix(userId: string, roleIds?: string[]) {
+			if (!roleIds || roleIds.length === 0) return "";
+			try {
+				const assigned = await assignRoles(userId, roleIds);
+				return assigned > 0
+					? ` · ${assigned} rol(es) asignado(s)`
+					: " · ya tenía los roles";
+			} catch (error) {
+				throw new Error(
+					`Guardado, pero no se pudo asignar el rol: ${getErrorMessage(error)}`,
+				);
+			}
+		}
+
 		for (const result of rows) {
 			if (result.kind === "error") {
 				results.push({
@@ -117,7 +173,7 @@ export function ImportDialog({
 					if (result.email) {
 						// Crea la cuenta y envía la invitación para fijar la contraseña.
 						const { userId: _userId, ...employeeInput } = result.input;
-						await createWithUser.mutateAsync({
+						const created = await createWithUser.mutateAsync({
 							user: {
 								name: `${result.input.name} ${result.input.lastName}`.slice(
 									0,
@@ -128,11 +184,13 @@ export function ImportDialog({
 							employee: employeeInput,
 							sendInvite: sendInvites,
 						});
+						const roleNote = await roleSuffix(created.user.id, result.roleIds);
 						results.push({
 							row: result.row,
-							label: sendInvites
-								? "Creado con cuenta (invitación en cola)"
-								: "Creado con cuenta",
+							label:
+								(sendInvites
+									? "Creado con cuenta (invitación en cola)"
+									: "Creado con cuenta") + roleNote,
 							status: "ok",
 						});
 					} else {
@@ -147,20 +205,26 @@ export function ImportDialog({
 					// Empleado existente sin cuenta y con correo en la fila: se crea y
 					// enlaza la cuenta. Si falla, la fila sale como error (los datos
 					// del empleado ya quedaron actualizados).
+					let userId = result.userId;
 					if (result.email) {
-						await createAccount.mutateAsync({
+						const account = await createAccount.mutateAsync({
 							id: result.id,
 							email: result.email,
 							sendInvite: sendInvites,
 						});
+						userId = account.user.id;
 					}
+					const roleNote = userId
+						? await roleSuffix(userId, result.roleIds)
+						: "";
 					results.push({
 						row: result.row,
-						label: result.email
-							? sendInvites
-								? "Actualizado y cuenta creada (invitación en cola)"
-								: "Actualizado y cuenta creada"
-							: "Actualizado",
+						label:
+							(result.email
+								? sendInvites
+									? "Actualizado y cuenta creada (invitación en cola)"
+									: "Actualizado y cuenta creada"
+								: "Actualizado") + roleNote,
 						status: "ok",
 					});
 				}
@@ -182,6 +246,8 @@ export function ImportDialog({
 	const toCreateWithAccount =
 		rows?.filter((r) => r.kind !== "error" && r.email).length ?? 0;
 	const toUpdate = rows?.filter((r) => r.kind === "update").length ?? 0;
+	const toAssignRoles =
+		rows?.filter((r) => r.kind !== "error" && r.roleIds?.length).length ?? 0;
 	const invalid = rows?.filter((r) => r.kind === "error") ?? [];
 	const okCount = outcomes?.filter((o) => o.status === "ok").length ?? 0;
 	const failCount = outcomes?.filter((o) => o.status === "error").length ?? 0;
@@ -205,7 +271,10 @@ export function ImportDialog({
 						no, crea uno nuevo. Si trae <code>email</code>, también se crea la
 						cuenta (en usuarios nuevos y en existentes que aún no tengan una);
 						la invitación por correo es opcional, tras la vista previa. Una
-						cuenta que ya existe no se modifica.
+						cuenta que ya existe no se modifica. Para asignar roles añade la
+						columna <code>role</code> (uno o varios nombres separados por «;»)
+						y, si el nombre se repite en varios sistemas, <code>system</code>{" "}
+						(slug); el usuario necesita cuenta (columna <code>email</code>).
 					</DialogDescription>
 				</DialogHeader>
 
@@ -259,6 +328,12 @@ export function ImportDialog({
 									<p>… y {invalid.length - 20} fila(s) más.</p>
 								)}
 							</div>
+						)}
+
+						{toAssignRoles > 0 && (
+							<p className="text-sm text-muted-foreground">
+								Se asignarán roles a {toAssignRoles} usuario(s).
+							</p>
 						)}
 
 						{toCreateWithAccount > 0 && (

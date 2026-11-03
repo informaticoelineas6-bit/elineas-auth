@@ -73,6 +73,8 @@ export type ImportRowResult =
 			input: CreateEmployeeInput;
 			// Si viene, se crea también la cuenta de usuario con este correo.
 			email?: string;
+			// Ids de los roles a asignar a la cuenta (ver resolveImportRoles).
+			roleIds?: string[];
 	  }
 	| {
 			kind: "update";
@@ -81,6 +83,10 @@ export type ImportRowResult =
 			input: UpdateEmployeeInput;
 			// Si viene, el empleado no tiene cuenta: se le crea y enlaza con este correo.
 			email?: string;
+			// Ids de los roles a asignar a la cuenta (ver resolveImportRoles).
+			roleIds?: string[];
+			// Cuenta ya enlazada al empleado (para asignarle roles sin crearla).
+			userId?: string;
 	  }
 	| { kind: "error"; row: number; message: string };
 
@@ -152,6 +158,7 @@ export type ExistingEmployee = {
 	name: string;
 	lastName: string;
 	ci: string | null;
+	userId?: string | null;
 	user?: { email: string } | null;
 };
 
@@ -271,5 +278,96 @@ export function flagImportDuplicates(
 			seenEmails.add(mail);
 		}
 		return result;
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Roles en la importación
+// ---------------------------------------------------------------------------
+
+// Texto crudo de las columnas de rol de una fila: `role` (o `roles`) con uno o
+// varios nombres separados por ";" o "," y `system` con el slug del sistema.
+function rawRoleNames(row: RawImportRow | undefined): string[] {
+	const cell = cleanString(row?.role ?? row?.roles);
+	if (!cell) return [];
+	return cell
+		.split(/[;,]/)
+		.map((name) => name.trim())
+		.filter(Boolean);
+}
+
+// ¿Alguna fila pide asignar un rol? Sirve para cargar el catálogo de roles solo
+// cuando hace falta.
+export function importHasRoles(raw: RawImportRow[]): boolean {
+	return raw.some((row) => rawRoleNames(row).length > 0);
+}
+
+export type ImportRole = { id: string; name: string; systemId: string };
+export type ImportSystem = { id: string; slug: string };
+
+// Tercera pasada: traduce los nombres de rol de cada fila a ids del IS. Una fila
+// con rol falla (y se omite entera, sin crear nada) si el rol no existe, es
+// ambiguo (mismo nombre en varios sistemas y sin columna `system`) o no habrá
+// cuenta a la que asignarlo (la fila no trae correo y el empleado no tiene
+// cuenta). Así los errores salen en la vista previa, no a mitad de importación.
+export function resolveImportRoles(
+	results: ImportRowResult[],
+	raw: RawImportRow[],
+	roles: ImportRole[],
+	systems: ImportSystem[],
+	existing: ExistingEmployee[],
+): ImportRowResult[] {
+	const byId = new Map(existing.map((e) => [e.id, e]));
+	const systemBySlug = new Map(systems.map((s) => [s.slug.toLowerCase(), s]));
+
+	return results.map((result, i) => {
+		if (result.kind === "error") return result;
+		const names = rawRoleNames(raw[i]);
+		if (names.length === 0) return result;
+
+		const fail = (message: string): ImportRowResult => ({
+			kind: "error",
+			row: result.row,
+			message,
+		});
+
+		const slug = cleanString(raw[i]?.system)?.toLowerCase();
+		let systemId: string | undefined;
+		if (slug) {
+			const found = systemBySlug.get(slug);
+			if (!found) return fail(`Sistema "${slug}" no existe`);
+			systemId = found.id;
+		}
+
+		const roleIds: string[] = [];
+		for (const name of names) {
+			const matches = roles.filter(
+				(role) =>
+					role.name.toLowerCase() === name.toLowerCase() &&
+					(!systemId || role.systemId === systemId),
+			);
+			if (matches.length === 0) {
+				return fail(
+					slug
+						? `Rol "${name}" no existe en el sistema "${slug}"`
+						: `Rol "${name}" no existe`,
+				);
+			}
+			if (matches.length > 1) {
+				return fail(
+					`Rol "${name}" existe en varios sistemas: indica la columna system`,
+				);
+			}
+			if (!roleIds.includes(matches[0].id)) roleIds.push(matches[0].id);
+		}
+
+		const userId =
+			result.kind === "update" ? byId.get(result.id)?.userId : undefined;
+		if (!result.email && !userId) {
+			return fail(
+				"Para asignar un rol hace falta correo (el usuario no tiene cuenta)",
+			);
+		}
+		return { ...result, roleIds, ...(userId ? { userId } : {}) };
 	});
 }
