@@ -5,14 +5,14 @@ import { Badge } from "@/modules/common/components/ui/badge.tsx";
 import { formatDate } from "@/modules/common/lib/format.ts";
 import type { Role } from "@/modules/roles/shared/types.ts";
 import type { System } from "@/modules/systems/shared/types.ts";
-import type { UserRole } from "../shared/types.ts";
+import type { UserRoleDetail } from "../shared/types.ts";
 
 export type ResolvedUser = { name: string; email: string };
 
-// Columnas de la tabla de asignaciones. Las filas del IS solo traen ids
-// (userId/roleId), así que la página inyecta los mapas para resolver nombre de
-// usuario, rol y sistema; cuando un id no está en su mapa (fuera del límite
-// cargado o sin permiso) se muestra el id como último recurso.
+// Columnas de la tabla de asignaciones. Cada fila ya trae usuario, rol y sistema
+// resueltos por el IS. Los mapas inyectados solo mejoran el nombre (el del
+// empleado enlazado, más completo que el de la cuenta) y no son necesarios para
+// que algo se muestre; el id queda solo como último recurso.
 export function getUserRoleColumns({
 	usersById,
 	rolesById,
@@ -22,14 +22,14 @@ export function getUserRoleColumns({
 	usersById: Map<string, ResolvedUser>;
 	rolesById: Map<string, Role>;
 	systemsById: Map<string, System>;
-	onRevoke: (userRole: UserRole) => void;
-}): DataTableColumn<UserRole>[] {
+	onRevoke: (userRole: UserRoleDetail) => void;
+}): DataTableColumn<UserRoleDetail>[] {
 	return [
 		{
 			id: "user",
 			header: "Usuario",
 			cell: ({ row }) => {
-				const user = usersById.get(row.original.userId);
+				const user = usersById.get(row.original.userId) ?? row.original.user;
 				if (!user) {
 					return (
 						<span className="text-muted-foreground">{row.original.userId}</span>
@@ -47,9 +47,10 @@ export function getUserRoleColumns({
 			id: "role",
 			header: "Rol",
 			cell: ({ row }) => {
-				const role = rolesById.get(row.original.roleId);
-				return role ? (
-					role.name
+				const name =
+					rolesById.get(row.original.roleId)?.name ?? row.original.role?.name;
+				return name ? (
+					name
 				) : (
 					<span className="text-muted-foreground">{row.original.roleId}</span>
 				);
@@ -60,7 +61,9 @@ export function getUserRoleColumns({
 			header: "Sistema",
 			cell: ({ row }) => {
 				const role = rolesById.get(row.original.roleId);
-				const system = role ? systemsById.get(role.systemId) : undefined;
+				const system =
+					(role ? systemsById.get(role.systemId) : undefined) ??
+					row.original.system;
 				if (!system) return <span className="text-muted-foreground">—</span>;
 				return (
 					<span className="flex items-center gap-2">

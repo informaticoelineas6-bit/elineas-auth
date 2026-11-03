@@ -332,6 +332,16 @@ export const UserRoleSchema = z
   })
   .openapi("UserRole");
 
+// Asignación con usuario, rol y sistema ya resueltos (solo el listado de
+// administración): el cliente no tiene que cruzar ids contra otros listados
+// paginados, que dejaban ids "pelados" para lo que quedaba fuera de la página.
+// `user` es null solo si la cuenta ya no existe.
+export const UserRoleDetailSchema = UserRoleSchema.extend({
+  user: z.object({ name: z.string(), email: z.string() }).nullable(),
+  role: z.object({ name: z.string() }),
+  system: z.object({ id: z.uuid(), name: z.string(), slug: z.string() }),
+}).openapi("UserRoleDetail");
+
 export const CreateUserRoleBodySchema = z
   .object({
     userId: z

@@ -10,6 +10,7 @@ import {
   MyUserRolesQuerySchema,
   PaginationSchema,
   UserRoleListQuerySchema,
+  UserRoleDetailSchema,
   UserRoleSchema,
 } from "@backend/openapi/business.schemas.ts";
 import { paginationMeta } from "@backend/lib/pagination.ts";
@@ -69,7 +70,7 @@ const listRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            userRoles: z.array(UserRoleSchema),
+            userRoles: z.array(UserRoleDetailSchema),
             pagination: PaginationSchema,
           }),
         },

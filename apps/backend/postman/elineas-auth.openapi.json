@@ -923,6 +923,9 @@
               "name",
               "lastName"
             ]
+          },
+          "sendInvite": {
+            "type": "boolean"
           }
         },
         "required": [
@@ -1207,6 +1210,70 @@
           "name",
           "description",
           "system"
+        ]
+      },
+      "UserRoleDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/UserRole"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "user": {
+                "type": "object",
+                "nullable": true,
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "email": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name",
+                  "email"
+                ]
+              },
+              "role": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "name"
+                ]
+              },
+              "system": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "name": {
+                    "type": "string"
+                  },
+                  "slug": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name",
+                  "slug"
+                ]
+              }
+            },
+            "required": [
+              "user",
+              "role",
+              "system"
+            ]
+          }
         ]
       },
       "UserRole": {
@@ -1623,6 +1690,20 @@
           "Auth"
         ],
         "summary": "Iniciar sesión con email y contraseña",
+        "description": "Exige un token de captcha (Cloudflare Turnstile) en la cabecera `X-Turnstile-Token` cuando el servidor tiene `TURNSTILE_SECRET_KEY`. Sin token válido responde `403` con `code: CAPTCHA_FAILED`. El token es de un solo uso y se obtiene del widget en el navegador.",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "description": "Token del widget de Cloudflare Turnstile. Obligatorio si el servidor tiene captcha activo.",
+              "example": "0.AAAA..."
+            },
+            "required": false,
+            "description": "Token del widget de Cloudflare Turnstile. Obligatorio si el servidor tiene captcha activo.",
+            "name": "x-turnstile-token",
+            "in": "header"
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -1654,7 +1735,7 @@
             }
           },
           "403": {
-            "description": "Requiere privilegios de administrador",
+            "description": "Captcha ausente o inválido (`CAPTCHA_FAILED`), cuenta desactivada o sin rol en el sistema",
             "content": {
               "application/json": {
                 "schema": {
@@ -3293,6 +3374,116 @@
         }
       }
     },
+    "/api/employees/{id}/account": {
+      "post": {
+        "operationId": "createEmployeeAccount",
+        "tags": [
+          "Employees"
+        ],
+        "summary": "Crear la cuenta de acceso de un empleado que no la tiene",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "ada@mercadoelineas.com"
+                  },
+                  "sendInvite": {
+                    "type": "boolean"
+                  }
+                },
+                "required": [
+                  "email"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Cuenta creada y enlazada al empleado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EmployeeWithUserResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto de unicidad",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/systems": {
       "get": {
         "operationId": "listSystems",
@@ -4466,7 +4657,7 @@
                     "userRoles": {
                       "type": "array",
                       "items": {
-                        "$ref": "#/components/schemas/UserRole"
+                        "$ref": "#/components/schemas/UserRoleDetail"
                       }
                     },
                     "pagination": {

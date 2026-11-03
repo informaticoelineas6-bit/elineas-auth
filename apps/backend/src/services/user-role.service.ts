@@ -1,6 +1,7 @@
 import { and, count, desc, eq } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
+import { user } from "@backend/db/auth-schema.ts";
 import { role, system, userRole } from "@backend/db/business-schema.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
@@ -24,9 +25,19 @@ export async function listUserRoles(
   // consulta y evitar duplicar la lógica de `where` entre ambos casos.
   const [rows, [{ total }]] = await Promise.all([
     db
-      .select({ id: userRole.id, userId: userRole.userId, roleId: userRole.roleId, createdAt: userRole.createdAt })
+      .select({
+        id: userRole.id,
+        userId: userRole.userId,
+        roleId: userRole.roleId,
+        createdAt: userRole.createdAt,
+        user: { name: user.name, email: user.email },
+        role: { name: role.name },
+        system: { id: system.id, name: system.name, slug: system.slug },
+      })
       .from(userRole)
       .innerJoin(role, eq(userRole.roleId, role.id))
+      .innerJoin(system, eq(role.systemId, system.id))
+      .leftJoin(user, eq(userRole.userId, user.id))
       .where(where)
       .orderBy(desc(userRole.createdAt))
       .limit(pagination.limit)

@@ -7,6 +7,7 @@ import {
 	createUserRoleFn,
 	deleteUserRoleFn,
 	getUserRoleFn,
+	listAllUserRolesFn,
 	listUserRolesFn,
 	myUserRolesFn,
 } from "../actions/user-roles.ts";
@@ -65,5 +66,13 @@ export function useDeleteUserRole() {
 		mutationFn: (id: string) => deleteUserRoleFn({ data: { id } }),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: userRoleKeys.all }),
+	});
+}
+
+// Exportar: petición puntual (botón "Exportar"), no un listado cacheado.
+export function useExportUserRoles() {
+	return useMutation({
+		mutationFn: (filters: Omit<UserRoleFilters, "page" | "limit">) =>
+			listAllUserRolesFn({ data: filters }),
 	});
 }

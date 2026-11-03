@@ -14,6 +14,15 @@ export type UserRole = {
 	createdAt: string;
 };
 
+// Asignación del listado de administración: el IS la devuelve con usuario, rol
+// y sistema ya resueltos, así que se pueden mostrar aunque no estén en ningún
+// otro listado cargado. `user` es null si la cuenta ya no existe.
+export type UserRoleDetail = UserRole & {
+	user: { name: string; email: string } | null;
+	role: { name: string };
+	system: { id: string; name: string; slug: string };
+};
+
 // Rol propio del usuario autenticado: incluye el sistema al que pertenece para
 // poder filtrar por `systemSlug` sin exponer asignaciones de otros usuarios.
 export type MyUserRole = {
@@ -28,7 +37,7 @@ export type MyUserRole = {
 };
 
 export type UserRoleListResponse = {
-	userRoles: UserRole[];
+	userRoles: UserRoleDetail[];
 	pagination: Pagination;
 };
 

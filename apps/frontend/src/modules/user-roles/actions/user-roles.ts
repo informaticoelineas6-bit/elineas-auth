@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireAuthMiddleware } from "#/modules/auth/middlewares/auth.ts";
+import { fetchAllPages } from "#/modules/common/lib/paginate.ts";
 import { idSchema } from "#/modules/common/lib/validation.ts";
 import {
 	createUserRoleSchema,
@@ -38,3 +39,19 @@ export const myUserRolesFn = createServerFn({ method: "GET" })
 	.middleware([requireAuthMiddleware])
 	.validator(myUserRolesQuerySchema)
 	.handler(({ data }) => listMyRoles(data));
+
+// Todas las asignaciones que cumplan los filtros (no solo la página visible),
+// para exportar. El cliente arma el CSV/JSON/Excel con el array completo.
+export const listAllUserRolesFn = createServerFn({ method: "GET" })
+	.middleware([requireAuthMiddleware])
+	.validator(userRoleFiltersSchema.omit({ page: true, limit: true }))
+	.handler(({ data }) =>
+		fetchAllPages(async (page, limit) => {
+			const { userRoles, pagination } = await listUserRoles({
+				...data,
+				page,
+				limit,
+			});
+			return { rows: userRoles, totalPages: pagination.totalPages };
+		}),
+	);

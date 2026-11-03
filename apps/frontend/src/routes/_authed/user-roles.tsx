@@ -9,11 +9,13 @@ import {
 	DataTableFilterSelect,
 	useListControls,
 } from "@/modules/common/components/data-table";
+import { ExportMenu } from "@/modules/common/components/import-export/export-menu.tsx";
 import { Combobox } from "@/modules/common/components/partials/combobox.tsx";
 import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dialog.tsx";
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
+import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
@@ -32,13 +34,15 @@ import {
 	getUserRoleColumns,
 	type ResolvedUser,
 } from "@/modules/user-roles/lib/columns.tsx";
+import { exportUserRoles } from "@/modules/user-roles/lib/import-export.ts";
 import { userRoleFiltersSchema } from "@/modules/user-roles/lib/validation.ts";
 import {
 	useDeleteUserRole,
+	useExportUserRoles,
 	userRolesQueries,
 } from "@/modules/user-roles/queries/user-roles.ts";
 import type {
-	UserRole,
+	UserRoleDetail,
 	UserRoleFilters,
 } from "@/modules/user-roles/shared/types.ts";
 
@@ -79,11 +83,12 @@ function UserRolesPage() {
 	const rolesQuery = useQuery(rolesQueries.list({ limit: 100 }));
 	const systemsQuery = useQuery(systemsQueries.list({ limit: 100 }));
 	const deleteUserRole = useDeleteUserRole();
+	const exportUserRolesQuery = useExportUserRoles();
 
 	const [assignOpen, setAssignOpen] = useState(false);
-	const [toRevoke, setToRevoke] = useState<UserRole | null>(null);
+	const [toRevoke, setToRevoke] = useState<UserRoleDetail | null>(null);
 	const [bulk, setBulk] = useState<{
-		rows: UserRole[];
+		rows: UserRoleDetail[];
 		clear: () => void;
 	} | null>(null);
 
@@ -136,7 +141,7 @@ function UserRolesPage() {
 
 	// ¿La asignación es el rol admin del sistema de la consola? Revocarlo puede
 	// dejar sin acceso a la consola (a uno mismo o a la organización).
-	function isAuthAdminAssignment(userRole: UserRole): boolean {
+	function isAuthAdminAssignment(userRole: UserRoleDetail): boolean {
 		const role = rolesById.get(userRole.roleId);
 		return Boolean(
 			role &&
@@ -181,6 +186,27 @@ function UserRolesPage() {
 		});
 	}
 
+	// Exporta TODAS las asignaciones que cumplan los filtros activos (no solo la
+	// página visible).
+	function handleExport(format: ExportFormat) {
+		const { page: _page, limit: _limit, ...rest } = filters;
+		exportUserRolesQuery.mutate(rest, {
+			onSuccess: async (userRoles) => {
+				if (userRoles.length === 0) {
+					toast.info("No hay asignaciones que exportar con estos filtros");
+					return;
+				}
+				try {
+					await exportUserRoles(userRoles, usersById, format);
+					toast.success(`${userRoles.length} asignación(es) exportada(s)`);
+				} catch (error) {
+					reportError(error, "No se pudo generar el archivo.");
+				}
+			},
+			onError: (error) => reportError(error, "No se pudo exportar el listado."),
+		});
+	}
+
 	const columns = getUserRoleColumns({
 		usersById,
 		rolesById,
@@ -189,7 +215,9 @@ function UserRolesPage() {
 	});
 
 	// Datos resueltos de la asignación en revocación, para el texto de confirmación.
-	const revokeUser = toRevoke ? usersById.get(toRevoke.userId) : undefined;
+	const revokeUser = toRevoke
+		? (usersById.get(toRevoke.userId) ?? toRevoke.user ?? undefined)
+		: undefined;
 	const revokeRole = toRevoke ? rolesById.get(toRevoke.roleId) : undefined;
 	const revokeSystem = revokeRole
 		? systemsById.get(revokeRole.systemId)
@@ -203,10 +231,16 @@ function UserRolesPage() {
 				title="Asignaciones"
 				description="Asigna y revoca roles a los usuarios. Sin al menos un rol, un usuario no puede iniciar sesión en ningún sistema."
 				actions={
-					<Button onClick={() => setAssignOpen(true)}>
-						<UserPlus />
-						Asignar rol
-					</Button>
+					<>
+						<ExportMenu
+							onExport={handleExport}
+							pending={exportUserRolesQuery.isPending}
+						/>
+						<Button onClick={() => setAssignOpen(true)}>
+							<UserPlus />
+							Asignar rol
+						</Button>
+					</>
 				}
 			/>
 
