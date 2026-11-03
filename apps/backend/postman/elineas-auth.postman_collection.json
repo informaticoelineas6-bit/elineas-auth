@@ -25,6 +25,11 @@
       "key": "token",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "turnstileToken",
+      "value": "XXXX.DUMMY.TOKEN.XXXX",
+      "type": "string"
     }
   ],
   "item": [
@@ -139,6 +144,12 @@
                 "key": "Content-Type",
                 "value": "application/json",
                 "type": "text"
+              },
+              {
+                "key": "X-Turnstile-Token",
+                "value": "{{turnstileToken}}",
+                "description": "Token de Cloudflare Turnstile (un solo uso). Por defecto se envía el token de prueba, válido con la clave secreta de prueba 1x0000000000000000000000000000000AA (la de .env.example). Contra un servidor con claves reales, pega un token real del widget.",
+                "type": "text"
               }
             ],
             "url": {
@@ -152,7 +163,7 @@
                 "sign-in"
               ]
             },
-            "description": "Iniciar sesión con email y contraseña\n\n_No requiere autenticación._",
+            "description": "Iniciar sesión con email y contraseña\n\n_No requiere autenticación._\n\n**Captcha:** si el servidor tiene `TURNSTILE_SECRET_KEY`, hay que enviar la cabecera `X-Turnstile-Token`; sin token válido responde `403` con `code: CAPTCHA_FAILED`. La variable `turnstileToken` de la colección trae por defecto un token de prueba (`XXXX.DUMMY.TOKEN.XXXX`), válido solo con la clave secreta de prueba de Cloudflare usada en local; contra staging/producción sustitúyelo por un token real.",
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"ada@example.com\",\n  \"password\": \"tu-contraseña-segura\",\n  \"callbackURL\": \"texto\",\n  \"rememberMe\": true,\n  \"systemSlug\": \"pos\"\n}",
@@ -191,6 +202,19 @@
                 }
               ],
               "body": "{\n  \"error\": \"No autorizado\",\n  \"code\": \"UNAUTHORIZED\"\n}",
+              "_postman_previewlanguage": "json"
+            },
+            {
+              "name": "403 - Captcha ausente o inválido",
+              "status": "Forbidden",
+              "code": 403,
+              "header": [
+                {
+                  "key": "Content-Type",
+                  "value": "application/json"
+                }
+              ],
+              "body": "{\n  \"error\": \"No se pudo verificar que no eres un robot. Intenta de nuevo.\",\n  \"code\": \"CAPTCHA_FAILED\"\n}",
               "_postman_previewlanguage": "json"
             }
           ]

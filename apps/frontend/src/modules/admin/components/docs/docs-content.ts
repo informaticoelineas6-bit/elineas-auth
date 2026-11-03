@@ -57,7 +57,7 @@ export const STEPS = [
 		icon: KeyRound,
 		title: "3. Implementa el login",
 		description:
-			'Tu frontend (o tu backend, por él) hace POST a /api/auth/sign-in con { email, password, systemSlug? } (systemSlug es opcional: sin él, el token sirve en todos los sistemas donde el usuario tenga roles). La respuesta trae { user, token } — el JWT corto — y el session token (largo plazo) viaja en la cabecera "set-auth-token".',
+			'Tu frontend (o tu backend, por él) hace POST a /api/auth/sign-in con { email, password, systemSlug? } (systemSlug es opcional: sin él, el token sirve en todos los sistemas donde el usuario tenga roles). La respuesta trae { user, token } — el JWT corto — y el session token (largo plazo) viaja en la cabecera "set-auth-token". IMPORTANTE: el login exige la cabecera X-Turnstile-Token (captcha de Cloudflare Turnstile, un solo uso); sin ella la API responde 403 CAPTCHA_FAILED. Tu página de login debe mostrar el widget de Turnstile y tu backend reenviar el token.',
 	},
 	{
 		icon: ShieldCheck,
@@ -145,7 +145,7 @@ export const ENDPOINTS: {
 		path: "/api/auth/sign-in",
 		auth: "—",
 		description:
-			'Login con email + contraseña, y systemSlug opcional (sin él, token multi-sistema y system: null; se exige rol en el sistema indicado o, si no hay, en alguno). Devuelve { user, token, system } y el session token en la cabecera "set-auth-token".',
+			'Login con email + contraseña, y systemSlug opcional (sin él, token multi-sistema y system: null; se exige rol en el sistema indicado o, si no hay, en alguno). Requiere la cabecera X-Turnstile-Token (captcha Turnstile; sin ella 403 CAPTCHA_FAILED). Devuelve { user, token, system } y el session token en la cabecera "set-auth-token".',
 	},
 	{
 		method: "GET",

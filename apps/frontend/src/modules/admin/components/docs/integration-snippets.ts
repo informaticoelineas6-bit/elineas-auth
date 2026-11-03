@@ -138,11 +138,15 @@ export const frameworkExamples: FrameworkExample[] = [
 				title: "server/login.ts (tu backend, p. ej. Express)",
 				language: "typescript",
 				code: `app.post("/api/login", async (req, res) => {
-	const { email, password } = req.body;
+	const { email, password, turnstileToken } = req.body;
 
 	const r = await fetch(new URL("/api/auth/sign-in", process.env.AUTH_API_URL), {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
+		headers: {
+			"Content-Type": "application/json",
+			// Token de Cloudflare Turnstile obtenido del widget del login (un solo uso).
+			"X-Turnstile-Token": turnstileToken,
+		},
 		body: JSON.stringify({ email, password, systemSlug: "mi-sistema" }),
 	});
 	if (!r.ok) return res.status(401).json({ error: "Credenciales inválidas" });
@@ -200,11 +204,15 @@ export const useAuth = () => useContext(AuthContext)!;`,
 				code: `import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-	const { email, password } = await req.json();
+	const { email, password, turnstileToken } = await req.json();
 
 	const r = await fetch(new URL("/api/auth/sign-in", process.env.AUTH_API_URL), {
 		method: "POST",
-		headers: { "Content-Type": "application/json" },
+		headers: {
+			"Content-Type": "application/json",
+			// Token de Cloudflare Turnstile obtenido del widget del login (un solo uso).
+			"X-Turnstile-Token": turnstileToken,
+		},
 		body: JSON.stringify({ email, password, systemSlug: "mi-sistema" }),
 	});
 	if (!r.ok) {
@@ -264,12 +272,16 @@ const jwks = createRemoteJWKSet(new URL("/api/auth/jwks", AUTH_API_URL));
 const cookieOpts = { httpOnly: true, secure: true, sameSite: "lax" } as const;
 
 export const signInFn = createServerFn({ method: "POST" })
-	.validator((d: { email: string; password: string }) => d)
+	.validator((d: { email: string; password: string; turnstileToken: string }) => d)
 	.handler(async ({ data }) => {
 		const res = await fetch(new URL("/api/auth/sign-in", AUTH_API_URL), {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ ...data, systemSlug: "mi-sistema" }),
+			headers: {
+			"Content-Type": "application/json",
+			// Token de Cloudflare Turnstile obtenido del widget del login (un solo uso).
+			"X-Turnstile-Token": turnstileToken,
+		},
+			body: JSON.stringify({ email: data.email, password: data.password, systemSlug: "mi-sistema" }),
 		});
 		if (!res.ok) throw new Error("Credenciales inválidas");
 
@@ -305,11 +317,19 @@ export const getSessionFn = createServerFn({ method: "GET" }).handler(async () =
 
 export async function registerLogin(app: FastifyInstance) {
 	app.post("/api/login", async (request, reply) => {
-		const { email, password } = request.body as { email: string; password: string };
+		const { email, password, turnstileToken } = request.body as {
+			email: string;
+			password: string;
+			turnstileToken: string;
+		};
 
 		const r = await fetch(new URL("/api/auth/sign-in", process.env.AUTH_API_URL), {
 			method: "POST",
-			headers: { "Content-Type": "application/json" },
+			headers: {
+			"Content-Type": "application/json",
+			// Token de Cloudflare Turnstile obtenido del widget del login (un solo uso).
+			"X-Turnstile-Token": turnstileToken,
+		},
 			body: JSON.stringify({ email, password, systemSlug: "mi-sistema" }),
 		});
 		if (!r.ok) return reply.code(401).send({ error: "Credenciales inválidas" });
@@ -360,11 +380,12 @@ export function useAuth() {
 				title: "server/api/login.post.ts (Nuxt 3/4)",
 				language: "typescript",
 				code: `export default defineEventHandler(async (event) => {
-	const { email, password } = await readBody(event);
+	const { email, password, turnstileToken } = await readBody(event);
 	const authApiUrl = useRuntimeConfig().authApiUrl;
 
 	const res = await $fetch.raw(\`\${authApiUrl}/api/auth/sign-in\`, {
 		method: "POST",
+		headers: { "X-Turnstile-Token": turnstileToken },
 		body: { email, password, systemSlug: "mi-sistema" },
 	}).catch(() => null);
 

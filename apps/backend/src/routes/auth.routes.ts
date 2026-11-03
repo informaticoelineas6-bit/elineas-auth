@@ -1,9 +1,10 @@
-import { OpenAPIHono, createRoute } from "@hono/zod-openapi";
+import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { requireSession } from "@backend/middleware/session.ts";
 import { requireAdmin } from "@backend/middleware/admin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import {
   AuthResultSchema,
+  ErrorResponseSchema,
   GoogleExchangeBodySchema,
   GoogleStartQuerySchema,
   JwksResponseSchema,
@@ -70,7 +71,22 @@ const signInRoute = createRoute({
   operationId: "authSignIn",
   tags: ["Auth"],
   summary: "Iniciar sesión con email y contraseña",
+  description:
+    "Exige un token de captcha (Cloudflare Turnstile) en la cabecera " +
+    "`X-Turnstile-Token` cuando el servidor tiene `TURNSTILE_SECRET_KEY`. " +
+    "Sin token válido responde `403` con `code: CAPTCHA_FAILED`. El token es de " +
+    "un solo uso y se obtiene del widget en el navegador.",
   request: {
+    headers: z.object({
+      "x-turnstile-token": z
+        .string()
+        .optional()
+        .openapi({
+          description:
+            "Token del widget de Cloudflare Turnstile. Obligatorio si el servidor tiene captcha activo.",
+          example: "0.AAAA...",
+        }),
+    }),
     body: { content: { "application/json": { schema: SignInBodySchema } } },
   },
   responses: {
@@ -79,7 +95,11 @@ const signInRoute = createRoute({
       content: { "application/json": { schema: AuthResultSchema } },
     },
     400: badRequestResponse,
-    403: forbiddenResponse,
+    403: {
+      description:
+        "Captcha ausente o inválido (`CAPTCHA_FAILED`), cuenta desactivada o sin rol en el sistema",
+      content: { "application/json": { schema: ErrorResponseSchema } },
+    },
   },
 });
 

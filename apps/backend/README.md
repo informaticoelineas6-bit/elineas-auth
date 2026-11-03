@@ -251,6 +251,11 @@ export const identityClient = {
 > así que un frontend normal nunca debe exponer un formulario de registro
 > público contra este IS — los usuarios los crea un admin o el seed inicial.
 
+> **Captcha obligatorio en el login.** `POST /api/auth/sign-in` exige la cabecera
+> `X-Turnstile-Token` (token de Cloudflare Turnstile) cuando el IS tiene
+> `TURNSTILE_SECRET_KEY`, que es **obligatoria en producción**. Sin ella el IS
+> responde `403 CAPTCHA_FAILED`. Ver [§8.1](#81-captcha-turnstile-en-el-login).
+
 ### 4.2 `AuthContext` con JWT en memoria (no en `localStorage`)
 
 Guardar el JWT en `localStorage` lo expone a robo vía XSS. Guárdalo solo en
@@ -947,8 +952,9 @@ El IS refleja el `Origin` solo si está en `ALLOWED_ORIGIN`
 
 - Confirma que tu dominio exacto (esquema + host + puerto) está en
   `ALLOWED_ORIGIN` del entorno del IS.
-- Las cabeceras permitidas son solo `Content-Type` y `Authorization`; no
-  envíes cabeceras custom en las peticiones al IS.
+- Las cabeceras permitidas son `Content-Type`, `Authorization` y
+  `X-Turnstile-Token` (captcha del login); no envíes otras cabeceras custom en
+  las peticiones al IS.
 - Métodos permitidos: `GET, POST, PATCH, DELETE, OPTIONS`.
 - `credentials: true` está activado — tu `fetch` debe usar
   `credentials: "include"` para que la cookie de sesión viaje.
@@ -1168,11 +1174,63 @@ Al superar el límite reciben `429` con cabecera `Retry-After` (segundos) y cuer
   circuit breaker deja de consultar a Redis durante ~30s tras varios fallos
   seguidos para no penalizar cada petición con el timeout.
 
+### 8.1 Captcha (Turnstile) en el login
+
+`POST /api/auth/sign-in` está protegido con Cloudflare Turnstile
+(`src/middleware/turnstile.ts`). Se verifica **en la API**, no solo en el panel,
+porque la API es alcanzable directamente.
+
+| Situación                                         | Resultado                                  |
+| ------------------------------------------------- | ------------------------------------------ |
+| `TURNSTILE_SECRET_KEY` sin definir (solo no-prod) | No se exige captcha                        |
+| Clave definida y cabecera `X-Turnstile-Token` OK  | El login continúa                          |
+| Clave definida y token ausente/inválido/caducado  | `403 { code: "CAPTCHA_FAILED" }`           |
+| Cloudflare inalcanzable (timeout 5 s)             | `403 CAPTCHA_FAILED` (falla cerrado)       |
+
+Puntos a tener en cuenta:
+
+- **El token es de un solo uso** y caduca en pocos minutos. Se genera con el
+  widget de Turnstile **en un navegador**; un backend no puede fabricarlo. Por
+  eso un login llamado solo servidor-a-servidor (sin pasar por una página con el
+  widget) recibe siempre `CAPTCHA_FAILED`.
+- **Integración correcta:** tu página de login renderiza el widget (con el
+  _site key_ del IS) y envía el token a tu backend; este lo reenvía al IS:
+
+  ```ts
+  const r = await fetch(new URL("/api/auth/sign-in", process.env.AUTH_API_URL), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Turnstile-Token": turnstileToken, // el que devolvió el widget
+    },
+    body: JSON.stringify({ email, password, systemSlug: "mi-sistema" }),
+  });
+  ```
+
+- **Dominios:** el widget solo emite tokens en los hostnames declarados en el
+  sitio de Turnstile (Cloudflare → Turnstile → tu widget → _Hostname
+  Management_). Añade el dominio de cada sistema consumidor que muestre el
+  widget.
+- El 403 del captcha **no** cuenta como intento fallido de contraseña para el
+  rate limit por cuenta; el límite por IP (10/min) sí se aplica antes.
+- **Local / pruebas:** sin `TURNSTILE_SECRET_KEY` no se exige. Para ejercitar el
+  flujo completo usa las claves de prueba de Cloudflare: secret
+  `1x0000000000000000000000000000000AA` (acepta cualquier token), site key
+  `1x00000000000000000000AA`.
+- **Postman:** la colección envía `X-Turnstile-Token: {{turnstileToken}}`, que
+  por defecto vale `XXXX.DUMMY.TOKEN.XXXX` (token de prueba de Cloudflare). Basta
+  con la clave secreta de prueba que trae `.env.example`; contra staging o
+  producción sustitúyelo por un token real.
+- `.env.example` (backend y panel) ya incluye las claves de PRUEBA para local:
+  copia el fichero y el login funciona sin configurar nada más. En producción
+  reemplázalas por las reales.
+
 ## 9. Formato de errores
 
 Todas las respuestas de error siguen `{ error: string, code?: string }`
 (`ErrorResponseSchema`, `src/openapi/schemas.ts:59-64`). Códigos relevantes
 para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
+`CAPTCHA_FAILED` (403, falta o es inválido `X-Turnstile-Token` en el login),
 `RATE_LIMITED` (429), `CONFLICT` (409, violación de unicidad),
 `SYSTEM_NOT_FOUND` (400, `systemSlug` inválido o inactivo).
 
@@ -1180,7 +1238,7 @@ para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 
 | Método     | Ruta                                                              | Auth requerida   | Descripción                                                                   |
 | ---------- | ----------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------- |
-| POST       | `/api/auth/sign-in`                                               | — (rate limited) | Login; `systemSlug` opcional (sin él, token multi-sistema)                    |
+| POST       | `/api/auth/sign-in`                                               | — (rate limited) | Login; `systemSlug` opcional. Requiere cabecera `X-Turnstile-Token`           |
 | POST       | `/api/auth/sign-up`                                               | Sesión + admin   | Alta de usuario (no autoservicio)                                             |
 | POST       | `/api/employees/with-user`                                        | Sesión + admin   | Crea usuario **y** su empleado enlazado a la vez                              |
 | POST       | `/api/auth/sign-out`                                              | Sesión           | Cierra la sesión actual                                                       |
@@ -1339,6 +1397,7 @@ Detalles que conviene conocer:
 - [ ] Tu backend verifica el JWT contra el JWKS del IS (`createRemoteJWKSet`), validando `issuer`.
 - [ ] Tu backend no confía en claims de rol del JWT (no existen); si necesita roles, los pide a `GET /api/user-roles/me` o implementa su propia autorización indexada por `sub`.
 - [ ] Si usas el login con Google: tu origen está en `GOOGLE_REDIRECT_ORIGINS` (https), el canje y el `code_verifier` viven solo en tu servidor, y validas el `state` al volver.
+- [ ] `TURNSTILE_SECRET_KEY` definida en el IS (obligatoria en producción: sin ella no arranca) y cada sistema que muestre un login incluye su hostname en el widget y reenvía `X-Turnstile-Token`.
 - [ ] `APP_ENV=production` en el IS para que `/api/docs` y `/api/openapi.json` queden deshabilitados.
 - [ ] `BETTER_AUTH_SECRET` y `REDIS_PASSWORD` gestionados como secretos (no en el repo).
 - [ ] Tu cliente maneja `401` (token vencido → renovar o cerrar sesión) y `429` (backoff, sin reintento en bucle).
