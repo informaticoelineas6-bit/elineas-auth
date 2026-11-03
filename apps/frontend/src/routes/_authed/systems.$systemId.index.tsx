@@ -26,6 +26,7 @@ import {
 } from "@/modules/common/lib/errors.ts";
 import { formatDate } from "@/modules/common/lib/format.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import { SystemServiceKeyPanel } from "@/modules/systems/components/system-service-key-panel.tsx";
 import { SystemRolesPanel } from "@/modules/systems/components/system-roles-panel.tsx";
 import {
 	systemsQueries,
@@ -247,6 +248,7 @@ function SystemDetail({ system }: { system: System }) {
 				</Card>
 
 				<SystemRolesPanel systemId={system.id} />
+				<SystemServiceKeyPanel system={system} />
 			</div>
 
 			<ConfirmDialog

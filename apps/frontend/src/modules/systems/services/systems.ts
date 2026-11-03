@@ -2,6 +2,8 @@ import { buildQuery, isApi } from "#/modules/common/lib/api-client.ts";
 import type { StatusResponse } from "#/modules/common/shared/types.ts";
 import type {
 	CreateSystemInput,
+	ServiceKeyCreated,
+	ServiceKeyStatus,
 	System,
 	SystemFilters,
 	SystemListResponse,
@@ -35,4 +37,16 @@ export async function updateSystem(id: string, input: UpdateSystemInput) {
 
 export function deleteSystem(id: string) {
 	return isApi.delete<StatusResponse>(`/api/systems/${id}`);
+}
+
+export function getServiceKeyStatus(id: string) {
+	return isApi.get<ServiceKeyStatus>(`/api/systems/${id}/service-key`);
+}
+
+export function rotateServiceKey(id: string) {
+	return isApi.post<ServiceKeyCreated>(`/api/systems/${id}/service-key`, {});
+}
+
+export function revokeServiceKey(id: string) {
+	return isApi.delete<StatusResponse>(`/api/systems/${id}/service-key`);
 }

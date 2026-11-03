@@ -10,8 +10,11 @@ import {
 import {
 	createSystem,
 	deleteSystem,
+	getServiceKeyStatus,
 	getSystem,
 	listSystems,
+	revokeServiceKey,
+	rotateServiceKey,
 	updateSystem,
 } from "../services/systems.ts";
 
@@ -55,3 +58,18 @@ export const listAllSystemsFn = createServerFn({ method: "GET" })
 			return { rows: systems, totalPages: pagination.totalPages };
 		}),
 	);
+
+export const getServiceKeyStatusFn = createServerFn({ method: "GET" })
+	.middleware([requireAuthMiddleware])
+	.validator(idSchema)
+	.handler(({ data }) => getServiceKeyStatus(data.id));
+
+export const rotateServiceKeyFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(idSchema)
+	.handler(({ data }) => rotateServiceKey(data.id));
+
+export const revokeServiceKeyFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(idSchema)
+	.handler(({ data }) => revokeServiceKey(data.id));

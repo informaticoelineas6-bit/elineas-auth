@@ -7,9 +7,12 @@ import { CATALOG_STALE_TIME } from "@/modules/common/lib/query.ts";
 import {
 	createSystemFn,
 	deleteSystemFn,
+	getServiceKeyStatusFn,
 	getSystemFn,
 	listAllSystemsFn,
 	listSystemsFn,
+	revokeServiceKeyFn,
+	rotateServiceKeyFn,
 	updateSystemFn,
 } from "../actions/systems.ts";
 import type {
@@ -24,6 +27,7 @@ export const systemKeys = {
 	list: (filters: SystemFilters) => [...systemKeys.lists(), filters] as const,
 	details: () => [...systemKeys.all, "detail"] as const,
 	detail: (id: string) => [...systemKeys.details(), id] as const,
+	serviceKey: (id: string) => [...systemKeys.all, "service-key", id] as const,
 };
 
 export const systemsQueries = {
@@ -40,7 +44,30 @@ export const systemsQueries = {
 			queryKey: systemKeys.detail(id),
 			queryFn: () => getSystemFn({ data: { id } }),
 		}),
+	serviceKey: (id: string) =>
+		queryOptions({
+			queryKey: systemKeys.serviceKey(id),
+			queryFn: () => getServiceKeyStatusFn({ data: { id } }),
+		}),
 };
+
+export function useRotateServiceKey() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (id: string) => rotateServiceKeyFn({ data: { id } }),
+		onSuccess: (_result, id) =>
+			queryClient.invalidateQueries({ queryKey: systemKeys.serviceKey(id) }),
+	});
+}
+
+export function useRevokeServiceKey() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (id: string) => revokeServiceKeyFn({ data: { id } }),
+		onSuccess: (_result, id) =>
+			queryClient.invalidateQueries({ queryKey: systemKeys.serviceKey(id) }),
+	});
+}
 
 export function useCreateSystem() {
 	const queryClient = useQueryClient();
