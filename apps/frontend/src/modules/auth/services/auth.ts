@@ -9,11 +9,19 @@ export async function signIn(input: {
 	password: string;
 	systemSlug: string;
 	rememberMe?: boolean;
+	turnstileToken?: string;
 }) {
+	// El captcha lo verifica la API (el token es de un solo uso): aquí solo se
+	// reenvía en una cabecera, no viaja en el body.
+	const { turnstileToken, ...credentials } = input;
 	const response = await fetch(new URL("/api/auth/sign-in", env.AUTH_API_URL), {
 		method: "POST",
-		headers: { "Content-Type": "application/json", ...clientForwardHeaders() },
-		body: JSON.stringify(input),
+		headers: {
+			"Content-Type": "application/json",
+			...(turnstileToken ? { "X-Turnstile-Token": turnstileToken } : {}),
+			...clientForwardHeaders(),
+		},
+		body: JSON.stringify(credentials),
 	});
 	const body = (await readJson(response)) as {
 		user: AuthApiUser;

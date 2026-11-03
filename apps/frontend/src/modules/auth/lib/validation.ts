@@ -25,6 +25,6 @@ export const signInSchema = z.object({
 	rememberMe: z.boolean().optional(),
 	// Token del captcha invisible (Cloudflare Turnstile). Opcional aquí: si el
 	// captcha no está configurado en el servidor (TURNSTILE_SECRET_KEY), no se
-	// exige. Si está configurado, signInFn lo valida y rechaza sin token.
+	// exige. Si está configurado, la API lo valida y rechaza sin token.
 	turnstileToken: z.string().optional(),
 });

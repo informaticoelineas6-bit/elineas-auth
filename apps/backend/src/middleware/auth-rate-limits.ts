@@ -2,6 +2,7 @@ import type { OpenAPIHono } from "@hono/zod-openapi";
 import type { Context } from "hono";
 import { failureRateLimit, rateLimit } from "@backend/middleware/rate-limit.ts";
 import { clientIp } from "@backend/lib/client-ip.ts";
+import { requireTurnstile } from "@backend/middleware/turnstile.ts";
 import { requireSameOrigin } from "@backend/middleware/same-origin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 
@@ -32,6 +33,9 @@ export function registerAuthRateLimits(app: OpenAPIHono<AppEnv>) {
     "/api/auth/sign-in",
     rateLimit({ name: "sign-in", windowMs: 60_000, max: 10 }),
   );
+  // Captcha: tras el límite por IP y antes de los contadores de fallos (su 403
+  // no cuenta como intento fallido de contraseña).
+  app.use("/api/auth/sign-in", requireTurnstile);
   // Por cuenta, contando SOLO los intentos fallidos (401):
   //  · email + IP, umbral bajo: quien falla repetidamente se bloquea a sí mismo;
   //    un atacante no puede dejar fuera al usuario legítimo (otra IP) con unos

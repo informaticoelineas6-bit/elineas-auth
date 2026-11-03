@@ -15,7 +15,6 @@ import {
 } from "#/modules/auth/lib/cookies.ts";
 import { env } from "#/modules/auth/lib/env.ts";
 import { verifyAccessToken } from "#/modules/auth/lib/jwt.ts";
-import { verifyTurnstileToken } from "#/modules/auth/lib/turnstile-server.ts";
 import {
 	setPasswordSchema,
 	signInSchema,
@@ -30,8 +29,8 @@ import {
 	verifyEmailChange,
 } from "../services/auth.ts";
 
-// Site key pública para el widget del cliente. `TURNSTILE_SECRET_KEY` (server-
-// only) nunca sale de aquí: se usa solo dentro de signInFn.
+// Site key pública para el widget del cliente. La secret key vive solo en la
+// API, que es quien verifica el captcha.
 export const getTurnstileSiteKeyFn = createServerFn({ method: "GET" }).handler(
 	() => env.TURNSTILE_SITE_KEY ?? null,
 );
@@ -127,24 +126,10 @@ export const signInFn = createServerFn({ method: "POST" })
 	.validator(signInSchema)
 	.handler(async ({ data }) => {
 		try {
-			const { turnstileToken, ...credentials } = data;
-
-			if (env.TURNSTILE_SECRET_KEY) {
-				const valid = await verifyTurnstileToken(
-					turnstileToken,
-					env.TURNSTILE_SECRET_KEY,
-				);
-				if (!valid) {
-					return {
-						error: "No se pudo verificar que no eres un robot. Intenta de nuevo.",
-						code: "CAPTCHA_FAILED",
-						status: 403,
-					} as const;
-				}
-			}
-
+			// El captcha lo verifica la API (el token es de un solo uso): aquí solo
+			// se reenvía junto con las credenciales.
 			const result = await signIn({
-				...credentials,
+				...data,
 				systemSlug: env.AUTH_SYSTEM_SLUG,
 			});
 			if (!result.sessionToken) {

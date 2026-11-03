@@ -42,6 +42,15 @@ function requiredList(name: string): string[] {
   return values;
 }
 
+// El captcha del login se verifica en la API (middleware/turnstile.ts). En
+// producción es obligatorio: sin la clave el login quedaría sin protección
+// anti-bots y sin ningún aviso, así que se aborta el arranque.
+if (environment === "production" && !process.env.TURNSTILE_SECRET_KEY) {
+  throw new Error(
+    "Falta TURNSTILE_SECRET_KEY en el entorno (obligatoria en producción)",
+  );
+}
+
 export const env = {
   APP_ENV: environment,
   DATABASE_URL: required("DATABASE_URL"),
@@ -88,6 +97,8 @@ export const env = {
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean),
+  // Clave secreta de Cloudflare Turnstile para verificar el captcha del login.
+  TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
   // Nº de proxies de confianza por delante de la API. Determina cuántos saltos
   // de X-Forwarded-For son fiables al calcular la IP del cliente para el rate
   // limiting. 0 (por defecto) = ignorar XFF y usar solo la IP del socket, que
