@@ -40,7 +40,7 @@ export function registerSecurityMiddleware(app: OpenAPIHono<AppEnv>) {
       // caso contrario no se emite la cabecera y el navegador bloquea la petición.
       // (Las peticiones servidor-a-servidor no envían Origin y no se ven afectadas.)
       origin: (origin) => (env.ALLOWED_ORIGINS.includes(origin) ? origin : null),
-      allowHeaders: ["Content-Type", "Authorization", "X-Turnstile-Token"],
+      allowHeaders: ["Content-Type", "Authorization", "X-Turnstile-Token", "X-Service-Key"],
       allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       exposeHeaders: ["Content-Length", "Set-Auth-Token", "Set-Auth-Jwt"],
       maxAge: 600,
