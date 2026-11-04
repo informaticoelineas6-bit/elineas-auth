@@ -252,10 +252,11 @@ const employeesRoutesBase = new OpenAPIHono<AppEnv>();
 
 export const employeesRoutes = employeesRoutesBase
   .openapi(listRoute, async (c) => {
-    const { active, search, page, limit } = c.req.valid("query");
+    const { active, search, page, limit, sortBy, sortDir } = c.req.valid("query");
     const { rows, total } = await listEmployees(
       { active: active === undefined ? undefined : active === "true", search },
       { page, limit },
+      { sortBy, sortDir },
     );
     return c.json(
       { employees: rows, pagination: paginationMeta({ page, limit }, total) },

@@ -1,3 +1,4 @@
+import { SORT_FIELDS, sortQuery } from "@elineas/auth-contracts";
 import { z } from "zod";
 import { listSearchSchema } from "#/modules/common/lib/validation.ts";
 
@@ -14,4 +15,5 @@ export const revokeSessionSchema = z.object({
 // indicar, el IS devuelve tanto sesiones activas como expiradas.
 export const sessionFiltersSchema = listSearchSchema.extend({
 	active: z.boolean().optional(),
+	...sortQuery(SORT_FIELDS.sessions),
 });

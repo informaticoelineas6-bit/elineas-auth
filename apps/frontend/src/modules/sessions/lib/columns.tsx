@@ -25,6 +25,7 @@ export function getAdminSessionColumns({
 		{
 			id: "user",
 			header: "Usuario",
+			meta: { sortKey: "user" },
 			cell: ({ row }) => (
 				<div className="flex items-center gap-2 min-w-0">
 					<div className="min-w-0">
@@ -46,6 +47,7 @@ export function getAdminSessionColumns({
 		{
 			id: "device",
 			header: "Dispositivo",
+			meta: { sortKey: "device" },
 			cell: ({ row }) => {
 				const { os, label } = parseUserAgent(row.original.userAgent);
 				const isMobile = os === "Android" || os === "iPhone" || os === "iPad";
@@ -61,6 +63,7 @@ export function getAdminSessionColumns({
 		{
 			id: "system",
 			header: "Sistema",
+			meta: { sortKey: "system" },
 			cell: ({ row }) => {
 				const system = row.original.system;
 				return system ? (
@@ -74,21 +77,24 @@ export function getAdminSessionColumns({
 			accessorKey: "ipAddress",
 			header: "IP",
 			cell: ({ row }) => row.original.ipAddress || "—",
-			meta: { className: "text-muted-foreground" },
+			meta: { className: "text-muted-foreground", sortKey: "ipAddress" },
 		},
 		{
 			accessorKey: "createdAt",
 			header: "Inicio",
+			meta: { sortKey: "createdAt" },
 			cell: ({ row }) => formatDate(row.original.createdAt),
 		},
 		{
 			accessorKey: "expiresAt",
 			header: "Expira",
+			meta: { sortKey: "expiresAt" },
 			cell: ({ row }) => formatDate(row.original.expiresAt),
 		},
 		{
 			id: "status",
 			header: "Estado",
+			meta: { sortKey: "status" },
 			// Derivado de `expiresAt`: la sesión no trae un campo `active` propio (a
 			// diferencia de `Employee`/`System`), se calcula igual que el filtro del
 			// backend (`expiresAt` vs. ahora).

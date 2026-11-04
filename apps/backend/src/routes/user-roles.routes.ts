@@ -167,8 +167,12 @@ export const userRolesRoutes = userRolesRoutesBase
     return c.json({ roles }, 200);
   })
   .openapi(listRoute, async (c) => {
-    const { userId, roleId, systemId, page, limit } = c.req.valid("query");
-    const { rows, total } = await listUserRoles({ userId, roleId, systemId }, { page, limit });
+    const { userId, roleId, systemId, page, limit, sortBy, sortDir } = c.req.valid("query");
+    const { rows, total } = await listUserRoles(
+      { userId, roleId, systemId },
+      { page, limit },
+      { sortBy, sortDir },
+    );
     return c.json(
       { userRoles: rows, pagination: paginationMeta({ page, limit }, total) },
       200,

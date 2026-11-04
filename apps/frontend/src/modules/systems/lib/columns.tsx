@@ -36,10 +36,11 @@ export function getSystemColumns({
 	onDelete: (system: System) => void;
 }): DataTableColumn<System>[] {
 	return [
-		{ accessorKey: "name", header: "Nombre" },
+		{ accessorKey: "name", header: "Nombre", meta: { sortKey: "name" } },
 		{
 			accessorKey: "slug",
 			header: "Slug",
+			meta: { sortKey: "slug" },
 			cell: ({ row }) => (
 				<div className="flex items-center gap-1">
 					<code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
@@ -55,6 +56,7 @@ export function getSystemColumns({
 		{
 			accessorKey: "description",
 			header: "Descripción",
+			meta: { sortKey: "description" },
 			cell: ({ row }) =>
 				row.original.description ? (
 					<span className="line-clamp-1 max-w-xs text-muted-foreground">
@@ -67,6 +69,7 @@ export function getSystemColumns({
 		{
 			accessorKey: "active",
 			header: "Estado",
+			meta: { sortKey: "active" },
 			cell: ({ row }) => (
 				<Badge variant={row.original.active ? "default" : "secondary"}>
 					{row.original.active ? "Activo" : "Inactivo"}
@@ -76,6 +79,7 @@ export function getSystemColumns({
 		{
 			accessorKey: "createdAt",
 			header: "Creado",
+			meta: { sortKey: "createdAt" },
 			cell: ({ row }) => formatDate(row.original.createdAt),
 		},
 		{

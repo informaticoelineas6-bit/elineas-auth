@@ -1,3 +1,4 @@
+import { SORT_FIELDS, sortQuery } from "@elineas/auth-contracts";
 import { z } from "zod";
 import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 
@@ -5,6 +6,7 @@ import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 export const roleFiltersSchema = paginationQuerySchema.extend({
 	systemId: z.string().optional(),
 	search: z.string().max(100, "Debe tener menos de 100 caracteres").optional(),
+	...sortQuery(SORT_FIELDS.roles),
 });
 
 export const createRoleSchema = z.object({

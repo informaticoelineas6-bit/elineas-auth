@@ -28,6 +28,7 @@ export function getUserRoleColumns({
 		{
 			id: "user",
 			header: "Usuario",
+			meta: { sortKey: "user" },
 			cell: ({ row }) => {
 				const user = usersById.get(row.original.userId) ?? row.original.user;
 				if (!user) {
@@ -46,6 +47,7 @@ export function getUserRoleColumns({
 		{
 			id: "role",
 			header: "Rol",
+			meta: { sortKey: "role" },
 			cell: ({ row }) => {
 				const name =
 					rolesById.get(row.original.roleId)?.name ?? row.original.role?.name;
@@ -59,6 +61,7 @@ export function getUserRoleColumns({
 		{
 			id: "system",
 			header: "Sistema",
+			meta: { sortKey: "system" },
 			cell: ({ row }) => {
 				const role = rolesById.get(row.original.roleId);
 				const system =
@@ -78,6 +81,7 @@ export function getUserRoleColumns({
 		{
 			accessorKey: "createdAt",
 			header: "Asignado",
+			meta: { sortKey: "createdAt" },
 			cell: ({ row }) => formatDate(row.original.createdAt),
 		},
 		{

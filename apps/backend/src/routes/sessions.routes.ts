@@ -213,10 +213,11 @@ const sessionsAdminRoutesBase = new OpenAPIHono<AppEnv>();
 
 export const sessionsAdminRoutes = sessionsAdminRoutesBase
   .openapi(listAllSessionsRoute, async (c) => {
-    const { page, limit, search, active } = c.req.valid("query");
+    const { page, limit, search, active, sortBy, sortDir } = c.req.valid("query");
     const { rows, total } = await listAllSessions(
       { search, active: active === undefined ? undefined : active === "true" },
       { page, limit },
+      { sortBy, sortDir },
     );
     return c.json(
       { sessions: rows, pagination: paginationMeta({ page, limit }, total) },

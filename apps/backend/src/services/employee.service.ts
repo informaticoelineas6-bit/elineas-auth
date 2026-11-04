@@ -1,4 +1,4 @@
-import { and, count, desc, eq, ilike, isNull, ne, or } from "drizzle-orm";
+import { and, count, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
 import { employee } from "@backend/db/business-schema.ts";
@@ -12,6 +12,7 @@ import { HttpError } from "@backend/lib/http.ts";
 import { enqueueAccountInvite, generateInitialPassword } from "@backend/lib/invite.ts";
 import { queryIsAdmin } from "@backend/middleware/admin.ts";
 import { escapeLike } from "@backend/lib/search.ts";
+import { buildOrderBy, type SortInput } from "@backend/lib/sorting.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
 import type {
   CreateEmployeeBodySchema,
@@ -26,6 +27,9 @@ type CreateEmployeeWithUserInput = z.infer<typeof CreateEmployeeWithUserBodySche
 export async function listEmployees(
   filters: { active?: boolean; search?: string },
   pagination: PaginationInput,
+  sort?: SortInput<
+    "name" | "email" | "ci" | "phoneNumber" | "inDate" | "outDate" | "active" | "createdAt"
+  >,
 ) {
   const conditions = [
     filters.active === undefined ? undefined : eq(employee.active, filters.active),
@@ -67,7 +71,22 @@ export async function listEmployees(
       .from(employee)
       .leftJoin(user, eq(employee.userId, user.id))
       .where(where)
-      .orderBy(desc(employee.createdAt))
+      .orderBy(
+        ...buildOrderBy(
+          sort,
+          {
+            name: sql`lower(${employee.name} || ' ' || ${employee.lastName})`,
+            email: sql`lower(${user.email})`,
+            ci: employee.ci,
+            phoneNumber: employee.phoneNumber,
+            inDate: employee.inDate,
+            outDate: employee.outDate,
+            active: employee.active,
+            createdAt: employee.createdAt,
+          },
+          [employee.createdAt, employee.id],
+        ),
+      )
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
     // El conteo solo necesita el JOIN con user cuando hay búsqueda (el filtro

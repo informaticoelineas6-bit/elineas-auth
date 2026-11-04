@@ -1,3 +1,4 @@
+import { SORT_FIELDS, sortQuery } from "@elineas/auth-contracts";
 import { z } from "zod";
 import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 
@@ -8,6 +9,9 @@ export const userRoleFiltersSchema = paginationQuerySchema.extend({
 	userId: z.string().optional(),
 	roleId: z.string().optional(),
 	systemId: z.string().optional(),
+	...sortQuery(SORT_FIELDS.userRoles),
+	// Presentación: tabla paginada o tarjetas agrupadas por sistema / usuario.
+	view: z.enum(["table", "systems", "users"]).optional(),
 });
 
 export const createUserRoleSchema = z.object({

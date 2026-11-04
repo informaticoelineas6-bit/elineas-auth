@@ -11,6 +11,11 @@ import {
 export type DataTableColumnMeta = {
 	className?: string;
 	headerClassName?: string;
+	/**
+	 * Nombre del campo de orden que entiende el servidor (`sortBy`). Sin él, la
+	 * columna no es ordenable.
+	 */
+	sortKey?: string;
 };
 
 // Funciones que registra la tabla compartida. En la v9 nada viene incluido de

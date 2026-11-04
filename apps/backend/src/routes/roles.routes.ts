@@ -216,10 +216,11 @@ rolesRoutesBase.use("*", requireAdmin);
 
 export const rolesRoutes = rolesRoutesBase
   .openapi(listRoute, async (c) => {
-    const { systemId, search, page, limit } = c.req.valid("query");
+    const { systemId, search, page, limit, sortBy, sortDir } = c.req.valid("query");
     const { rows, total } = await listRoles(
       { systemId, search },
       { page, limit },
+      { sortBy, sortDir },
     );
     return c.json(
       { roles: rows, pagination: paginationMeta({ page, limit }, total) },

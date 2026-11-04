@@ -1,7 +1,11 @@
 import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useDebouncedValue } from "@/modules/common/lib/use-debounced-value.ts";
-import type { ListControls, ListSearch } from "@/modules/common/shared/types";
+import type {
+	ListControls,
+	ListSearch,
+	SortDir,
+} from "@/modules/common/shared/types";
 
 // Forma mínima de search params que comparte todo listado (ver listSearchSchema).
 // `page`/`limit` quedan cubiertos por el index signature (su tipo de entrada Zod
@@ -9,7 +13,7 @@ import type { ListControls, ListSearch } from "@/modules/common/shared/types";
 
 // Claves que NO cuentan como "filtro" a la hora de distinguir el estado vacío
 // ("no hay datos") del vacío filtrado ("no hay resultados para este filtro").
-const RESERVED_KEYS = new Set(["page", "limit"]);
+const RESERVED_KEYS = new Set(["page", "limit", "sortBy", "sortDir"]);
 
 /**
  * Sincroniza página / búsqueda / filtros de un listado con los search params de
@@ -70,6 +74,11 @@ export function useListControls<TSearch extends ListSearch = ListSearch>(
 		onPageChange: (page) => setParams({ page }),
 		// Cambiar el tamaño de página vuelve a la página 1 para no quedar fuera de rango.
 		onLimitChange: (limit) => setParams({ limit, page: 1 }),
+		sortBy: search.sortBy as string | undefined,
+		sortDir: search.sortDir as SortDir | undefined,
+		// Cambiar el orden vuelve a la página 1.
+		onSortChange: (sortBy, sortDir) =>
+			setParams({ sortBy, sortDir: sortBy ? sortDir : undefined, page: 1 }),
 		isFiltered,
 	};
 

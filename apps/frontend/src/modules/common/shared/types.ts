@@ -21,7 +21,13 @@ export type ListSearch = {
 	[key: string]: unknown;
 };
 
+export type SortDir = "asc" | "desc";
+
 export type ListControls = {
+	sortBy?: string;
+	sortDir?: SortDir;
+	/** `undefined` quita el orden (vuelve al orden por defecto del servidor). */
+	onSortChange: (sortBy: string | undefined, sortDir?: SortDir) => void;
 	search: string;
 	onSearchChange: (value: string) => void;
 	onPageChange: (page: number) => void;

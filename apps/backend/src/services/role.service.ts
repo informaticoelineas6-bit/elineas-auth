@@ -1,9 +1,10 @@
-import { and, count, desc, eq, ilike } from "drizzle-orm";
+import { and, count, eq, getTableColumns, ilike, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
-import { role } from "@backend/db/business-schema.ts";
+import { role, system } from "@backend/db/business-schema.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { escapeLike } from "@backend/lib/search.ts";
+import { buildOrderBy, type SortInput } from "@backend/lib/sorting.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
 import type {
   CreateRoleBodySchema,
@@ -16,6 +17,7 @@ type UpdateRoleInput = z.infer<typeof UpdateRoleBodySchema>;
 export async function listRoles(
   filters: { systemId?: string; search?: string },
   pagination: PaginationInput,
+  sort?: SortInput<"name" | "system" | "description" | "createdAt">,
 ) {
   const conditions = [
     filters.systemId ? eq(role.systemId, filters.systemId) : undefined,
@@ -25,10 +27,22 @@ export async function listRoles(
 
   const [rows, [{ total }]] = await Promise.all([
     db
-      .select()
+      .select(getTableColumns(role))
       .from(role)
+      .innerJoin(system, eq(role.systemId, system.id))
       .where(where)
-      .orderBy(desc(role.createdAt))
+      .orderBy(
+        ...buildOrderBy(
+          sort,
+          {
+            name: sql`lower(${role.name})`,
+            system: sql`lower(${system.name})`,
+            description: sql`lower(${role.description})`,
+            createdAt: role.createdAt,
+          },
+          [role.createdAt, role.id],
+        ),
+      )
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
     db.select({ total: count() }).from(role).where(where),

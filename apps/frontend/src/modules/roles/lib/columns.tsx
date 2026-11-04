@@ -23,10 +23,11 @@ export function getRoleColumns({
 	onDelete: (role: Role) => void;
 }): DataTableColumn<Role>[] {
 	return [
-		{ accessorKey: "name", header: "Nombre" },
+		{ accessorKey: "name", header: "Nombre", meta: { sortKey: "name" } },
 		{
 			id: "system",
 			header: "Sistema",
+			meta: { sortKey: "system" },
 			cell: ({ row }) => {
 				const system = systemsById.get(row.original.systemId);
 				if (!system) {
@@ -49,6 +50,7 @@ export function getRoleColumns({
 		{
 			accessorKey: "description",
 			header: "Descripción",
+			meta: { sortKey: "description" },
 			cell: ({ row }) =>
 				row.original.description ? (
 					<span className="line-clamp-1 max-w-xs text-muted-foreground">
@@ -61,6 +63,7 @@ export function getRoleColumns({
 		{
 			accessorKey: "createdAt",
 			header: "Creado",
+			meta: { sortKey: "createdAt" },
 			cell: ({ row }) => formatDate(row.original.createdAt),
 		},
 		{

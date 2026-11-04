@@ -13,12 +13,13 @@ import {
 	TableRow,
 } from "@/modules/common/components/ui/table.tsx";
 import { cn } from "@/modules/common/lib/utils.ts";
-import type { Pagination } from "@/modules/common/shared/types.ts";
+import type { Pagination, SortDir } from "@/modules/common/shared/types.ts";
 import { DataTableEmpty } from "./data-table-empty.tsx";
 import { DataTableError } from "./data-table-error.tsx";
 import { DataTablePagination } from "./data-table-pagination.tsx";
 import { buildSelectionColumn } from "./data-table-selection-column.tsx";
 import { DataTableSkeleton } from "./data-table-skeleton.tsx";
+import { DataTableSortHeader } from "./data-table-sort-header.tsx";
 import { DataTableToolbar } from "./data-table-toolbar.tsx";
 import { type DataTableColumn, dataTableFeatures } from "./features.ts";
 
@@ -41,6 +42,10 @@ export type DataTableProps<TData extends RowData> = {
 	onSearchChange?: (value: string) => void;
 	onPageChange?: (page: number) => void;
 	onLimitChange?: (limit: number) => void;
+	/** Orden activo (search params `sortBy`/`sortDir`) y su callback. */
+	sortBy?: string;
+	sortDir?: SortDir;
+	onSortChange?: (sortBy: string | undefined, sortDir?: SortDir) => void;
 	/** Distingue "no hay datos" de "no hay resultados para este filtro". */
 	isFiltered?: boolean;
 
@@ -84,6 +89,9 @@ export function DataTable<TData extends RowData>({
 	onSearchChange,
 	onPageChange,
 	onLimitChange,
+	sortBy,
+	sortDir,
+	onSortChange,
 	isFiltered = false,
 	searchPlaceholder = "Buscar…",
 	filters,
@@ -154,9 +162,34 @@ export function DataTable<TData extends RowData>({
 										key={header.id}
 										className={header.column.columnDef.meta?.headerClassName}
 									>
-										{header.isPlaceholder ? null : (
-											<table.FlexRender header={header} />
-										)}
+										{header.isPlaceholder
+											? null
+											: (() => {
+													const sortKey = header.column.columnDef.meta?.sortKey;
+													const content = <table.FlexRender header={header} />;
+													if (!sortKey || !onSortChange) return content;
+													const active = sortBy === sortKey;
+													return (
+														<DataTableSortHeader
+															label={
+																typeof header.column.columnDef.header ===
+																"string"
+																	? header.column.columnDef.header
+																	: undefined
+															}
+															active={active}
+															dir={sortDir}
+															onToggle={() => {
+																if (!active) onSortChange(sortKey, "asc");
+																else if (sortDir !== "desc")
+																	onSortChange(sortKey, "desc");
+																else onSortChange(undefined);
+															}}
+														>
+															{content}
+														</DataTableSortHeader>
+													);
+												})()}
 									</TableHead>
 								))}
 							</TableRow>

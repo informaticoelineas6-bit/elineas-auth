@@ -1,9 +1,10 @@
-import { and, count, desc, eq, ilike, or } from "drizzle-orm";
+import { and, count, eq, ilike, or, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
 import { system } from "@backend/db/business-schema.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { escapeLike } from "@backend/lib/search.ts";
+import { buildOrderBy, type SortInput } from "@backend/lib/sorting.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
 import type {
   CreateSystemBodySchema,
@@ -16,6 +17,7 @@ type UpdateSystemInput = z.infer<typeof UpdateSystemBodySchema>;
 export async function listSystems(
   filters: { active?: boolean; search?: string },
   pagination: PaginationInput,
+  sort?: SortInput<"name" | "slug" | "description" | "active" | "createdAt">,
 ) {
   const conditions = [
     filters.active === undefined ? undefined : eq(system.active, filters.active),
@@ -33,7 +35,19 @@ export async function listSystems(
       .select()
       .from(system)
       .where(where)
-      .orderBy(desc(system.createdAt))
+      .orderBy(
+        ...buildOrderBy(
+          sort,
+          {
+            name: sql`lower(${system.name})`,
+            slug: system.slug,
+            description: sql`lower(${system.description})`,
+            active: system.active,
+            createdAt: system.createdAt,
+          },
+          [system.createdAt, system.id],
+        ),
+      )
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
     db.select({ total: count() }).from(system).where(where),

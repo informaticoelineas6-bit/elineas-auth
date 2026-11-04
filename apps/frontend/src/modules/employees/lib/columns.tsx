@@ -57,6 +57,7 @@ export function getEmployeeColumns({
 		{
 			id: "name",
 			header: "Nombre",
+			meta: { sortKey: "name" },
 			cell: ({ row }) => (
 				<span className="font-medium">
 					{row.original.name} {row.original.lastName}
@@ -66,6 +67,7 @@ export function getEmployeeColumns({
 		{
 			id: "email",
 			header: "Email",
+			meta: { sortKey: "email" },
 			cell: ({ row }) =>
 				row.original.user?.email ?? (
 					<span className="text-muted-foreground">—</span>
@@ -74,12 +76,14 @@ export function getEmployeeColumns({
 		{
 			accessorKey: "ci",
 			header: "CI",
+			meta: { sortKey: "ci" },
 			cell: ({ row }) =>
 				row.original.ci ?? <span className="text-muted-foreground">—</span>,
 		},
 		{
 			accessorKey: "phoneNumber",
 			header: "Teléfono",
+			meta: { sortKey: "phoneNumber" },
 			cell: ({ row }) =>
 				row.original.phoneNumber ?? (
 					<span className="text-muted-foreground">—</span>
@@ -88,16 +92,19 @@ export function getEmployeeColumns({
 		{
 			accessorKey: "inDate",
 			header: "Alta",
+			meta: { sortKey: "inDate" },
 			cell: ({ row }) => formatDate(row.original.inDate),
 		},
 		{
 			accessorKey: "outDate",
 			header: "Baja",
+			meta: { sortKey: "outDate" },
 			cell: ({ row }) => formatDate(row.original.outDate),
 		},
 		{
 			accessorKey: "active",
 			header: "Estado",
+			meta: { sortKey: "active" },
 			cell: ({ row }) => (
 				<Badge variant={row.original.active ? "default" : "secondary"}>
 					{row.original.active ? "Activo" : "Inactivo"}
@@ -107,6 +114,7 @@ export function getEmployeeColumns({
 		{
 			accessorKey: "createdAt",
 			header: "Creado",
+			meta: { sortKey: "createdAt" },
 			cell: ({ row }) => formatDate(row.original.createdAt),
 		},
 		{

@@ -1,10 +1,11 @@
-import { and, count, desc, eq, gt, ilike, lte, or } from "drizzle-orm";
+import { and, count, eq, gt, ilike, lte, or, sql } from "drizzle-orm";
 import { auth } from "@backend/lib/auth.ts";
 import { db } from "@backend/db/index.ts";
 import { session, user } from "@backend/db/auth-schema.ts";
 import { sessionSystem, system } from "@backend/db/business-schema.ts";
 import { forwardAuthHeaders, handleAuthError, HttpError } from "@backend/lib/http.ts";
 import { escapeLike } from "@backend/lib/search.ts";
+import { buildOrderBy, type SortInput } from "@backend/lib/sorting.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
 import { getSessionSystem } from "@backend/services/session-system.service.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
@@ -99,6 +100,9 @@ export const revokeOneFn = async (
 export async function listAllSessions(
   filters: { search?: string; active?: boolean },
   pagination: PaginationInput,
+  sort?: SortInput<
+    "user" | "device" | "system" | "ipAddress" | "createdAt" | "expiresAt" | "status"
+  >,
 ) {
   const conditions = [
     filters.active === undefined
@@ -136,7 +140,22 @@ export async function listAllSessions(
       .leftJoin(sessionSystem, eq(sessionSystem.sessionId, session.id))
       .leftJoin(system, eq(sessionSystem.systemId, system.id))
       .where(where)
-      .orderBy(desc(session.createdAt))
+      .orderBy(
+        ...buildOrderBy(
+          sort,
+          {
+            user: sql`lower(${user.name})`,
+            device: session.userAgent,
+            system: sql`lower(${system.name})`,
+            ipAddress: session.ipAddress,
+            createdAt: session.createdAt,
+            expiresAt: session.expiresAt,
+            // El estado (activa/expirada) es función de `expiresAt`.
+            status: session.expiresAt,
+          },
+          [session.createdAt, session.id],
+        ),
+      )
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
     db

@@ -1,3 +1,4 @@
+import { SORT_FIELDS, sortQuery } from "@elineas/auth-contracts";
 import { z } from "zod";
 import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 
@@ -11,4 +12,5 @@ import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 export const employeeFiltersSchema = paginationQuerySchema.extend({
 	search: z.string().max(100).optional(),
 	active: z.boolean().optional(),
+	...sortQuery(SORT_FIELDS.employees),
 });

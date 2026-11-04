@@ -230,10 +230,11 @@ systemsRoutesBase.use("*", requireAdmin);
 
 export const systemsRoutes = systemsRoutesBase
   .openapi(listRoute, async (c) => {
-    const { active, search, page, limit } = c.req.valid("query");
+    const { active, search, page, limit, sortBy, sortDir } = c.req.valid("query");
     const { rows, total } = await listSystems(
       { active: active === undefined ? undefined : active === "true", search },
       { page, limit },
+      { sortBy, sortDir },
     );
     return c.json({ systems: rows, pagination: paginationMeta({ page, limit }, total) }, 200);
   })

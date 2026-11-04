@@ -1,10 +1,11 @@
-import { url as Url } from "@elineas/auth-contracts";
+import { SORT_FIELDS, sortQuery, url as Url } from "@elineas/auth-contracts";
 import { z } from "zod";
 import { listSearchSchema } from "#/modules/common/lib/validation.ts";
 
 // Filtros: paginación + búsqueda libre (nombre/slug) y estado activo.
 export const systemFiltersSchema = listSearchSchema.extend({
 	active: z.boolean().optional(),
+	...sortQuery(SORT_FIELDS.systems),
 });
 
 export const createSystemSchema = z.object({

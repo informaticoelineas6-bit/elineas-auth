@@ -9,6 +9,8 @@ import {
   searchTerm as SearchTerm,
   slug as Slug,
   url as Url,
+  SORT_FIELDS,
+  sortQuery,
 } from "@elineas/auth-contracts";
 import { z } from "@hono/zod-openapi";
 
@@ -116,6 +118,7 @@ export const UpdateEmployeeBodySchema =
   CreateEmployeeBodySchema.partial().openapi("UpdateEmployeeBody");
 
 export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
+  ...sortQuery(SORT_FIELDS.employees),
   active: z
     .enum(["true", "false"])
     .optional()
@@ -160,6 +163,7 @@ export const UpdateSystemBodySchema =
   CreateSystemBodySchema.partial().openapi("UpdateSystemBody");
 
 export const SystemListQuerySchema = PaginationQuerySchema.extend({
+  ...sortQuery(SORT_FIELDS.systems),
   active: z
     .enum(["true", "false"])
     .optional()
@@ -206,6 +210,7 @@ export const UpdateRoleBodySchema = z
   .openapi("UpdateRoleBody");
 
 export const RoleListQuerySchema = PaginationQuerySchema.extend({
+  ...sortQuery(SORT_FIELDS.roles),
   systemId: z
     .uuid()
     .optional()
@@ -354,6 +359,7 @@ export const CreateUserRoleBodySchema = z
   .openapi("CreateUserRoleBody");
 
 export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
+  ...sortQuery(SORT_FIELDS.userRoles),
   userId: z
     .uuid()
     .optional()
@@ -378,6 +384,7 @@ export const UserRoleListQuerySchema = PaginationQuerySchema.extend({
 // Session (listado administrativo, todas las sesiones de todos los usuarios)
 // ---------------------------------------------------------------------------
 export const SessionListQuerySchema = PaginationQuerySchema.extend({
+  ...sortQuery(SORT_FIELDS.sessions),
   // Búsqueda libre por nombre o email del usuario dueño de la sesión
   // (coincidencia parcial, sin distinguir mayúsculas).
   search: SearchTerm.optional().openapi({
