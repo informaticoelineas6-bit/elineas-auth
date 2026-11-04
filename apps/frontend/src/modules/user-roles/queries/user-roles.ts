@@ -22,6 +22,8 @@ export const userRoleKeys = {
 	lists: () => [...userRoleKeys.all, "list"] as const,
 	list: (filters: UserRoleFilters) =>
 		[...userRoleKeys.lists(), filters] as const,
+	allFiltered: (filters: Omit<UserRoleFilters, "page" | "limit" | "view">) =>
+		[...userRoleKeys.lists(), "all", filters] as const,
 	details: () => [...userRoleKeys.all, "detail"] as const,
 	detail: (id: string) => [...userRoleKeys.details(), id] as const,
 	me: (systemSlug?: string) =>
@@ -33,6 +35,13 @@ export const userRolesQueries = {
 		queryOptions({
 			queryKey: userRoleKeys.list(filters),
 			queryFn: () => listUserRolesFn({ data: filters }),
+		}),
+	// Todas las asignaciones que cumplen los filtros (sin paginar): alimenta las
+	// vistas de tarjetas, que agrupan en el cliente.
+	allFiltered: (filters: Omit<UserRoleFilters, "page" | "limit" | "view">) =>
+		queryOptions({
+			queryKey: userRoleKeys.allFiltered(filters),
+			queryFn: () => listAllUserRolesFn({ data: filters }),
 		}),
 	detail: (id: string) =>
 		queryOptions({

@@ -10,9 +10,9 @@ import type {
 } from "../shared/types.ts";
 
 export function listUserRoles(filters: UserRoleFilters) {
-	return isApi.get<UserRoleListResponse>(
-		`/api/user-roles${buildQuery(filters)}`,
-	);
+	// `view` es solo de presentación (cliente): no viaja al IS.
+	const { view: _view, ...query } = filters;
+	return isApi.get<UserRoleListResponse>(`/api/user-roles${buildQuery(query)}`);
 }
 
 export async function getUserRole(id: string) {

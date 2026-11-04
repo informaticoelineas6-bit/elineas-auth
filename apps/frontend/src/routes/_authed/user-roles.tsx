@@ -1,7 +1,14 @@
 import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { Trash2, TriangleAlert, UserPlus } from "lucide-react";
+import {
+	LayoutGrid,
+	Table2,
+	Trash2,
+	TriangleAlert,
+	UserPlus,
+	Users,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -19,6 +26,11 @@ import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
+	Tabs,
+	TabsList,
+	TabsTrigger,
+} from "@/modules/common/components/ui/tabs.tsx";
+import {
 	getErrorMessage,
 	getErrorStatus,
 	reportError,
@@ -29,6 +41,7 @@ import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import type { System } from "@/modules/systems/shared/types.ts";
+import { UserRolesCards } from "@/modules/user-roles/components/user-roles-cards.tsx";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
 import {
 	getUserRoleColumns,
@@ -76,7 +89,26 @@ function UserRolesPage() {
 	const authSystemId = myRoles[0]?.system.id;
 
 	const { filters, controls, setFilter } = useListControls<UserRoleFilters>();
-	const query = useQuery(userRolesQueries.list(filters));
+	const view = filters.view ?? "table";
+	const isTable = view === "table";
+	// Filtros sin paginación ni vista: los usan las vistas de tarjetas, que
+	// cargan todas las asignaciones y agrupan en el cliente.
+	const {
+		page: _page,
+		limit: _limit,
+		view: _view,
+		sortBy: _sortBy,
+		sortDir: _sortDir,
+		...baseFilters
+	} = filters;
+	const query = useQuery({
+		...userRolesQueries.list(filters),
+		enabled: isTable,
+	});
+	const allQuery = useQuery({
+		...userRolesQueries.allFiltered(baseFilters),
+		enabled: !isTable,
+	});
 	// Fuentes para resolver ids y alimentar los filtros. Compartidas por query
 	// cache (misma key en toda la app); solo se piden una vez.
 	const employeesQuery = useQuery(employeesQueries.list({ limit: 100 }));
@@ -92,7 +124,8 @@ function UserRolesPage() {
 		clear: () => void;
 	} | null>(null);
 
-	const isForbidden = getErrorStatus(query.error) === 403;
+	const activeError = isTable ? query.error : allQuery.error;
+	const isForbidden = getErrorStatus(activeError) === 403;
 
 	// userId (cuenta) → nombre/email, resuelto desde el empleado enlazado.
 	const usersById = useMemo(() => {
@@ -189,22 +222,25 @@ function UserRolesPage() {
 	// Exporta TODAS las asignaciones que cumplan los filtros activos (no solo la
 	// página visible).
 	function handleExport(format: ExportFormat) {
-		const { page: _page, limit: _limit, ...rest } = filters;
-		exportUserRolesQuery.mutate(rest, {
-			onSuccess: async (userRoles) => {
-				if (userRoles.length === 0) {
-					toast.info("No hay asignaciones que exportar con estos filtros");
-					return;
-				}
-				try {
-					await exportUserRoles(userRoles, usersById, format);
-					toast.success(`${userRoles.length} asignación(es) exportada(s)`);
-				} catch (error) {
-					reportError(error, "No se pudo generar el archivo.");
-				}
+		exportUserRolesQuery.mutate(
+			{ ...baseFilters, sortBy: filters.sortBy, sortDir: filters.sortDir },
+			{
+				onSuccess: async (userRoles) => {
+					if (userRoles.length === 0) {
+						toast.info("No hay asignaciones que exportar con estos filtros");
+						return;
+					}
+					try {
+						await exportUserRoles(userRoles, usersById, format);
+						toast.success(`${userRoles.length} asignación(es) exportada(s)`);
+					} catch (error) {
+						reportError(error, "No se pudo generar el archivo.");
+					}
+				},
+				onError: (error) =>
+					reportError(error, "No se pudo exportar el listado."),
 			},
-			onError: (error) => reportError(error, "No se pudo exportar el listado."),
-		});
+		);
 	}
 
 	const columns = getUserRoleColumns({
@@ -223,6 +259,67 @@ function UserRolesPage() {
 		? systemsById.get(revokeRole.systemId)
 		: undefined;
 	const revokeIsAuthAdmin = toRevoke ? isAuthAdminAssignment(toRevoke) : false;
+
+	const filterControls = (
+		<>
+			<Combobox
+				className="w-56"
+				value={filters.userId}
+				onChange={(value) => setFilter("userId", value)}
+				options={userOptions}
+				placeholder="Usuario"
+				searchPlaceholder="Buscar por nombre o email…"
+				emptyText="Sin usuarios"
+				allowClear
+				clearLabel="Todos los usuarios"
+			/>
+			<Combobox
+				className="w-56"
+				value={filters.roleId}
+				onChange={(value) => setFilter("roleId", value)}
+				options={roleOptions}
+				placeholder="Rol"
+				searchPlaceholder="Buscar rol…"
+				emptyText="Sin roles"
+				allowClear
+				clearLabel="Todos los roles"
+			/>
+			<DataTableFilterSelect
+				value={filters.systemId}
+				onChange={(value) => setFilter("systemId", value)}
+				placeholder="Sistema"
+				allLabel="Todos los sistemas"
+				options={(systemsQuery.data?.systems ?? []).map((system) => ({
+					label: system.name,
+					value: system.id,
+				}))}
+			/>
+		</>
+	);
+
+	const viewSwitch = (
+		<Tabs
+			value={view}
+			onValueChange={(value) =>
+				setFilter("view", value === "table" ? undefined : value)
+			}
+		>
+			<TabsList>
+				<TabsTrigger value="table">
+					<Table2 />
+					Tabla
+				</TabsTrigger>
+				<TabsTrigger value="systems">
+					<LayoutGrid />
+					Por sistema
+				</TabsTrigger>
+				<TabsTrigger value="users">
+					<Users />
+					Por usuario
+				</TabsTrigger>
+			</TabsList>
+		</Tabs>
+	);
 
 	return (
 		<div className="space-y-6">
@@ -245,7 +342,28 @@ function UserRolesPage() {
 			/>
 
 			{isForbidden ? (
-				<ForbiddenState description={getErrorMessage(query.error)} />
+				<ForbiddenState description={getErrorMessage(activeError)} />
+			) : !isTable ? (
+				<div className="space-y-4">
+					<div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+						{viewSwitch}
+						{filterControls}
+					</div>
+					<UserRolesCards
+						rows={allQuery.data ?? []}
+						groupBy={view === "users" ? "users" : "systems"}
+						usersById={usersById}
+						isLoading={allQuery.isPending}
+						isError={allQuery.isError}
+						onRetry={() => allQuery.refetch()}
+						emptyText={
+							controls.isFiltered
+								? "No hay asignaciones con estos filtros."
+								: "Aún no hay roles asignados a usuarios."
+						}
+						onRevoke={(userRole) => setToRevoke(userRole)}
+					/>
+				</div>
 			) : (
 				<DataTable
 					columns={columns}
@@ -257,44 +375,17 @@ function UserRolesPage() {
 					onRetry={() => query.refetch()}
 					onPageChange={controls.onPageChange}
 					onLimitChange={controls.onLimitChange}
+					sortBy={controls.sortBy}
+					sortDir={controls.sortDir}
+					onSortChange={controls.onSortChange}
 					isFiltered={controls.isFiltered}
 					getRowId={(userRole) => userRole.id}
 					emptyTitle="Sin asignaciones"
 					emptyDescription="Aún no hay roles asignados a usuarios."
 					filters={
 						<>
-							<Combobox
-								className="w-56"
-								value={filters.userId}
-								onChange={(value) => setFilter("userId", value)}
-								options={userOptions}
-								placeholder="Usuario"
-								searchPlaceholder="Buscar por nombre o email…"
-								emptyText="Sin usuarios"
-								allowClear
-								clearLabel="Todos los usuarios"
-							/>
-							<Combobox
-								className="w-56"
-								value={filters.roleId}
-								onChange={(value) => setFilter("roleId", value)}
-								options={roleOptions}
-								placeholder="Rol"
-								searchPlaceholder="Buscar rol…"
-								emptyText="Sin roles"
-								allowClear
-								clearLabel="Todos los roles"
-							/>
-							<DataTableFilterSelect
-								value={filters.systemId}
-								onChange={(value) => setFilter("systemId", value)}
-								placeholder="Sistema"
-								allLabel="Todos los sistemas"
-								options={(systemsQuery.data?.systems ?? []).map((system) => ({
-									label: system.name,
-									value: system.id,
-								}))}
-							/>
+							{viewSwitch}
+							{filterControls}
 						</>
 					}
 					enableRowSelection
