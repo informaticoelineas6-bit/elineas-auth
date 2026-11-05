@@ -33,6 +33,7 @@ export const Route = createFileRoute("/_authed/employees/new")({
 
 function NewEmployeePage() {
 	const navigate = useNavigate();
+	const { isAdmin } = Route.useRouteContext();
 	const createEmployee = useCreateEmployeeWithUser();
 	// Errores del IS mapeados al campo correspondiente (409 email/CI duplicado).
 	const [fieldErrors, setFieldErrors] = useState<{
@@ -52,7 +53,7 @@ function NewEmployeePage() {
 				action: {
 					label: "Asignar rol",
 					onClick: () =>
-						navigate({ to: "/user-roles", search: { userId: user.id } }),
+						navigate({ to: "/user-roles", search: { userId: user.id, assign: true } }),
 				},
 			});
 			navigate({ to: "/employees" });
@@ -99,7 +100,11 @@ function NewEmployeePage() {
 						<TabsTrigger value="employee">Datos personales</TabsTrigger>
 					</TabsList>
 					<TabsContent value="user">
-						<UserAccountFields form={form} emailError={fieldErrors.email} />
+						<UserAccountFields
+							form={form}
+							emailError={fieldErrors.email}
+							canSetPassword={isAdmin}
+						/>
 					</TabsContent>
 					<TabsContent value="employee">
 						<EmployeeFields form={form} ciError={fieldErrors.ci} />

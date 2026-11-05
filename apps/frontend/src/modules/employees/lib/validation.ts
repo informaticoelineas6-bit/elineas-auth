@@ -3,6 +3,7 @@ import { phoneSchema } from "#/modules/common/lib/phone.ts";
 import {
 	companyEmailSchema,
 	isNotFutureDate,
+	passwordSchema,
 } from "#/modules/common/lib/validation.ts";
 
 // `employeeFiltersSchema` vive en `./filters.ts` (sin dependencias pesadas)
@@ -116,8 +117,9 @@ export const createEmployeeWithUserSchema = z.object({
 			.min(1, "Debe tener al menos 1 caracter")
 			.max(100, "Debe tener menos de 100 caracteres"),
 		email: companyEmailSchema,
-		// Sin contraseña: la cuenta se crea con una aleatoria y el dueño recibe un
-		// enlace por correo para establecer la suya.
+		// Opcional (solo admins): sin contraseña, la cuenta se crea con una
+		// aleatoria y el dueño recibe un enlace por correo para establecer la suya.
+		password: passwordSchema.optional(),
 		image: z.string().optional(),
 	}),
 	employee: employeeSectionSchema,
@@ -126,4 +128,30 @@ export const createEmployeeWithUserSchema = z.object({
 });
 
 // Esquema del formulario de alta (solo cliente): espeja las reglas del servidor.
-export const createEmployeeWithUserFormSchema = createEmployeeWithUserSchema;
+// La contraseña y su confirmación viajan como "" cuando no se rellenan; el
+// payload (toCreateEmployeeWithUserPayload) omite la contraseña vacía.
+export const createEmployeeWithUserFormSchema = z.object({
+	user: createEmployeeWithUserSchema.shape.user
+		.extend({
+			password: z.union([z.literal(""), passwordSchema]),
+			confirmPassword: z.string(),
+		})
+		.superRefine((user, ctx) => {
+			if (user.password && user.confirmPassword !== user.password) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["confirmPassword"],
+					message: "Las contraseñas no coinciden",
+				});
+			}
+			if (!user.password && user.confirmPassword) {
+				ctx.addIssue({
+					code: "custom",
+					path: ["password"],
+					message: "Escribe la contraseña",
+				});
+			}
+		}),
+	employee: employeeSectionSchema,
+	sendInvite: z.boolean().optional(),
+});

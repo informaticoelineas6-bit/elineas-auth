@@ -8,6 +8,7 @@ import {
 	FieldSet,
 } from "@/modules/common/components/ui/field.tsx";
 import { Input } from "@/modules/common/components/ui/input.tsx";
+import { PasswordInput } from "@/modules/common/components/ui/password-input.tsx";
 import type { EmployeeWithUserFormApi } from "@/modules/employees/lib/form.ts";
 
 // Sección "Cuenta de usuario" del alta combinada. Vive en el módulo `users`
@@ -17,17 +18,21 @@ import type { EmployeeWithUserFormApi } from "@/modules/employees/lib/form.ts";
 export function UserAccountFields({
 	form,
 	emailError,
+	canSetPassword = false,
 }: {
 	form: EmployeeWithUserFormApi;
 	emailError?: string;
+	// Fijar la contraseña inicial solo lo permite el servidor a administradores.
+	canSetPassword?: boolean;
 }) {
 	return (
 		<FieldSet>
 			<FieldLegend>Cuenta de usuario</FieldLegend>
 			<FieldDescription>
-				Cuenta con la que la persona iniciará sesión en el Identity Server. No
-				se define contraseña: le llegará por correo un enlace de un solo uso
-				(48 h) para establecer la suya.
+				Cuenta con la que la persona iniciará sesión en el Identity Server.
+				{canSetPassword
+					? " Si no defines contraseña, le llegará por correo un enlace de un solo uso (48 h) para establecer la suya."
+					: " No se define contraseña: le llegará por correo un enlace de un solo uso (48 h) para establecer la suya."}
 			</FieldDescription>
 			<FieldGroup className="w-full grid grid-cols-1 md:grid-cols-2 gap-6">
 				<form.Field name="user.name">
@@ -86,6 +91,61 @@ export function UserAccountFields({
 					}}
 				</form.Field>
 
+				{canSetPassword && (
+					<>
+						<form.Field name="user.password">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>Contraseña</FieldLabel>
+										<PasswordInput
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+											aria-invalid={isInvalid}
+											autoComplete="new-password"
+											showStrength
+										/>
+										<FieldDescription>Opcional.</FieldDescription>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+
+						<form.Field name="user.confirmPassword">
+							{(field) => {
+								const isInvalid =
+									field.state.meta.isTouched && !field.state.meta.isValid;
+								return (
+									<Field data-invalid={isInvalid}>
+										<FieldLabel htmlFor={field.name}>
+											Confirmar contraseña
+										</FieldLabel>
+										<PasswordInput
+											id={field.name}
+											name={field.name}
+											value={field.state.value}
+											onBlur={field.handleBlur}
+											onChange={(e) => field.handleChange(e.target.value)}
+											aria-invalid={isInvalid}
+											autoComplete="new-password"
+										/>
+										{isInvalid && (
+											<FieldError errors={field.state.meta.errors} />
+										)}
+									</Field>
+								);
+							}}
+						</form.Field>
+					</>
+				)}
 			</FieldGroup>
 		</FieldSet>
 	);

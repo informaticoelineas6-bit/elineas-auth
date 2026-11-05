@@ -12,6 +12,9 @@ export const userRoleFiltersSchema = paginationQuerySchema.extend({
 	...sortQuery(SORT_FIELDS.userRoles),
 	// Presentación: tabla paginada o tarjetas agrupadas por sistema / usuario.
 	view: z.enum(["table", "systems", "users"]).optional(),
+	// Transitorio: abre el diálogo "Asignar rol" con `userId` preseleccionado
+	// (p. ej. desde el aviso tras crear un usuario). La página lo consume y lo limpia.
+	assign: z.literal(true).optional(),
 });
 
 export const createUserRoleSchema = z.object({

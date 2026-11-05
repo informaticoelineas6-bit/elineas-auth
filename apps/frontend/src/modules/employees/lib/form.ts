@@ -14,7 +14,7 @@ import {
 // Valores iniciales del alta combinada. Los opcionales del empleado arrancan
 // vacíos (se depuran antes de enviar); el empleado nace activo por defecto.
 export const employeeWithUserFormDefaults: CreateEmployeeWithUserFormInput = {
-	user: { name: "", email: "" },
+	user: { name: "", email: "", password: "", confirmPassword: "" },
 	employee: {
 		name: "",
 		lastName: "",
@@ -148,6 +148,7 @@ export function toCreateEmployeeWithUserPayload(
 		user: {
 			name: value.user.name,
 			email: value.user.email,
+			...(value.user.password ? { password: value.user.password } : {}),
 		},
 		employee: {
 			name,

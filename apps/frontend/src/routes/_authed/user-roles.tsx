@@ -9,7 +9,7 @@ import {
 	UserPlus,
 	Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
 	DataTable,
@@ -88,7 +88,11 @@ function UserRolesPage() {
 	const { roles: myRoles } = Route.useRouteContext();
 	const authSystemId = myRoles[0]?.system.id;
 
-	const { filters, controls, setFilter } = useListControls<UserRoleFilters>();
+	const {
+		filters: { assign, ...filters },
+		controls,
+		setFilter,
+	} = useListControls<UserRoleFilters>();
 	const view = filters.view ?? "table";
 	const isTable = view === "table";
 	// Filtros sin paginación ni vista: los usan las vistas de tarjetas, que
@@ -118,6 +122,13 @@ function UserRolesPage() {
 	const exportUserRolesQuery = useExportUserRoles();
 
 	const [assignOpen, setAssignOpen] = useState(false);
+	// `?assign` abre el diálogo con el usuario del filtro preseleccionado y se
+	// limpia de la URL para no reabrirlo al recargar.
+	useEffect(() => {
+		if (!assign) return;
+		setAssignOpen(true);
+		setFilter("assign", undefined);
+	}, [assign, setFilter]);
 	const [toRevoke, setToRevoke] = useState<UserRoleDetail | null>(null);
 	const [bulk, setBulk] = useState<{
 		rows: UserRoleDetail[];
@@ -402,7 +413,11 @@ function UserRolesPage() {
 				/>
 			)}
 
-			<AssignRoleDialog open={assignOpen} onOpenChange={setAssignOpen} />
+			<AssignRoleDialog
+				open={assignOpen}
+				onOpenChange={setAssignOpen}
+				defaultUserId={filters.userId}
+			/>
 
 			<ConfirmDialog
 				open={bulk !== null}

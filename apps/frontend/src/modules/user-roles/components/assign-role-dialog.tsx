@@ -42,11 +42,13 @@ export function AssignRoleDialog({
 	open,
 	onOpenChange,
 	lockedUser,
+	defaultUserId,
 	defaultSystemId,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	lockedUser?: LockedUser;
+	defaultUserId?: string;
 	defaultSystemId?: string;
 }) {
 	return (
@@ -64,6 +66,7 @@ export function AssignRoleDialog({
 				{open && (
 					<AssignRoleForm
 						lockedUser={lockedUser}
+						defaultUserId={defaultUserId}
 						defaultSystemId={defaultSystemId}
 						onDone={() => onOpenChange(false)}
 					/>
@@ -75,10 +78,12 @@ export function AssignRoleDialog({
 
 function AssignRoleForm({
 	lockedUser,
+	defaultUserId,
 	defaultSystemId,
 	onDone,
 }: {
 	lockedUser?: LockedUser;
+	defaultUserId?: string;
 	defaultSystemId?: string;
 	onDone: () => void;
 }) {
@@ -87,7 +92,7 @@ function AssignRoleForm({
 	const [conflict, setConflict] = useState<string | undefined>();
 
 	const form = useAssignUserRoleForm(
-		{ userId: lockedUser?.userId, systemId: defaultSystemId },
+		{ userId: lockedUser?.userId ?? defaultUserId, systemId: defaultSystemId },
 		async (value) => {
 			setConflict(undefined);
 			// Una asignación por rol; se intentan todas y se informa el resultado.
