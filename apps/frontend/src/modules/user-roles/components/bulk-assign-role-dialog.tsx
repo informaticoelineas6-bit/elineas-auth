@@ -136,8 +136,13 @@ function BulkAssignForm({ onDone }: { onDone: () => void }) {
 				);
 			}
 			if (already.length > 0) {
+				const names = already.map((f) => {
+					const user = users.find((u) => u.id === f.row);
+					return user ? `${user.name} (${user.email})` : f.row;
+				});
 				toast.info(
 					`${already.length} usuario(s) ya tenían el rol y se omitieron`,
+					{ description: names.join(", ") },
 				);
 			}
 			if (errors.length === 0) {
