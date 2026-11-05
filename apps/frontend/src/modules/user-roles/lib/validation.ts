@@ -24,7 +24,7 @@ export const createUserRoleSchema = z.object({
 export const assignUserRoleFormSchema = z.object({
 	userId: z.string().min(1, "Selecciona un usuario"),
 	systemId: z.string().min(1, "Selecciona un sistema"),
-	roleId: z.string().min(1, "Selecciona un rol"),
+	roleIds: z.array(z.string()).min(1, "Selecciona al menos un rol"),
 });
 
 // Roles propios del usuario autenticado (no requiere admin), opcionalmente
