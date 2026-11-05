@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
@@ -8,6 +7,7 @@ import {
 	TriangleAlert,
 	UserPlus,
 	Users,
+	UsersRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -22,27 +22,29 @@ import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dial
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
-import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
-import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import {
 	Tabs,
 	TabsList,
 	TabsTrigger,
 } from "@/modules/common/components/ui/tabs.tsx";
+import { runBulk } from "@/modules/common/lib/bulk.ts";
 import {
 	getErrorMessage,
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
+import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import type { System } from "@/modules/systems/shared/types.ts";
-import { UserRolesCards } from "@/modules/user-roles/components/user-roles-cards.tsx";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
+import { BulkAssignRoleDialog } from "@/modules/user-roles/components/bulk-assign-role-dialog.tsx";
+import { UserRolesCards } from "@/modules/user-roles/components/user-roles-cards.tsx";
 import {
 	getUserRoleColumns,
 	type ResolvedUser,
@@ -122,6 +124,7 @@ function UserRolesPage() {
 	const exportUserRolesQuery = useExportUserRoles();
 
 	const [assignOpen, setAssignOpen] = useState(false);
+	const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
 	// `?assign` abre el diálogo con el usuario del filtro preseleccionado y se
 	// limpia de la URL para no reabrirlo al recargar.
 	useEffect(() => {
@@ -344,6 +347,10 @@ function UserRolesPage() {
 							onExport={handleExport}
 							pending={exportUserRolesQuery.isPending}
 						/>
+						<Button variant="outline" onClick={() => setBulkAssignOpen(true)}>
+							<UsersRound />
+							Asignar a varios
+						</Button>
 						<Button onClick={() => setAssignOpen(true)}>
 							<UserPlus />
 							Asignar rol
@@ -417,6 +424,10 @@ function UserRolesPage() {
 				open={assignOpen}
 				onOpenChange={setAssignOpen}
 				defaultUserId={filters.userId}
+			/>
+			<BulkAssignRoleDialog
+				open={bulkAssignOpen}
+				onOpenChange={setBulkAssignOpen}
 			/>
 
 			<ConfirmDialog
