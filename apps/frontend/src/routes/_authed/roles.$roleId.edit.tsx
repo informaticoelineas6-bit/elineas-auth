@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -15,6 +14,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import { RoleFields } from "@/modules/roles/components/role-fields.tsx";
 import {

@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { canAccessResource, canManageAnySystem } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
@@ -19,6 +18,7 @@ import {
 } from "lucide-react";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { cn } from "@/modules/common/lib/utils.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
 import type { MyPermission } from "@/modules/permissions/shared/types.ts";
@@ -56,8 +56,7 @@ export const Route = createFileRoute("/_authed/dashboard")({
 					queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
 				canAccessResource(undefined, access) &&
 					queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
-				canManage &&
-					queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
+				canManage && queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
 				canManage &&
 					queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
 			]),

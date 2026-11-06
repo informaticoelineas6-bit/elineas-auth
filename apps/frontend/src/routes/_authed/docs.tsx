@@ -115,9 +115,7 @@ function DocsPage() {
 				<h2 className="font-heading text-lg font-semibold text-foreground">
 					{SECTIONS.google.title}
 				</h2>
-				<p className="text-sm text-muted-foreground">
-					{SECTIONS.google.intro}
-				</p>
+				<p className="text-sm text-muted-foreground">{SECTIONS.google.intro}</p>
 				<ol className="list-inside list-decimal space-y-2 text-sm text-muted-foreground">
 					{GOOGLE_FLOW_STEPS.map((step) => (
 						<li key={step}>

@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
@@ -6,6 +5,7 @@ import { PageHeader } from "@/modules/common/components/partials/page-header.tsx
 import { Button } from "@/modules/common/components/ui/button.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
 import { getErrorMessage } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { ChangeEmailForm } from "@/modules/users/components/change-email-form.tsx";
 import { ChangePasswordForm } from "@/modules/users/components/change-password-form.tsx";
 import { MyRolesCard } from "@/modules/users/components/my-roles-card.tsx";

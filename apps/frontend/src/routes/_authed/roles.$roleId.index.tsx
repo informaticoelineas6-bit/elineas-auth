@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { Pencil } from "lucide-react";
@@ -13,6 +12,7 @@ import {
 	getErrorMessage,
 	getErrorStatus,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import { permissionsQueries } from "@/modules/permissions/queries/permissions.ts";
 import { RolePermissionsCard } from "@/modules/roles/components/role-permissions-card.tsx";

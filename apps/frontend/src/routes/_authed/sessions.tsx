@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { hasPermission } from "@elineas/auth-contracts";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -22,6 +21,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { getAdminSessionColumns } from "@/modules/sessions/lib/columns.tsx";
 import { sessionFiltersSchema } from "@/modules/sessions/lib/validation.ts";

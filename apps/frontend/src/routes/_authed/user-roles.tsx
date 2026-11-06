@@ -46,13 +46,13 @@ import type { System } from "@/modules/systems/shared/types.ts";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
 import { BulkAssignRoleDialog } from "@/modules/user-roles/components/bulk-assign-role-dialog.tsx";
 import { InviteUserDialog } from "@/modules/user-roles/components/invite-user-dialog.tsx";
-import { useUserDirectory } from "@/modules/user-roles/lib/use-user-directory.ts";
 import { UserRolesCards } from "@/modules/user-roles/components/user-roles-cards.tsx";
 import {
 	getUserRoleColumns,
 	type ResolvedUser,
 } from "@/modules/user-roles/lib/columns.tsx";
 import { exportUserRoles } from "@/modules/user-roles/lib/import-export.ts";
+import { useUserDirectory } from "@/modules/user-roles/lib/use-user-directory.ts";
 import { userRoleFiltersSchema } from "@/modules/user-roles/lib/validation.ts";
 import {
 	useDeleteUserRole,
@@ -159,7 +159,9 @@ function UserRolesPage() {
 		if (!systemSlug) return;
 		const target = managedSystems.find((system) => system.slug === systemSlug);
 		if (!target) {
-			toast.error(`No administras ningún sistema con el identificador «${systemSlug}».`);
+			toast.error(
+				`No administras ningún sistema con el identificador «${systemSlug}».`,
+			);
 			setFilters({ systemSlug: undefined, assign: undefined });
 			return;
 		}
@@ -211,7 +213,9 @@ function UserRolesPage() {
 		[systemsQuery.data],
 	);
 
-	const userOptions = directory.optionsFor(filters.userId ? [filters.userId] : []);
+	const userOptions = directory.optionsFor(
+		filters.userId ? [filters.userId] : [],
+	);
 	const roleOptions = (rolesQuery.data?.roles ?? []).map((role) => {
 		const system = systemsById.get(role.systemId);
 		return {

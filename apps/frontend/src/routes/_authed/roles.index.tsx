@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Plus, Trash2, Upload } from "lucide-react";
@@ -15,13 +14,14 @@ import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dial
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
-import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
+import { runBulk } from "@/modules/common/lib/bulk.ts";
 import {
 	getErrorMessage,
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import {
@@ -310,10 +310,10 @@ function RolesPage() {
 						<code>system</code> (slug del sistema), <code>name</code> y{" "}
 						<code>description</code> y, opcionalmente, <code>permissions</code>{" "}
 						(lista <code>recurso:acción</code> separada por <code>;</code>, p.
-						ej. <code>users:read;users:write</code>). Los permisos que no existan
-						se crean y se asignan al rol; los que el rol ya tenga no se quitan.
-						Si una fila trae <code>id</code>, actualiza ese rol (el sistema no
-						se puede cambiar); si no, crea uno nuevo.
+						ej. <code>users:read;users:write</code>). Los permisos que no
+						existan se crean y se asignan al rol; los que el rol ya tenga no se
+						quitan. Si una fila trae <code>id</code>, actualiza ese rol (el
+						sistema no se puede cambiar); si no, crea uno nuevo.
 					</>
 				}
 				mapRows={async (raw) => {

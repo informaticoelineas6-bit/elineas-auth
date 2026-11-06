@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Pencil, Power, PowerOff, Trash2 } from "lucide-react";
@@ -25,9 +24,10 @@ import {
 	reportError,
 } from "@/modules/common/lib/errors.ts";
 import { formatDate } from "@/modules/common/lib/format.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
-import { SystemServiceKeyPanel } from "@/modules/systems/components/system-service-key-panel.tsx";
 import { SystemRolesPanel } from "@/modules/systems/components/system-roles-panel.tsx";
+import { SystemServiceKeyPanel } from "@/modules/systems/components/system-service-key-panel.tsx";
 import {
 	systemsQueries,
 	useDeleteSystem,

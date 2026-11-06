@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { TriangleAlert } from "lucide-react";
@@ -16,6 +15,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
 import { SystemFields } from "@/modules/systems/components/system-fields.tsx";
 import {

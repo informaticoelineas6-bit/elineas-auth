@@ -32,9 +32,9 @@ import type {
 	ManagedUserFilters,
 } from "@/modules/managed-users/shared/types.ts";
 import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
-import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
 import { InviteUserDialog } from "@/modules/user-roles/components/invite-user-dialog.tsx";
+import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/system-users")({
 	validateSearch: managedUserFiltersSchema,
@@ -47,7 +47,8 @@ export const Route = createFileRoute("/_authed/system-users")({
 
 function SystemUsersPage() {
 	const { managedSystems } = Route.useRouteContext();
-	const { filters, controls, setFilter } = useListControls<ManagedUserFilters>();
+	const { filters, controls, setFilter } =
+		useListControls<ManagedUserFilters>();
 	const query = useQuery(managedUsersQueries.list(filters));
 	const resendInvite = useResendManagedUserInvite();
 
@@ -112,7 +113,10 @@ function SystemUsersPage() {
 						<Badge variant="destructive">Desactivado</Badge>
 					)}
 					{!row.original.editable && (
-						<Badge variant="outline" title="Tiene roles en otros sistemas: solo puedes gestionar sus roles de tu sistema">
+						<Badge
+							variant="outline"
+							title="Tiene roles en otros sistemas: solo puedes gestionar sus roles de tu sistema"
+						>
 							Cuenta compartida
 						</Badge>
 					)}
