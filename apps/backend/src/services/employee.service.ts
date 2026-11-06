@@ -342,3 +342,43 @@ export async function deleteEmployee(id: string, currentUserId?: string) {
     await tx.delete(user).where(eq(user.id, row.userId));
   });
 }
+
+// Elimina una cuenta de usuario que no tiene ficha de empleado (p. ej. importada
+// de otro sistema). Cascadea a account/session/userRole/sessionSystem. Si el
+// usuario sí tiene ficha, se rechaza: debe borrarse desde la ficha.
+export async function deleteUserAccount(userId: string, currentUserId?: string) {
+  await db.transaction(async (tx) => {
+    const [target] = await tx
+      .select({ id: user.id })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+    if (!target) throw new HttpError(404, "Usuario no encontrado", "NOT_FOUND");
+    if (userId === currentUserId) {
+      throw new HttpError(409, "No puedes eliminar tu propio usuario", "CONFLICT");
+    }
+    const [profile] = await tx
+      .select({ id: employee.id })
+      .from(employee)
+      .where(eq(employee.userId, userId))
+      .limit(1);
+    if (profile) {
+      throw new HttpError(
+        409,
+        "El usuario tiene ficha de empleado: elimínalo desde la ficha",
+        "CONFLICT",
+      );
+    }
+    if (
+      (await queryIsAdmin(userId)) &&
+      !(currentUserId && (await queryIsAdmin(currentUserId)))
+    ) {
+      throw new HttpError(
+        403,
+        "Solo un administrador puede eliminar a un administrador",
+        "FORBIDDEN",
+      );
+    }
+    await tx.delete(user).where(eq(user.id, userId));
+  });
+}

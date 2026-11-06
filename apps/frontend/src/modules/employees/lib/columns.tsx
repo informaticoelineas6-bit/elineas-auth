@@ -197,7 +197,7 @@ export function getEmployeeColumns({
 								} satisfies RowAction,
 							]
 						: []),
-					...(canDelete && hasProfile
+					...(canDelete
 						? [
 								{
 									label: "Eliminar",

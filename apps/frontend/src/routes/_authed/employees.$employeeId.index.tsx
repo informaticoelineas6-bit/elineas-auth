@@ -153,7 +153,7 @@ function EmployeeDetail({
 	}
 
 	function confirmDelete() {
-		deleteEmployee.mutate(employee.id, {
+		deleteEmployee.mutate({ id: employee.id }, {
 			onSuccess: () => {
 				toast.success(`Usuario "${employee.name}" eliminado`);
 				navigate({ to: "/employees" });

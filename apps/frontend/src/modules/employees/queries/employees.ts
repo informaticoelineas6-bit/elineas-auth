@@ -10,6 +10,7 @@ import {
 	createEmployeeFn,
 	createEmployeeWithUserFn,
 	deleteEmployeeFn,
+	deleteUserAccountFn,
 	getEmployeeFn,
 	listAllEmployeesFn,
 	listEmployeesFn,
@@ -112,7 +113,11 @@ export function useExportEmployees() {
 export function useDeleteEmployee() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (id: string) => deleteEmployeeFn({ data: { id } }),
+		// Las filas sin ficha llevan el id del usuario: se borra la cuenta.
+		mutationFn: (row: { id: string; hasProfile?: boolean }) =>
+			row.hasProfile === false
+				? deleteUserAccountFn({ data: { id: row.id } })
+				: deleteEmployeeFn({ data: { id: row.id } }),
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: employeeKeys.all });
 			queryClient.invalidateQueries({ queryKey: userRoleKeys.all });

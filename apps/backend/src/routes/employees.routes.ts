@@ -27,6 +27,7 @@ import {
   createAccountForEmployee,
   createEmployeeWithUser,
   deleteEmployee,
+  deleteUserAccount,
   getEmployee,
   listEmployees,
   updateEmployee,
@@ -242,6 +243,32 @@ const deleteRoute = createRoute({
   },
 });
 
+const deleteAccountRoute = createRoute({
+  method: "delete",
+  path: "/accounts/{id}",
+  operationId: "deleteUserAccount",
+  tags: ["Employees"],
+  summary: "Eliminar un usuario sin ficha de empleado",
+  description:
+    "Elimina la cuenta (con sus roles y sesiones) de un usuario que no tiene ficha de empleado. `id` es el id del usuario. Si tiene ficha, 409.",
+  security: bearerAuthSecurity,
+  middleware: [
+    requireSession,
+    requirePermission("employees", "delete"),
+  ] as const,
+  request: { params: IdParamSchema },
+  responses: {
+    200: {
+      description: "Usuario eliminado",
+      content: { "application/json": { schema: StatusResponseSchema } },
+    },
+    401: unauthorizedResponse,
+    403: forbiddenResponse,
+    404: notFoundResponse,
+    409: conflictResponse,
+  },
+});
+
 // Autenticación/autorización declarada por ruta (en el `middleware` de cada
 // createRoute, no con un `.use("*")` sobre la base: OpenAPIHono.use() devuelve
 // un `Hono` base sin `.openapi`, que cortaría la inferencia de tipos del RPC).
@@ -295,5 +322,10 @@ export const employeesRoutes = employeesRoutesBase
     const { id } = c.req.valid("param");
     // El id de quien llama sirve para rechazar el auto-borrado (409).
     await deleteEmployee(id, c.get("user").id);
+    return c.json({ status: true }, 200);
+  })
+  .openapi(deleteAccountRoute, async (c) => {
+    const { id } = c.req.valid("param");
+    await deleteUserAccount(id, c.get("user").id);
     return c.json({ status: true }, 200);
   });

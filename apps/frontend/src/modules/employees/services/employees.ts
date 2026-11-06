@@ -53,6 +53,10 @@ export function deleteEmployee(id: string) {
 	return isApi.delete<StatusResponse>(`/api/employees/${id}`);
 }
 
+export function deleteUserAccount(userId: string) {
+	return isApi.delete<StatusResponse>(`/api/employees/accounts/${userId}`);
+}
+
 export function createEmployeeWithUser(input: CreateEmployeeWithUserInput) {
 	return isApi.post<EmployeeWithUserResult>("/api/employees/with-user", input);
 }

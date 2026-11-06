@@ -16,6 +16,7 @@ import {
 	createEmployeeAccount,
 	createEmployeeWithUser,
 	deleteEmployee,
+	deleteUserAccount,
 	getEmployee,
 	listEmployees,
 	updateEmployee,
@@ -62,6 +63,11 @@ export const deleteEmployeeFn = createServerFn({ method: "POST" })
 	.middleware([requireAuthMiddleware])
 	.validator(idSchema)
 	.handler(({ data }) => deleteEmployee(data.id));
+
+export const deleteUserAccountFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(idSchema)
+	.handler(({ data }) => deleteUserAccount(data.id));
 
 // Exportar: el IS pagina (máx. 100 filas por página), pero exportar debe
 // traer TODAS las filas que cumplan los filtros (no solo la página visible en
