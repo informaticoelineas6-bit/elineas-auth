@@ -24,6 +24,11 @@ type CreateEmployeeInput = z.infer<typeof CreateEmployeeBodySchema>;
 type UpdateEmployeeInput = z.infer<typeof UpdateEmployeeBodySchema>;
 type CreateEmployeeWithUserInput = z.infer<typeof CreateEmployeeWithUserBodySchema>;
 
+// El listado parte de las CUENTAS (`user`) y no de las fichas: un usuario sin
+// ficha de empleado (p. ej. importado de otro sistema) también aparece, con
+// `hasProfile: false`. Para esas filas `id` es el id del usuario (solo sirve
+// como clave de fila; no existe /employees/{id}) y nombre/estado salen de la
+// cuenta. Las fichas sin cuenta siguen apareciendo (FULL JOIN).
 export async function listEmployees(
   filters: { active?: boolean; search?: string },
   pagination: PaginationInput,
@@ -31,8 +36,12 @@ export async function listEmployees(
     "name" | "email" | "ci" | "phoneNumber" | "inDate" | "outDate" | "active" | "createdAt"
   >,
 ) {
+  const active = sql<boolean>`coalesce(${employee.active}, true)`;
+  const createdAt = sql`coalesce(${employee.createdAt}, ${user.createdAt})`.mapWith(employee.createdAt);
+  const displayName = sql<string>`coalesce(${employee.name}, ${user.name})`;
+
   const conditions = [
-    filters.active === undefined ? undefined : eq(employee.active, filters.active),
+    filters.active === undefined ? undefined : sql`${active} = ${filters.active}`,
     filters.search
       ? (() => {
           const term = `%${escapeLike(filters.search)}%`;
@@ -40,6 +49,7 @@ export async function listEmployees(
             ilike(employee.name, term),
             ilike(employee.lastName, term),
             ilike(employee.ci, term),
+            ilike(user.name, term),
             ilike(user.email, term),
           );
         })()
@@ -47,65 +57,57 @@ export async function listEmployees(
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;
 
-  // LEFT JOIN con user para embeber la cuenta enlazada (y permitir buscar por
-  // email). Filas de la página y total en paralelo: comparten `where` y el
-  // mismo join para que el total refleje los filtros aplicados.
   const [rows, [{ total }]] = await Promise.all([
     db
       .select({
-        id: employee.id,
-        userId: employee.userId,
-        name: employee.name,
-        lastName: employee.lastName,
+        employeeId: employee.id,
+        userId: sql<string | null>`${user.id}`,
+        name: displayName,
+        lastName: sql<string>`coalesce(${employee.lastName}, '')`,
         ci: employee.ci,
         birthday: employee.birthday,
         phoneNumber: employee.phoneNumber,
         address: employee.address,
         inDate: employee.inDate,
         outDate: employee.outDate,
-        active: employee.active,
-        createdAt: employee.createdAt,
-        updatedAt: employee.updatedAt,
+        active,
+        createdAt,
+        updatedAt: sql`coalesce(${employee.updatedAt}, ${user.updatedAt})`.mapWith(employee.updatedAt),
         user: { id: user.id, name: user.name, email: user.email },
       })
-      .from(employee)
-      .leftJoin(user, eq(employee.userId, user.id))
+      .from(user)
+      .fullJoin(employee, eq(employee.userId, user.id))
       .where(where)
       .orderBy(
         ...buildOrderBy(
           sort,
           {
-            name: sql`lower(${employee.name} || ' ' || ${employee.lastName})`,
+            name: sql`lower(trim(${displayName} || ' ' || coalesce(${employee.lastName}, '')))`,
             email: sql`lower(${user.email})`,
             ci: employee.ci,
             phoneNumber: employee.phoneNumber,
             inDate: employee.inDate,
             outDate: employee.outDate,
-            active: employee.active,
-            createdAt: employee.createdAt,
+            active,
+            createdAt,
           },
-          [employee.createdAt, employee.id],
+          [createdAt, sql`coalesce(${employee.id}, ${user.id})`],
         ),
       )
       .limit(pagination.limit)
       .offset(toOffset(pagination)),
-    // El conteo solo necesita el JOIN con user cuando hay búsqueda (el filtro
-    // puede referenciar user.email). Sin búsqueda, un LEFT JOIN contra una FK
-    // única no altera el total, así que se omite y el COUNT queda sobre una
-    // sola tabla.
-    filters.search
-      ? db
-          .select({ total: count() })
-          .from(employee)
-          .leftJoin(user, eq(employee.userId, user.id))
-          .where(where)
-      : db.select({ total: count() }).from(employee).where(where),
+    db
+      .select({ total: count() })
+      .from(user)
+      .fullJoin(employee, eq(employee.userId, user.id))
+      .where(where),
   ]);
 
-  // El LEFT JOIN devuelve el objeto `user` con campos null cuando el empleado
-  // no tiene cuenta; lo normalizamos a `null` para respetar el contrato user | null.
-  const normalized = rows.map((row) => ({
+  // FULL JOIN: `user` llega con campos null cuando la ficha no tiene cuenta.
+  const normalized = rows.map(({ employeeId, ...row }) => ({
     ...row,
+    id: employeeId ?? row.user?.id ?? "",
+    hasProfile: employeeId !== null,
     user: row.user?.id ? row.user : null,
   }));
 

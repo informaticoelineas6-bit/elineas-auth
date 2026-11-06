@@ -96,6 +96,13 @@ export const EmployeeSchema = z
   })
   .openapi("Employee");
 
+// Fila del listado: parte de las cuentas, así que incluye usuarios SIN ficha de
+// empleado (`hasProfile: false`). En esas filas `id` es el id del usuario (clave
+// de fila) y no existe /employees/{id}.
+export const EmployeeListItemSchema = EmployeeSchema.extend({
+  hasProfile: z.boolean(),
+}).openapi("EmployeeListItem");
+
 export const CreateEmployeeBodySchema = z
   .object({
     userId: z.uuid().optional(),

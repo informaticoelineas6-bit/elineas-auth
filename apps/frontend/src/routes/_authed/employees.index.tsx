@@ -111,8 +111,10 @@ function EmployeesPage() {
 
 	async function confirmBulk() {
 		if (!bulk) return;
-		const { ok, failed } = await runBulk(bulk.rows, (row) =>
-			deleteEmployee.mutateAsync(row.id),
+		// Los usuarios sin ficha no se pueden eliminar desde aquí.
+		const { ok, failed } = await runBulk(
+			bulk.rows.filter((row) => row.hasProfile !== false),
+			(row) => deleteEmployee.mutateAsync(row.id),
 		);
 		if (ok > 0) toast.success(`${ok} usuario(s) eliminado(s)`);
 		if (failed.length > 0) {
@@ -252,7 +254,9 @@ function EmployeesPage() {
 						<Button
 							variant="destructive"
 							size="sm"
-							disabled={!canDelete}
+							disabled={
+								!canDelete || rows.every((row) => row.hasProfile === false)
+							}
 							onClick={() => setBulk({ rows, clear })}
 						>
 							<Trash2 />

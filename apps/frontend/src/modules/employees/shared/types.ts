@@ -30,6 +30,10 @@ export type Employee = {
 	// ver/filtrar por email en una sola vista; las respuestas de un empleado
 	// individual la omiten. `null` si el empleado no tiene usuario.
 	user?: EmployeeUser | null;
+	// Solo en el listado: `false` para usuarios sin ficha de empleado (p. ej.
+	// importados de otro sistema). En esas filas `id` es el id del USUARIO y
+	// no existe /employees/{id}: solo valen las acciones sobre la cuenta.
+	hasProfile?: boolean;
 };
 
 export type EmployeeUser = {

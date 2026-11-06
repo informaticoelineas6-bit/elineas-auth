@@ -4,6 +4,7 @@ import { requireSession } from "@backend/middleware/session.ts";
 import {
   CreateEmployeeBodySchema,
   EmployeeListQuerySchema,
+  EmployeeListItemSchema,
   EmployeeSchema,
   IdParamSchema,
   PaginationSchema,
@@ -48,7 +49,7 @@ const listRoute = createRoute({
       content: {
         "application/json": {
           schema: z.object({
-            employees: z.array(EmployeeSchema),
+            employees: z.array(EmployeeListItemSchema),
             pagination: PaginationSchema,
           }),
         },

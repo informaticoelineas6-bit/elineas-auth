@@ -61,6 +61,11 @@ export function getEmployeeColumns({
 			cell: ({ row }) => (
 				<span className="font-medium">
 					{row.original.name} {row.original.lastName}
+					{row.original.hasProfile === false && (
+						<Badge variant="outline" className="ml-2 font-normal">
+							Sin ficha
+						</Badge>
+					)}
 				</span>
 			),
 		},
@@ -125,13 +130,19 @@ export function getEmployeeColumns({
 				const employee = row.original;
 				const hasAccount = Boolean(employee.userId);
 				const hasEmail = Boolean(employee.user?.email);
+				// Sin ficha: solo aplican las acciones sobre la cuenta.
+				const hasProfile = employee.hasProfile !== false;
 				const actions: RowAction[] = [
-					{
-						label: "Ver detalle",
-						icon: Eye,
-						onSelect: () => onView(employee),
-					},
-					...(canWrite
+					...(hasProfile
+						? [
+								{
+									label: "Ver detalle",
+									icon: Eye,
+									onSelect: () => onView(employee),
+								} satisfies RowAction,
+							]
+						: []),
+					...(canWrite && hasProfile
 						? [
 								{
 									label: "Editar",
@@ -177,7 +188,7 @@ export function getEmployeeColumns({
 								} satisfies RowAction,
 							]
 						: []),
-					...(canWrite
+					...(canWrite && hasProfile
 						? [
 								{
 									label: employee.active ? "Desactivar" : "Activar",
@@ -186,7 +197,7 @@ export function getEmployeeColumns({
 								} satisfies RowAction,
 							]
 						: []),
-					...(canDelete
+					...(canDelete && hasProfile
 						? [
 								{
 									label: "Eliminar",
