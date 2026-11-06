@@ -19,6 +19,8 @@ import { Route as AuthedProfileRouteImport } from './routes/_authed/profile'
 import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
 import { Route as AuthedSystemUsersRouteImport } from './routes/_authed/system-users'
 import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
+import { Route as AuthedDepartmentsIndexRouteImport } from './routes/_authed/departments.index'
+import { Route as AuthedDepartmentsNewRouteImport } from './routes/_authed/departments.new'
 import { Route as AuthedEmployeesIndexRouteImport } from './routes/_authed/employees.index'
 import { Route as AuthedEmployeesNewRouteImport } from './routes/_authed/employees.new'
 import { Route as AuthedPermissionsIndexRouteImport } from './routes/_authed/permissions.index'
@@ -27,6 +29,8 @@ import { Route as AuthedRolesNewRouteImport } from './routes/_authed/roles.new'
 import { Route as AuthedSystemsIndexRouteImport } from './routes/_authed/systems.index'
 import { Route as AuthedSystemsNewRouteImport } from './routes/_authed/systems.new'
 import { Route as AuthGoogleCallbackRouteImport } from './routes/auth.google.callback'
+import { Route as AuthedDepartmentsDepartmentIdIndexRouteImport } from './routes/_authed/departments.$departmentId.index'
+import { Route as AuthedDepartmentsDepartmentIdEditRouteImport } from './routes/_authed/departments.$departmentId.edit'
 import { Route as AuthedEmployeesEmployeeIdIndexRouteImport } from './routes/_authed/employees.$employeeId.index'
 import { Route as AuthedEmployeesEmployeeIdEditRouteImport } from './routes/_authed/employees.$employeeId.edit'
 import { Route as AuthedRolesRoleIdIndexRouteImport } from './routes/_authed/roles.$roleId.index'
@@ -83,6 +87,16 @@ const AuthedUserRolesRoute = AuthedUserRolesRouteImport.update({
   path: '/user-roles',
   getParentRoute: () => AuthedRoute,
 } as any)
+const AuthedDepartmentsIndexRoute = AuthedDepartmentsIndexRouteImport.update({
+  id: '/departments/',
+  path: '/departments/',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedDepartmentsNewRoute = AuthedDepartmentsNewRouteImport.update({
+  id: '/departments/new',
+  path: '/departments/new',
+  getParentRoute: () => AuthedRoute,
+} as any)
 const AuthedEmployeesIndexRoute = AuthedEmployeesIndexRouteImport.update({
   id: '/employees/',
   path: '/employees/',
@@ -123,6 +137,18 @@ const AuthGoogleCallbackRoute = AuthGoogleCallbackRouteImport.update({
   path: '/auth/google/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthedDepartmentsDepartmentIdIndexRoute =
+  AuthedDepartmentsDepartmentIdIndexRouteImport.update({
+    id: '/departments/$departmentId/',
+    path: '/departments/$departmentId/',
+    getParentRoute: () => AuthedRoute,
+  } as any)
+const AuthedDepartmentsDepartmentIdEditRoute =
+  AuthedDepartmentsDepartmentIdEditRouteImport.update({
+    id: '/departments/$departmentId/edit',
+    path: '/departments/$departmentId/edit',
+    getParentRoute: () => AuthedRoute,
+  } as any)
 const AuthedEmployeesEmployeeIdIndexRoute =
   AuthedEmployeesEmployeeIdIndexRouteImport.update({
     id: '/employees/$employeeId/',
@@ -168,17 +194,21 @@ export interface FileRoutesByFullPath {
   '/sessions': typeof AuthedSessionsRoute
   '/system-users': typeof AuthedSystemUsersRoute
   '/user-roles': typeof AuthedUserRolesRoute
+  '/departments/new': typeof AuthedDepartmentsNewRoute
   '/employees/new': typeof AuthedEmployeesNewRoute
   '/roles/new': typeof AuthedRolesNewRoute
   '/systems/new': typeof AuthedSystemsNewRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
+  '/departments/': typeof AuthedDepartmentsIndexRoute
   '/employees/': typeof AuthedEmployeesIndexRoute
   '/permissions/': typeof AuthedPermissionsIndexRoute
   '/roles/': typeof AuthedRolesIndexRoute
   '/systems/': typeof AuthedSystemsIndexRoute
+  '/departments/$departmentId/edit': typeof AuthedDepartmentsDepartmentIdEditRoute
   '/employees/$employeeId/edit': typeof AuthedEmployeesEmployeeIdEditRoute
   '/roles/$roleId/edit': typeof AuthedRolesRoleIdEditRoute
   '/systems/$systemId/edit': typeof AuthedSystemsSystemIdEditRoute
+  '/departments/$departmentId/': typeof AuthedDepartmentsDepartmentIdIndexRoute
   '/employees/$employeeId/': typeof AuthedEmployeesEmployeeIdIndexRoute
   '/roles/$roleId/': typeof AuthedRolesRoleIdIndexRoute
   '/systems/$systemId/': typeof AuthedSystemsSystemIdIndexRoute
@@ -193,17 +223,21 @@ export interface FileRoutesByTo {
   '/sessions': typeof AuthedSessionsRoute
   '/system-users': typeof AuthedSystemUsersRoute
   '/user-roles': typeof AuthedUserRolesRoute
+  '/departments/new': typeof AuthedDepartmentsNewRoute
   '/employees/new': typeof AuthedEmployeesNewRoute
   '/roles/new': typeof AuthedRolesNewRoute
   '/systems/new': typeof AuthedSystemsNewRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
+  '/departments': typeof AuthedDepartmentsIndexRoute
   '/employees': typeof AuthedEmployeesIndexRoute
   '/permissions': typeof AuthedPermissionsIndexRoute
   '/roles': typeof AuthedRolesIndexRoute
   '/systems': typeof AuthedSystemsIndexRoute
+  '/departments/$departmentId/edit': typeof AuthedDepartmentsDepartmentIdEditRoute
   '/employees/$employeeId/edit': typeof AuthedEmployeesEmployeeIdEditRoute
   '/roles/$roleId/edit': typeof AuthedRolesRoleIdEditRoute
   '/systems/$systemId/edit': typeof AuthedSystemsSystemIdEditRoute
+  '/departments/$departmentId': typeof AuthedDepartmentsDepartmentIdIndexRoute
   '/employees/$employeeId': typeof AuthedEmployeesEmployeeIdIndexRoute
   '/roles/$roleId': typeof AuthedRolesRoleIdIndexRoute
   '/systems/$systemId': typeof AuthedSystemsSystemIdIndexRoute
@@ -220,17 +254,21 @@ export interface FileRoutesById {
   '/_authed/sessions': typeof AuthedSessionsRoute
   '/_authed/system-users': typeof AuthedSystemUsersRoute
   '/_authed/user-roles': typeof AuthedUserRolesRoute
+  '/_authed/departments/new': typeof AuthedDepartmentsNewRoute
   '/_authed/employees/new': typeof AuthedEmployeesNewRoute
   '/_authed/roles/new': typeof AuthedRolesNewRoute
   '/_authed/systems/new': typeof AuthedSystemsNewRoute
   '/auth/google/callback': typeof AuthGoogleCallbackRoute
+  '/_authed/departments/': typeof AuthedDepartmentsIndexRoute
   '/_authed/employees/': typeof AuthedEmployeesIndexRoute
   '/_authed/permissions/': typeof AuthedPermissionsIndexRoute
   '/_authed/roles/': typeof AuthedRolesIndexRoute
   '/_authed/systems/': typeof AuthedSystemsIndexRoute
+  '/_authed/departments/$departmentId/edit': typeof AuthedDepartmentsDepartmentIdEditRoute
   '/_authed/employees/$employeeId/edit': typeof AuthedEmployeesEmployeeIdEditRoute
   '/_authed/roles/$roleId/edit': typeof AuthedRolesRoleIdEditRoute
   '/_authed/systems/$systemId/edit': typeof AuthedSystemsSystemIdEditRoute
+  '/_authed/departments/$departmentId/': typeof AuthedDepartmentsDepartmentIdIndexRoute
   '/_authed/employees/$employeeId/': typeof AuthedEmployeesEmployeeIdIndexRoute
   '/_authed/roles/$roleId/': typeof AuthedRolesRoleIdIndexRoute
   '/_authed/systems/$systemId/': typeof AuthedSystemsSystemIdIndexRoute
@@ -247,17 +285,21 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/system-users'
     | '/user-roles'
+    | '/departments/new'
     | '/employees/new'
     | '/roles/new'
     | '/systems/new'
     | '/auth/google/callback'
+    | '/departments/'
     | '/employees/'
     | '/permissions/'
     | '/roles/'
     | '/systems/'
+    | '/departments/$departmentId/edit'
     | '/employees/$employeeId/edit'
     | '/roles/$roleId/edit'
     | '/systems/$systemId/edit'
+    | '/departments/$departmentId/'
     | '/employees/$employeeId/'
     | '/roles/$roleId/'
     | '/systems/$systemId/'
@@ -272,17 +314,21 @@ export interface FileRouteTypes {
     | '/sessions'
     | '/system-users'
     | '/user-roles'
+    | '/departments/new'
     | '/employees/new'
     | '/roles/new'
     | '/systems/new'
     | '/auth/google/callback'
+    | '/departments'
     | '/employees'
     | '/permissions'
     | '/roles'
     | '/systems'
+    | '/departments/$departmentId/edit'
     | '/employees/$employeeId/edit'
     | '/roles/$roleId/edit'
     | '/systems/$systemId/edit'
+    | '/departments/$departmentId'
     | '/employees/$employeeId'
     | '/roles/$roleId'
     | '/systems/$systemId'
@@ -298,17 +344,21 @@ export interface FileRouteTypes {
     | '/_authed/sessions'
     | '/_authed/system-users'
     | '/_authed/user-roles'
+    | '/_authed/departments/new'
     | '/_authed/employees/new'
     | '/_authed/roles/new'
     | '/_authed/systems/new'
     | '/auth/google/callback'
+    | '/_authed/departments/'
     | '/_authed/employees/'
     | '/_authed/permissions/'
     | '/_authed/roles/'
     | '/_authed/systems/'
+    | '/_authed/departments/$departmentId/edit'
     | '/_authed/employees/$employeeId/edit'
     | '/_authed/roles/$roleId/edit'
     | '/_authed/systems/$systemId/edit'
+    | '/_authed/departments/$departmentId/'
     | '/_authed/employees/$employeeId/'
     | '/_authed/roles/$roleId/'
     | '/_authed/systems/$systemId/'
@@ -394,6 +444,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthedUserRolesRouteImport
       parentRoute: typeof AuthedRoute
     }
+    '/_authed/departments/': {
+      id: '/_authed/departments/'
+      path: '/departments'
+      fullPath: '/departments/'
+      preLoaderRoute: typeof AuthedDepartmentsIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/departments/new': {
+      id: '/_authed/departments/new'
+      path: '/departments/new'
+      fullPath: '/departments/new'
+      preLoaderRoute: typeof AuthedDepartmentsNewRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/employees/': {
       id: '/_authed/employees/'
       path: '/employees'
@@ -450,6 +514,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthGoogleCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authed/departments/$departmentId/': {
+      id: '/_authed/departments/$departmentId/'
+      path: '/departments/$departmentId'
+      fullPath: '/departments/$departmentId/'
+      preLoaderRoute: typeof AuthedDepartmentsDepartmentIdIndexRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/departments/$departmentId/edit': {
+      id: '/_authed/departments/$departmentId/edit'
+      path: '/departments/$departmentId/edit'
+      fullPath: '/departments/$departmentId/edit'
+      preLoaderRoute: typeof AuthedDepartmentsDepartmentIdEditRouteImport
+      parentRoute: typeof AuthedRoute
+    }
     '/_authed/employees/$employeeId/': {
       id: '/_authed/employees/$employeeId/'
       path: '/employees/$employeeId'
@@ -502,16 +580,20 @@ interface AuthedRouteChildren {
   AuthedSessionsRoute: typeof AuthedSessionsRoute
   AuthedSystemUsersRoute: typeof AuthedSystemUsersRoute
   AuthedUserRolesRoute: typeof AuthedUserRolesRoute
+  AuthedDepartmentsNewRoute: typeof AuthedDepartmentsNewRoute
   AuthedEmployeesNewRoute: typeof AuthedEmployeesNewRoute
   AuthedRolesNewRoute: typeof AuthedRolesNewRoute
   AuthedSystemsNewRoute: typeof AuthedSystemsNewRoute
+  AuthedDepartmentsIndexRoute: typeof AuthedDepartmentsIndexRoute
   AuthedEmployeesIndexRoute: typeof AuthedEmployeesIndexRoute
   AuthedPermissionsIndexRoute: typeof AuthedPermissionsIndexRoute
   AuthedRolesIndexRoute: typeof AuthedRolesIndexRoute
   AuthedSystemsIndexRoute: typeof AuthedSystemsIndexRoute
+  AuthedDepartmentsDepartmentIdEditRoute: typeof AuthedDepartmentsDepartmentIdEditRoute
   AuthedEmployeesEmployeeIdEditRoute: typeof AuthedEmployeesEmployeeIdEditRoute
   AuthedRolesRoleIdEditRoute: typeof AuthedRolesRoleIdEditRoute
   AuthedSystemsSystemIdEditRoute: typeof AuthedSystemsSystemIdEditRoute
+  AuthedDepartmentsDepartmentIdIndexRoute: typeof AuthedDepartmentsDepartmentIdIndexRoute
   AuthedEmployeesEmployeeIdIndexRoute: typeof AuthedEmployeesEmployeeIdIndexRoute
   AuthedRolesRoleIdIndexRoute: typeof AuthedRolesRoleIdIndexRoute
   AuthedSystemsSystemIdIndexRoute: typeof AuthedSystemsSystemIdIndexRoute
@@ -524,16 +606,22 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedSessionsRoute: AuthedSessionsRoute,
   AuthedSystemUsersRoute: AuthedSystemUsersRoute,
   AuthedUserRolesRoute: AuthedUserRolesRoute,
+  AuthedDepartmentsNewRoute: AuthedDepartmentsNewRoute,
   AuthedEmployeesNewRoute: AuthedEmployeesNewRoute,
   AuthedRolesNewRoute: AuthedRolesNewRoute,
   AuthedSystemsNewRoute: AuthedSystemsNewRoute,
+  AuthedDepartmentsIndexRoute: AuthedDepartmentsIndexRoute,
   AuthedEmployeesIndexRoute: AuthedEmployeesIndexRoute,
   AuthedPermissionsIndexRoute: AuthedPermissionsIndexRoute,
   AuthedRolesIndexRoute: AuthedRolesIndexRoute,
   AuthedSystemsIndexRoute: AuthedSystemsIndexRoute,
+  AuthedDepartmentsDepartmentIdEditRoute:
+    AuthedDepartmentsDepartmentIdEditRoute,
   AuthedEmployeesEmployeeIdEditRoute: AuthedEmployeesEmployeeIdEditRoute,
   AuthedRolesRoleIdEditRoute: AuthedRolesRoleIdEditRoute,
   AuthedSystemsSystemIdEditRoute: AuthedSystemsSystemIdEditRoute,
+  AuthedDepartmentsDepartmentIdIndexRoute:
+    AuthedDepartmentsDepartmentIdIndexRoute,
   AuthedEmployeesEmployeeIdIndexRoute: AuthedEmployeesEmployeeIdIndexRoute,
   AuthedRolesRoleIdIndexRoute: AuthedRolesRoleIdIndexRoute,
   AuthedSystemsSystemIdIndexRoute: AuthedSystemsSystemIdIndexRoute,

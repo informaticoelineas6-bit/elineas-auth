@@ -6,6 +6,7 @@ import {
 import {
 	BookOpen,
 	Boxes,
+	Building2,
 	Lock,
 	MonitorSmartphone,
 	ShieldCheck,
@@ -50,6 +51,12 @@ export const NAV_ITEMS = [
 		scope: "system-admin",
 	},
 	{ to: "/employees", label: "Usuarios", icon: Users, resource: "employees" },
+	{
+		to: "/departments",
+		label: "Departamentos",
+		icon: Building2,
+		resource: "departments",
+	},
 	{
 		to: "/system-users",
 		label: "Usuarios del sistema",
