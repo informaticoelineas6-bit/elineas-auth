@@ -1,5 +1,9 @@
-import type { MyPermission } from "@elineas/auth-contracts";
-import { canAccessResource, hasPermission } from "@elineas/auth-contracts";
+import type { ManagedSystem, MyPermission } from "@elineas/auth-contracts";
+import {
+	canAccessResource,
+	canManageAnySystem,
+	hasPermission,
+} from "@elineas/auth-contracts";
 import { redirect } from "@tanstack/react-router";
 import { toast } from "sonner";
 
@@ -40,5 +44,18 @@ export function requirePermissionAccess(
 ) {
 	if (hasPermission(resource, action, context)) return;
 	toast.error(`Requiere el permiso "${resource}:${action}".`);
+	throw redirect({ to: "/dashboard" });
+}
+
+// Para las secciones de administración DELEGADA (Roles, Permisos,
+// Asignaciones): las puede abrir el superadmin o quien administre algún
+// sistema (rol admin dentro de él). El IS acota cada lista y cada escritura
+// al alcance del usuario, así que este guard solo decide si entra o no.
+export function requireSystemManagerAccess(context: {
+	isAdmin: boolean;
+	managedSystems: ManagedSystem[];
+}) {
+	if (canManageAnySystem(context)) return;
+	toast.error("Requiere administrar al menos un sistema.");
 	throw redirect({ to: "/dashboard" });
 }

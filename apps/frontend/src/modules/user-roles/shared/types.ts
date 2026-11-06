@@ -2,7 +2,9 @@ import type { z } from "zod";
 import type { Pagination } from "#/modules/common/shared/types.ts";
 import type {
 	createUserRoleSchema,
+	inviteUserSchema,
 	myUserRolesQuerySchema,
+	userDirectoryFiltersSchema,
 	userRoleFiltersSchema,
 } from "../lib/validation.ts";
 
@@ -44,3 +46,21 @@ export type UserRoleListResponse = {
 export type UserRoleFilters = z.input<typeof userRoleFiltersSchema>;
 export type CreateUserRoleInput = z.infer<typeof createUserRoleSchema>;
 export type MyUserRolesQuery = z.input<typeof myUserRolesQuerySchema>;
+
+// Usuario del directorio (GET /api/users/admin/directory): solo lo necesario
+// para elegir a quién asignar un rol.
+export type DirectoryUser = {
+	id: string;
+	name: string;
+	email: string;
+	active: boolean;
+	employeeName: string | null;
+};
+
+export type UserDirectoryResponse = {
+	users: DirectoryUser[];
+	pagination: Pagination;
+};
+
+export type UserDirectoryFilters = z.input<typeof userDirectoryFiltersSchema>;
+export type InviteUserInput = z.infer<typeof inviteUserSchema>;

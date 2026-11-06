@@ -1,6 +1,8 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { requireSession } from "@backend/middleware/session.ts";
 import { requireAdmin } from "@backend/middleware/admin.ts";
+import { requireIdentity } from "@backend/middleware/identity.ts";
+import { requireSystemManager } from "@backend/middleware/system-admin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import {
   CreateSystemBodySchema,
@@ -21,6 +23,12 @@ import {
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
+  assertCanManageSystem,
+  getManageScope,
+  listManagedSystems,
+  scopeFilter,
+} from "@backend/services/system-admin.service.ts";
+import {
   getServiceKeyStatus,
   revokeServiceKey,
   rotateServiceKey,
@@ -33,6 +41,34 @@ import {
   updateSystem,
 } from "@backend/services/system.service.ts";
 
+const managedRoute = createRoute({
+  method: "get",
+  path: "/managed",
+  operationId: "listManagedSystems",
+  tags: ["Systems"],
+  summary: "Sistemas que el usuario autenticado puede administrar",
+  description:
+    "Superadmin (rol admin en `auth`): todos los sistemas. Admin de un sistema: solo esos. Sin rol admin en ninguno: lista vacía. Acepta sesión o JWT del IS.",
+  security: bearerAuthSecurity,
+  middleware: [requireIdentity] as const,
+  responses: {
+    200: {
+      description: "Alcance de administración",
+      content: {
+        "application/json": {
+          schema: z.object({
+            isSuperAdmin: z.boolean(),
+            systems: z.array(
+              z.object({ id: z.uuid(), slug: z.string(), name: z.string() }),
+            ),
+          }),
+        },
+      },
+    },
+    401: unauthorizedResponse,
+  },
+});
+
 const listRoute = createRoute({
   method: "get",
   path: "/",
@@ -40,6 +76,7 @@ const listRoute = createRoute({
   tags: ["Systems"],
   summary: "Listar sistemas (paginado, filtrable por estado y búsqueda)",
   security: bearerAuthSecurity,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { query: SystemListQuerySchema },
   responses: {
     200: {
@@ -65,6 +102,7 @@ const getRoute = createRoute({
   tags: ["Systems"],
   summary: "Obtener un sistema por id",
   security: bearerAuthSecurity,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -86,6 +124,7 @@ const createRouteDef = createRoute({
   tags: ["Systems"],
   summary: "Crear un sistema",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: {
     body: { content: { "application/json": { schema: CreateSystemBodySchema } } },
   },
@@ -110,6 +149,7 @@ const updateRoute = createRoute({
   tags: ["Systems"],
   summary: "Actualizar un sistema",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: {
     params: IdParamSchema,
     body: { content: { "application/json": { schema: UpdateSystemBodySchema } } },
@@ -136,6 +176,7 @@ const deleteRoute = createRoute({
   tags: ["Systems"],
   summary: "Eliminar un sistema",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -166,6 +207,7 @@ const getServiceKeyRoute = createRoute({
   tags: ["Systems"],
   summary: "Ver si el sistema tiene clave de servicio",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -187,6 +229,7 @@ const rotateServiceKeyRoute = createRoute({
     "Devuelve la clave una sola vez; en BD solo queda su hash. Rotarla invalida la anterior. " +
     "Se envía en `X-Service-Key` a POST /api/auth/sign-in en lugar del captcha.",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     201: {
@@ -206,6 +249,7 @@ const revokeServiceKeyRoute = createRoute({
   tags: ["Systems"],
   summary: "Revocar la clave de servicio del sistema",
   security: bearerAuthSecurity,
+  middleware: [requireSession, requireAdmin] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -218,21 +262,31 @@ const revokeServiceKeyRoute = createRoute({
   },
 });
 
-// Todo el recurso requiere rol admin (lecturas incluidas). requireSession va
-// primero porque requireAdmin usa el user que aquél puebla.
-// El middleware se registra sobre la instancia base (no dentro de la cadena):
-// OpenAPIHono.use() devuelve un `Hono` base sin `.openapi`, así que encadenarlo
-// cortaría la inferencia de tipos del RPC. Registrado antes de las rutas, el
-// orden de ejecución en runtime es el mismo (middleware primero).
+// Autenticación por ruta (en el `middleware` de cada createRoute; ver el
+// comentario de user-roles.routes.ts sobre por qué no se usa `.use("*")`):
+//   - lecturas (list/get): `requireIdentity` + `requireSystemManager`, acotadas
+//     al alcance del usuario (un admin de `pos` solo ve `pos`).
+//   - `/managed`: cualquier usuario autenticado consulta SU alcance.
+//   - escrituras y service-key: `requireSession` + `requireAdmin` (superadmin).
+//     Dar de alta, editar o borrar sistemas y sus claves nunca se delega.
 const systemsRoutesBase = new OpenAPIHono<AppEnv>();
-systemsRoutesBase.use("*", requireSession);
-systemsRoutesBase.use("*", requireAdmin);
 
 export const systemsRoutes = systemsRoutesBase
+  .openapi(managedRoute, async (c) => {
+    const scope = await getManageScope(c.get("user").id);
+    return c.json(
+      { isSuperAdmin: scope.all, systems: await listManagedSystems(scope) },
+      200,
+    );
+  })
   .openapi(listRoute, async (c) => {
     const { active, search, page, limit, sortBy, sortDir } = c.req.valid("query");
     const { rows, total } = await listSystems(
-      { active: active === undefined ? undefined : active === "true", search },
+      {
+        active: active === undefined ? undefined : active === "true",
+        search,
+        ids: scopeFilter(c.get("manageScope")),
+      },
       { page, limit },
       { sortBy, sortDir },
     );
@@ -240,6 +294,7 @@ export const systemsRoutes = systemsRoutesBase
   })
   .openapi(getRoute, async (c) => {
     const { id } = c.req.valid("param");
+    assertCanManageSystem(c.get("manageScope"), id);
     const system = await getSystem(id);
     return c.json({ system }, 200);
   })

@@ -45,7 +45,10 @@ cp apps/frontend/.env.example  apps/frontend/.env
 
 `AUTH_API_URL` del panel tiene que apuntar al `BETTER_AUTH_URL` de la API, y el
 `AUTH_SYSTEM_SLUG` del panel debe existir como sistema en el IS con al menos un
-rol asignado al usuario que inicie sesión; si no, el login responde 403.
+rol asignado al usuario que inicie sesión; si no, el login responde 403. La
+excepción son los admins de otros sistemas (rol `admin` dentro de su propio
+sistema): entran igualmente y el panel solo les muestra Usuarios del sistema, Roles, Permisos y
+Asignaciones de los sistemas que administran (ver `apps/backend/README.md` §3.1).
 
 ## Scripts (desde la raíz)
 

@@ -1,11 +1,11 @@
-import { requireAdmin } from "@backend/middleware/admin.ts";
 import { requireIdentity } from "@backend/middleware/identity.ts";
-import { requireSession } from "@backend/middleware/session.ts";
+import { requireSystemManager } from "@backend/middleware/system-admin.ts";
 import {
   AssignPermissionBodySchema,
   IdParamSchema,
   MyPermissionSchema,
   MyPermissionsQuerySchema,
+  PermissionListQuerySchema,
   PermissionRoleParamSchema,
   PermissionSchema,
   PermissionSystemParamSchema,
@@ -21,9 +21,15 @@ import {
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
+  assertCanManageSystem,
+  scopeFilter,
+} from "@backend/services/system-admin.service.ts";
+import {
   assignPermission,
   assignPermissionToRole,
   deletePermission,
+  getPermissionSystemId,
+  getRoleSystemId,
   listMyPermissions,
   listPermissions,
   listPermissionsBySystem,
@@ -72,9 +78,12 @@ const listRoute = createRoute({
   path: "/",
   operationId: "listPermissions",
   tags: ["Permissions"],
-  summary: "Listar el catálogo completo de permisos (resource:action)",
+  summary: "Listar el catálogo de permisos (resource:action), por sistema",
+  description:
+    "El catálogo es por sistema. Sin `systemId` devuelve el de todos los sistemas del alcance del usuario (el superadmin, todos).",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
+  request: { query: PermissionListQuerySchema },
   responses: {
     200: {
       description: "Catálogo de permisos",
@@ -100,7 +109,7 @@ const bySystemRoute = createRoute({
     "cualquiera de sus roles y en qué roles concretos de ese sistema quedó " +
     "cada uno. Pensado para la vista de administración de permisos.",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   responses: {
     200: {
       description: "Permisos agrupados por sistema",
@@ -126,7 +135,7 @@ const assignRoute = createRoute({
     "ya existe en el catálogo se reutiliza; si no, se crea. Es la vía del " +
     "panel para 'crear un permiso para un sistema' sin tocar la API a mano.",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: {
     body: {
       content: { "application/json": { schema: AssignPermissionBodySchema } },
@@ -158,7 +167,7 @@ const updateRoute = createRoute({
     "El permiso es global: editar resource/action/description afecta a " +
     "todos los sistemas que lo tengan asignado, no solo al que se esté viendo.",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: {
     params: IdParamSchema,
     body: {
@@ -188,7 +197,7 @@ const deleteRoute = createRoute({
   tags: ["Permissions"],
   summary: "Eliminar un permiso del catálogo (y sus asignaciones a roles)",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -212,7 +221,7 @@ const removeFromSystemRoute = createRoute({
     "queda asignado a ningún rol de ningún otro sistema, también se borra " +
     "del catálogo (`deleted: true` en la respuesta).",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: PermissionSystemParamSchema },
   responses: {
     200: {
@@ -238,7 +247,7 @@ const assignRoleRoute = createRoute({
     "control fino del panel de edición (roles concretos de un sistema que " +
     "llevan un permiso dado).",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: PermissionRoleParamSchema },
   responses: {
     200: {
@@ -262,7 +271,7 @@ const unassignRoleRoute = createRoute({
     "/{id}/systems/{systemId}, NO borra el permiso del catálogo aunque quede " +
     "sin ningún rol.",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: PermissionRoleParamSchema },
   responses: {
     200: {
@@ -276,8 +285,10 @@ const unassignRoleRoute = createRoute({
 });
 
 // `/me` es de cualquier usuario autenticado (sus propios permisos); el resto
-// de operaciones (catálogo, alta/edición/borrado, vista por sistema) siguen
-// siendo solo admin, igual que antes.
+// (catálogo, alta/edición/borrado, vista por sistema) exige administrar algún
+// sistema (`requireSystemManager`) y cada handler acota el permiso/rol al
+// alcance del usuario. El catálogo es por sistema, así que un admin de `pos`
+// nunca toca permisos de otro sistema.
 const permissionsRoutesBase = new OpenAPIHono<AppEnv>();
 
 export const permissionsRoutes = permissionsRoutesBase
@@ -287,41 +298,56 @@ export const permissionsRoutes = permissionsRoutesBase
     return c.json({ permissions }, 200);
   })
   .openapi(listRoute, async (c) => {
-    const permissions = await listPermissions();
+    const { systemId } = c.req.valid("query");
+    const permissions = await listPermissions(
+      scopeFilter(c.get("manageScope"), systemId),
+    );
     return c.json({ permissions }, 200);
   })
   .openapi(bySystemRoute, async (c) => {
-    const systems = await listPermissionsBySystem();
+    const systems = await listPermissionsBySystem(
+      scopeFilter(c.get("manageScope")),
+    );
     return c.json({ systems }, 200);
   })
   .openapi(assignRoute, async (c) => {
     const body = c.req.valid("json");
+    assertCanManageSystem(c.get("manageScope"), body.systemId);
     const permission = await assignPermission(body);
     return c.json({ permission }, 201);
   })
   .openapi(updateRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
+    assertCanManageSystem(c.get("manageScope"), await getPermissionSystemId(id));
     const permission = await updatePermission(id, body);
     return c.json({ permission }, 200);
   })
   .openapi(deleteRoute, async (c) => {
     const { id } = c.req.valid("param");
+    assertCanManageSystem(c.get("manageScope"), await getPermissionSystemId(id));
     await deletePermission(id);
     return c.json({ status: true }, 200);
   })
   .openapi(removeFromSystemRoute, async (c) => {
     const { id, systemId } = c.req.valid("param");
+    assertCanManageSystem(c.get("manageScope"), systemId);
     const { deleted } = await removePermissionFromSystem(id, systemId);
     return c.json({ deleted }, 200);
   })
   .openapi(assignRoleRoute, async (c) => {
     const { id, roleId } = c.req.valid("param");
+    const scope = c.get("manageScope");
+    assertCanManageSystem(scope, await getRoleSystemId(roleId));
+    assertCanManageSystem(scope, await getPermissionSystemId(id));
     await assignPermissionToRole(roleId, id);
     return c.json({ status: true }, 200);
   })
   .openapi(unassignRoleRoute, async (c) => {
     const { id, roleId } = c.req.valid("param");
+    const scope = c.get("manageScope");
+    assertCanManageSystem(scope, await getRoleSystemId(roleId));
+    assertCanManageSystem(scope, await getPermissionSystemId(id));
     await unassignPermissionFromRole(roleId, id);
     return c.json({ status: true }, 200);
   });

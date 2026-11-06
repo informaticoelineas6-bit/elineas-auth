@@ -22,7 +22,8 @@ import type {
 export const permissionKeys = {
 	all: ["permissions"] as const,
 	bySystem: () => [...permissionKeys.all, "by-system"] as const,
-	catalog: () => [...permissionKeys.all, "catalog"] as const,
+	catalog: (systemId?: string) =>
+		[...permissionKeys.all, "catalog", systemId ?? null] as const,
 	byRole: (roleId: string) =>
 		[...permissionKeys.all, "by-role", roleId] as const,
 };
@@ -37,10 +38,10 @@ export const permissionsQueries = {
 			staleTime: CATALOG_STALE_TIME,
 			refetchOnWindowFocus: false,
 		}),
-	catalog: () =>
+	catalog: (systemId?: string) =>
 		queryOptions({
-			queryKey: permissionKeys.catalog(),
-			queryFn: () => listPermissionsFn(),
+			queryKey: permissionKeys.catalog(systemId),
+			queryFn: () => listPermissionsFn({ data: { systemId } }),
 			staleTime: CATALOG_STALE_TIME,
 			refetchOnWindowFocus: false,
 		}),

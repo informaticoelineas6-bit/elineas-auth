@@ -1,8 +1,9 @@
-import { and, count, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
 import { user } from "@backend/db/auth-schema.ts";
 import { role, system, userRole } from "@backend/db/business-schema.ts";
+import { env } from "@backend/config/env.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { buildOrderBy, type SortInput } from "@backend/lib/sorting.ts";
 import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
@@ -11,7 +12,13 @@ import type { CreateUserRoleBodySchema } from "@backend/openapi/business.schemas
 type CreateUserRoleInput = z.infer<typeof CreateUserRoleBodySchema>;
 
 export async function listUserRoles(
-  filters: { userId?: string; roleId?: string; systemId?: string },
+  // `systemIds` acota al alcance del admin delegado; `undefined` = sin límite.
+  filters: {
+    userId?: string;
+    roleId?: string;
+    systemId?: string;
+    systemIds?: string[];
+  },
   pagination: PaginationInput,
   sort?: SortInput<"user" | "role" | "system" | "createdAt">,
 ) {
@@ -19,6 +26,7 @@ export async function listUserRoles(
     filters.userId ? eq(userRole.userId, filters.userId) : undefined,
     filters.roleId ? eq(userRole.roleId, filters.roleId) : undefined,
     filters.systemId ? eq(role.systemId, filters.systemId) : undefined,
+    filters.systemIds ? inArray(role.systemId, filters.systemIds) : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;
 
@@ -89,12 +97,78 @@ export async function createUserRole(input: CreateUserRoleInput) {
   return row;
 }
 
-export async function deleteUserRole(id: string) {
+// Rol y sistema de una asignación (404 si no existe). Las rutas delegadas lo
+// usan para comprobar el alcance antes de crear/borrar.
+export async function getUserRoleScope(id: string) {
   const [row] = await db
-    .delete(userRole)
+    .select({
+      userId: userRole.userId,
+      roleId: userRole.roleId,
+      roleName: role.name,
+      systemId: role.systemId,
+    })
+    .from(userRole)
+    .innerJoin(role, eq(userRole.roleId, role.id))
     .where(eq(userRole.id, id))
-    .returning({ id: userRole.id });
+    .limit(1);
   if (!row) throw new HttpError(404, "Asignación no encontrada", "NOT_FOUND");
+  return row;
+}
+
+// Rol (con su sistema) por id, 404 si no existe.
+export async function getRoleScope(roleId: string) {
+  const [row] = await db
+    .select({ id: role.id, name: role.name, systemId: role.systemId })
+    .from(role)
+    .where(eq(role.id, roleId))
+    .limit(1);
+  if (!row) throw new HttpError(404, "Rol no encontrado", "NOT_FOUND");
+  return row;
+}
+
+// Borra la asignación. Si es la del rol admin de un sistema, impide dejarlo
+// sin ningún admin (409 LAST_SYSTEM_ADMIN) — salvo el sistema `auth`, que ya
+// tiene su propia salvaguarda en el panel y donde el superadmin puede
+// reorganizar. La comprobación va en transacción con FOR UPDATE sobre las
+// asignaciones del rol admin para que dos revocaciones simultáneas no dejen
+// el sistema sin admin.
+export async function deleteUserRole(id: string) {
+  await db.transaction(async (tx) => {
+    const [target] = await tx
+      .select({
+        roleId: userRole.roleId,
+        roleName: role.name,
+        systemSlug: system.slug,
+      })
+      .from(userRole)
+      .innerJoin(role, eq(userRole.roleId, role.id))
+      .innerJoin(system, eq(role.systemId, system.id))
+      .where(eq(userRole.id, id))
+      .limit(1);
+    if (!target) {
+      throw new HttpError(404, "Asignación no encontrada", "NOT_FOUND");
+    }
+
+    if (
+      target.roleName === env.ADMIN_ROLE_NAME &&
+      target.systemSlug !== env.ADMIN_SYSTEM_SLUG
+    ) {
+      const admins = await tx
+        .select({ id: userRole.id })
+        .from(userRole)
+        .where(eq(userRole.roleId, target.roleId))
+        .for("update");
+      if (admins.length <= 1) {
+        throw new HttpError(
+          409,
+          "No se puede quitar el último administrador del sistema",
+          "LAST_SYSTEM_ADMIN",
+        );
+      }
+    }
+
+    await tx.delete(userRole).where(eq(userRole.id, id));
+  });
 }
 
 // ¿Tiene el usuario al menos un rol dentro del sistema indicado? Se usa en el

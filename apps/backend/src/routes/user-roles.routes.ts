@@ -1,7 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
-import { requireSession } from "@backend/middleware/session.ts";
+import { env } from "@backend/config/env.ts";
 import { requireIdentity } from "@backend/middleware/identity.ts";
-import { requireAdmin } from "@backend/middleware/admin.ts";
+import { requireSystemManager } from "@backend/middleware/system-admin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import {
   CreateUserRoleBodySchema,
@@ -24,9 +24,16 @@ import {
   unauthorizedResponse,
 } from "@backend/openapi/schemas.ts";
 import {
+  assertCanManageSystem,
+  invalidateManageScope,
+  scopeFilter,
+} from "@backend/services/system-admin.service.ts";
+import {
   createUserRole,
   deleteUserRole,
+  getRoleScope,
   getUserRole,
+  getUserRoleScope,
   listMyRoles,
   listUserRoles,
 } from "@backend/services/user-role.service.ts";
@@ -62,7 +69,7 @@ const listRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Listar asignaciones de roles (paginado, filtrable por usuario o rol)",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { query: UserRoleListQuerySchema },
   responses: {
     200: {
@@ -88,7 +95,7 @@ const getRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Obtener una asignación por id",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -110,7 +117,7 @@ const createRouteDef = createRoute({
   tags: ["UserRoles"],
   summary: "Asignar un rol a un usuario",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: {
     body: { content: { "application/json": { schema: CreateUserRoleBodySchema } } },
   },
@@ -135,7 +142,7 @@ const deleteRoute = createRoute({
   tags: ["UserRoles"],
   summary: "Quitar un rol a un usuario",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: { params: IdParamSchema },
   responses: {
     200: {
@@ -154,9 +161,11 @@ const deleteRoute = createRoute({
 //   - `/me`: `requireIdentity` (sesión O JWT del IS) — cualquier usuario
 //     autenticado consulta SUS PROPIOS roles; es el endpoint que reenvían los
 //     backends consumidores con su Bearer JWT.
-//   - resto (lecturas/escrituras sobre asignaciones ajenas): `requireSession` +
-//     `requireAdmin`, ya que revela quién es admin — información sensible que no
-//     debe exponerse a sesiones normales ni a JWTs stateless de vida corta.
+//   - resto (lecturas/escrituras sobre asignaciones): `requireIdentity` +
+//     `requireSystemManager`. Revela quién tiene qué rol, así que solo lo ve
+//     quien administra algún sistema, y cada handler lo acota a los sistemas
+//     de su alcance (el superadmin ve todo). Acepta JWT: es la API delegada
+//     que usan los sistemas externos con el JWT de su admin.
 const userRolesRoutesBase = new OpenAPIHono<AppEnv>();
 
 export const userRolesRoutes = userRolesRoutesBase
@@ -168,8 +177,9 @@ export const userRolesRoutes = userRolesRoutesBase
   })
   .openapi(listRoute, async (c) => {
     const { userId, roleId, systemId, page, limit, sortBy, sortDir } = c.req.valid("query");
+    const systemIds = scopeFilter(c.get("manageScope"), systemId);
     const { rows, total } = await listUserRoles(
-      { userId, roleId, systemId },
+      { userId, roleId, systemIds },
       { page, limit },
       { sortBy, sortDir },
     );
@@ -180,16 +190,28 @@ export const userRolesRoutes = userRolesRoutesBase
   })
   .openapi(getRoute, async (c) => {
     const { id } = c.req.valid("param");
+    const { systemId } = await getUserRoleScope(id);
+    assertCanManageSystem(c.get("manageScope"), systemId);
     const userRole = await getUserRole(id);
     return c.json({ userRole }, 200);
   })
   .openapi(createRouteDef, async (c) => {
     const body = c.req.valid("json");
+    const targetRole = await getRoleScope(body.roleId);
+    assertCanManageSystem(c.get("manageScope"), targetRole.systemId);
     const userRole = await createUserRole(body);
+    if (targetRole.name === env.ADMIN_ROLE_NAME) {
+      await invalidateManageScope(body.userId);
+    }
     return c.json({ userRole }, 201);
   })
   .openapi(deleteRoute, async (c) => {
     const { id } = c.req.valid("param");
+    const target = await getUserRoleScope(id);
+    assertCanManageSystem(c.get("manageScope"), target.systemId);
     await deleteUserRole(id);
+    if (target.roleName === env.ADMIN_ROLE_NAME) {
+      await invalidateManageScope(target.userId);
+    }
     return c.json({ status: true }, 200);
   });

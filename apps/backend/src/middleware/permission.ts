@@ -50,6 +50,7 @@ async function queryHasPermission(
           and(eq(system.slug, systemSlug), eq(role.name, env.ADMIN_ROLE_NAME)),
           and(
             eq(system.slug, systemSlug),
+            eq(permission.systemId, system.id),
             eq(permission.resource, resource),
             eq(permission.action, action),
           ),

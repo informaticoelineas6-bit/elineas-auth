@@ -19,6 +19,7 @@
     "db:seed:staging": "APP_ENV=staging bun --env-file=.env.staging src/db/seed.ts",
     "build": "tsc --noEmit",
     "typecheck": "tsc --noEmit",
+    "test": "bun --env-file=.env.local test",
     "build:prod": "bun build src/index.ts --target=bun --outdir=dist --minify",
     "openapi:generate": "APP_ENV=local bun --env-file=.env.local scripts/generate-openapi.ts",
     "start": "bun --env-file=.env.local src/index.ts"

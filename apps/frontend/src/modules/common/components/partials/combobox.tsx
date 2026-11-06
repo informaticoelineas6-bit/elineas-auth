@@ -32,6 +32,8 @@ export function Combobox({
 	id,
 	ariaInvalid = false,
 	className,
+	onSearchChange,
+	loading = false,
 }: {
 	value: string | undefined;
 	onChange: (value: string | undefined) => void;
@@ -45,24 +47,34 @@ export function Combobox({
 	id?: string;
 	ariaInvalid?: boolean;
 	className?: string;
+	/**
+	 * Búsqueda en el servidor: si se pasa, el texto escrito se notifica aquí y
+	 * `options` se muestra tal cual (sin filtrar en el cliente). Para listas
+	 * demasiado grandes para cargarlas enteras (p. ej. el directorio de usuarios).
+	 */
+	onSearchChange?: (query: string) => void;
+	/** Con `onSearchChange`: muestra "Buscando…" mientras llega el resultado. */
+	loading?: boolean;
 }) {
 	const [open, setOpen] = useState(false);
 	const [query, setQuery] = useState("");
 
 	const selected = options.find((option) => option.value === value);
 	const needle = query.trim().toLowerCase();
-	const filtered = needle
-		? options.filter(
-				(option) =>
-					option.label.toLowerCase().includes(needle) ||
-					option.description?.toLowerCase().includes(needle),
-			)
-		: options;
+	const filtered =
+		needle && !onSearchChange
+			? options.filter(
+					(option) =>
+						option.label.toLowerCase().includes(needle) ||
+						option.description?.toLowerCase().includes(needle),
+				)
+			: options;
 
 	function select(next: string | undefined) {
 		onChange(next);
 		setOpen(false);
 		setQuery("");
+		onSearchChange?.("");
 	}
 
 	return (
@@ -70,7 +82,10 @@ export function Combobox({
 			open={open}
 			onOpenChange={(next) => {
 				setOpen(next);
-				if (!next) setQuery("");
+				if (!next) {
+					setQuery("");
+					onSearchChange?.("");
+				}
 			}}
 		>
 			<PopoverTrigger asChild>
@@ -102,7 +117,10 @@ export function Combobox({
 					<Input
 						autoFocus
 						value={query}
-						onChange={(e) => setQuery(e.target.value)}
+						onChange={(e) => {
+							setQuery(e.target.value);
+							onSearchChange?.(e.target.value);
+						}}
 						placeholder={searchPlaceholder}
 						className="h-8"
 					/>
@@ -115,7 +133,7 @@ export function Combobox({
 					)}
 					{filtered.length === 0 ? (
 						<p className="px-2 py-6 text-center text-sm text-muted-foreground">
-							{emptyText}
+							{loading ? "Buscando…" : emptyText}
 						</p>
 					) : (
 						filtered.map((option) => (

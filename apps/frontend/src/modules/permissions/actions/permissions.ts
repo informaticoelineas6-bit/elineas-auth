@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
 import { requireAuthMiddleware } from "#/modules/auth/middlewares/auth.ts";
 import { idSchema } from "#/modules/common/lib/validation.ts";
 import {
@@ -47,7 +48,8 @@ export const unassignPermissionFromRoleFn = createServerFn({ method: "POST" })
 
 export const listPermissionsFn = createServerFn({ method: "GET" })
 	.middleware([requireAuthMiddleware])
-	.handler(() => listPermissions());
+	.validator(z.object({ systemId: z.string().optional() }))
+	.handler(({ data }) => listPermissions(data));
 
 export const listRolePermissionsFn = createServerFn({ method: "GET" })
 	.middleware([requireAuthMiddleware])

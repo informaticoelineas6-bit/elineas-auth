@@ -1,9 +1,11 @@
+import type { ManagedSystem } from "@elineas/auth-contracts";
 import { createServerFn } from "@tanstack/react-start";
 import { AuthApiError } from "#/modules/auth/lib/api.ts";
 import { clearAuthCookies } from "#/modules/auth/lib/cookies.ts";
 import { env } from "#/modules/auth/lib/env.ts";
 import { authMiddleware } from "#/modules/auth/middlewares/auth.ts";
 import type { AuthSession } from "#/modules/auth/shared/types.ts";
+import { listManagedSystems } from "#/modules/systems/services/systems.ts";
 import { listMyPermissions } from "#/modules/permissions/services/permissions.ts";
 import type { MyPermission } from "#/modules/permissions/shared/types.ts";
 import { listMyRoles } from "#/modules/user-roles/services/user-roles.ts";
@@ -24,7 +26,12 @@ export type AuthedContext =
 			session: AuthSession;
 			roles: MyUserRole[];
 			permissions: MyPermission[];
+			// Superadmin del IS (rol admin en `auth`): acceso total.
 			isAdmin: boolean;
+			// Sistemas que administra (rol admin dentro de ese sistema). Un admin
+			// de `pos` entra al panel y solo gestiona `pos`; el superadmin los ve
+			// todos aquí también.
+			managedSystems: ManagedSystem[];
 	  };
 
 // Resuelve sesión + roles + permisos en UNA sola server fn (un único round-trip
@@ -46,10 +53,12 @@ export const resolveAuthedContextFn = createServerFn({ method: "GET" })
 
 		let roles: MyUserRole[];
 		let permissions: MyPermission[];
+		let managed: Awaited<ReturnType<typeof listManagedSystems>>;
 		try {
-			[roles, permissions] = await Promise.all([
+			[roles, permissions, managed] = await Promise.all([
 				listMyRoles({ systemSlug: env.AUTH_SYSTEM_SLUG }),
 				listMyPermissions({ systemSlug: env.AUTH_SYSTEM_SLUG }),
+				listManagedSystems(),
 			]);
 		} catch (error) {
 			// `context.session` viene del JWT cacheado (ver getAuthSession en
@@ -82,5 +91,11 @@ export const resolveAuthedContextFn = createServerFn({ method: "GET" })
 		const isAdmin = roles.some(
 			(role) => role.name.toLowerCase() === ADMIN_ROLE_NAME,
 		);
-		return { session: context.session, roles, permissions, isAdmin };
+		return {
+			session: context.session,
+			roles,
+			permissions,
+			isAdmin,
+			managedSystems: managed.systems,
+		};
 	});

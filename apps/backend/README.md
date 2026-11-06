@@ -182,11 +182,70 @@ Antes de que un frontend/API nuevo pueda usar el IS, un administrador del IS
    uno por uno.
 2. **Asignar el rol a usuarios** vía `POST /api/user-roles`.
 
-Todos estos endpoints (`/api/systems`, `/api/roles`, `/api/user-roles`,
-`/api/employees`) exigen sesión **y** rol `admin` en el sistema `auth`
-(`requireAdmin`, `src/middleware/admin.ts:11-36`). Son para gestión
-administrativa centralizada, no para que cada backend los consulte por
-petición — ver sección 7.
+Registrar sistemas (`/api/systems` escritura, service keys) y `/api/employees`
+exigen sesión **y** rol `admin` en el sistema `auth` (`requireAdmin`,
+`src/middleware/admin.ts`). Una vez dado de alta, el sistema se administra solo —
+ver [§3.1](#31-administración-delegada-por-sistema) —: no hace falta pasar por un
+superadmin del IS para cada rol, permiso o asignación.
+
+### 3.1 Administración delegada por sistema
+
+Quien tenga el rol `admin` **dentro del sistema X** (`ADMIN_ROLE_NAME`, el mismo
+comodín local de §7.2) administra **solo X**, sin ser admin del sistema `auth`:
+
+| Puede (solo en X)                                          | Endpoints                                                      |
+| ---------------------------------------------------------- | -------------------------------------------------------------- |
+| Ver/gestionar los roles de X (salvo renombrar/borrar `admin`) | `/api/roles*`                                                |
+| Ver/gestionar el catálogo de permisos de X y asignarlos a roles | `/api/permissions*`, `PUT /api/roles/{id}/permissions`      |
+| Asignar/quitar roles de X a cualquier usuario              | `/api/user-roles*`                                             |
+| Ver el directorio de usuarios (solo lectura) para asignar  | `GET /api/users/admin/directory?search=`                       |
+| Invitar usuarios nuevos (sin fijar su contraseña)          | `POST /api/auth/sign-up` (sin `password`)                      |
+| Listar a los usuarios con rol en su sistema (con sus roles ahí) | `GET /api/users/admin/managed?systemId=&search=`          |
+| Editar nombre, correo y ficha de empleado (incl. activar/desactivar) | `PATCH /api/users/admin/managed/{id}`                |
+| Fijar la contraseña de un usuario (confirma con **su** contraseña) | `POST /api/users/admin/managed/{id}/change-password`  |
+| Reenviar la invitación                                     | `POST /api/users/admin/managed/{id}/invite`                    |
+| Saber qué sistemas administra                              | `GET /api/systems/managed`                                     |
+
+**Cuentas compartidas.** Los usuarios son cuentas globales. Editar los datos o
+la contraseña de un usuario solo se permite si **todos** sus roles están en
+sistemas que administras (`GET .../managed` lo marca con `editable`). Si tiene
+roles en otro sistema —o es superadmin— la cuenta es compartida: puedes
+gestionarle los roles de tu sistema y reenviarle la invitación, pero no tocar su
+cuenta (`403 USER_SHARED`); si no, el admin de `pos` podría quedarse con la
+cuenta de alguien que administra otro sistema. Un usuario sin ningún rol en tus
+sistemas responde `404`.
+
+**Lo que NO puede:** crear/editar/borrar sistemas ni sus service keys, tocar el
+sistema `auth`, mover un rol a otro sistema, ni borrar empleados o usuarios. Tampoco
+puede quitar al **último** admin de su sistema (`409 LAST_SYSTEM_ADMIN`). El
+superadmin (admin en `auth`) conserva acceso a todo.
+
+Estos endpoints aceptan la **sesión** o el **JWT del IS** (`Authorization:
+Bearer`), así que el backend de tu sistema puede llamarlos en nombre de su admin:
+
+```bash
+curl https://auth.mercadoelineas.com/api/roles \
+  -H "Authorization: Bearer $JWT_DEL_ADMIN_DE_POS"          # solo roles de `pos`
+
+curl -X POST https://auth.mercadoelineas.com/api/user-roles \
+  -H "Authorization: Bearer $JWT_DEL_ADMIN_DE_POS" -H "Content-Type: application/json" \
+  -d '{"userId":"<uuid>","roleId":"<rol de pos>"}'           # 403 si el rol es de otro sistema
+```
+
+El alcance se cachea 30 s (`sysadmin:{userId}`, Redis); asignar o quitar un rol
+admin lo invalida al instante.
+
+**Panel del IS.** El admin de X también puede entrar al panel (el login contra
+`auth` acepta a quien administre algún sistema) y solo ve «Usuarios del sistema»,
+Roles, Permisos y Asignaciones de sus sistemas. Un enlace directo desde tu sistema abre el modal de
+asignación con el sistema ya fijado y el listado filtrado:
+
+```
+https://auth.mercadoelineas.com/user-roles?systemSlug=pos&assign=1
+```
+
+(`systemSlug` solo filtra; añade `assign=1` para abrir el modal. Si el usuario no
+está logueado, el login conserva el enlace y vuelve a él.)
 
 ## 4. Integración desde un frontend (React)
 
@@ -967,11 +1026,10 @@ El IS refleja el `Origin` solo si está en `ALLOWED_ORIGIN`
 El IS te da una identidad verificada (`sub`, `email`, `name`,
 `emailVerified`) y, si el login se hizo con `systemSlug`, el sistema al que
 pertenece esa sesión. **No** incluye en el JWT los roles ni los permisos del
-usuario, y los endpoints de escritura de `/api/systems` / `/api/roles` /
-`/api/user-roles` / `/api/employees` solo son accesibles para administradores
-del sistema `auth` (`requireAdmin`, pensado para la consola de
-administración centralizada del propio IS — eso no cambia, sea cual sea tu
-sistema).
+usuario. Las escrituras de `/api/systems` y `/api/employees` siguen siendo solo
+de administradores del sistema `auth` (`requireAdmin`); `/api/roles`,
+`/api/permissions` y `/api/user-roles` también los puede usar el admin de cada
+sistema, acotado al suyo (ver [§3.1](#31-administración-delegada-por-sistema)).
 
 Para autorización dentro de TU sistema tenés dos niveles, elegí el que se
 ajuste a tu app:
@@ -1047,7 +1105,7 @@ mecanismo que usa su propia consola de administración
 y está disponible para **cualquier** `system` dado de alta, no solo `auth`.
 
 1. Un admin del IS da de alta los `permission` (`resource`, `action`) que tu
-   sistema necesita (tabla `permission`, catálogo global) y los asigna a los
+   sistema necesita (tabla `permission`; el catálogo es **por sistema**) y los asigna a los
    roles de tu sistema. Dos formas, equivalentes:
    - Desde el panel de administración (`/permissions`): una card por sistema
      con los permisos asignados a sus roles como badges; crear uno pide el
@@ -1117,7 +1175,8 @@ app.delete(
 ```
 
 **Comodines de `/api/permissions/me?systemSlug=X`** (devuelven el catálogo
-completo de permisos, no solo los tuyos):
+completo de permisos **de X**, no solo los tuyos; el catálogo es por sistema, así
+que nunca expone permisos de otro):
 
 - Rol `admin` en el sistema `auth` (`ADMIN_SYSTEM_SLUG`): superusuario global
   del IS, igual que en `requireAdmin` — puede todo, en cualquier sistema.
@@ -1255,7 +1314,7 @@ para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 | Método     | Ruta                                                              | Auth requerida   | Descripción                                                                   |
 | ---------- | ----------------------------------------------------------------- | ---------------- | ----------------------------------------------------------------------------- |
 | POST       | `/api/auth/sign-in`                                               | — (rate limited) | Login; `systemSlug` opcional. Requiere cabecera `X-Turnstile-Token`           |
-| POST       | `/api/auth/sign-up`                                               | Sesión + admin   | Alta de usuario (no autoservicio)                                             |
+| POST       | `/api/auth/sign-up`                                               | Sesión o JWT + admin de algún sistema | Alta de usuario por invitación (`password` solo superadmin; ver §3.1) |
 | POST       | `/api/employees/with-user`                                        | Sesión + admin   | Crea usuario **y** su empleado enlazado a la vez                              |
 | POST       | `/api/auth/sign-out`                                              | Sesión           | Cierra la sesión actual                                                       |
 | GET        | `/api/auth/google/start`                                          | — (navegador)    | Inicia el login con Google por redirect (ver §5.3)                            |
@@ -1267,14 +1326,24 @@ para integradores: `UNAUTHORIZED` (401), `FORBIDDEN` (403, falta rol admin),
 | GET/PATCH  | `/api/users/me*`                                                  | Sesión           | Perfil propio; cambio de contraseña/email (ambos exigen la contraseña actual) |
 | GET        | `/api/user-roles/me`                                              | Sesión o JWT     | Mis roles, opcionalmente filtrados por `systemSlug` (ver §7.1)                |
 | GET        | `/api/permissions/me`                                             | Sesión o JWT     | Mis permisos efectivos en `systemSlug` (por defecto, `auth`; ver §7.2)        |
-| CRUD       | `/api/systems`, `/api/roles`, `/api/user-roles`, `/api/employees` | Sesión + admin   | Administración centralizada (consola interna)                                 |
-| GET/PUT    | `/api/roles/{id}/permissions`                                     | Sesión + admin   | Ver/reemplazar los permisos de un rol de cualquier sistema                    |
-| GET        | `/api/permissions`                                                | Sesión + admin   | Catálogo completo de permisos (`resource:action`)                            |
-| GET        | `/api/permissions/by-system`                                      | Sesión + admin   | Catálogo agrupado por sistema, con los roles que llevan cada permiso (ver §7.2) |
-| POST       | `/api/permissions/assign`                                         | Sesión + admin   | Crea (o reutiliza) un permiso y lo asigna a un rol de un sistema              |
-| PATCH/DELETE | `/api/permissions/{id}`                                         | Sesión + admin   | Edita el catálogo, o lo borra (y sus asignaciones a roles)                    |
-| PUT/DELETE | `/api/permissions/{id}/roles/{roleId}`                            | Sesión + admin   | Asigna/quita un permiso puntual de un rol                                    |
-| DELETE     | `/api/permissions/{id}/systems/{systemId}`                        | Sesión + admin   | Quita un permiso de todos los roles de un sistema; borra el catálogo si queda huérfano |
+| GET        | `/api/systems/managed`                                            | Sesión o JWT     | Sistemas que administro (superadmin: todos; ver §3.1)                         |
+| GET        | `/api/systems`, `/api/systems/{id}`                               | Sesión o JWT + admin de algún sistema | Lectura de sistemas, acotada a los que administro            |
+| POST/PATCH/DELETE | `/api/systems*`, `/api/systems/{id}/service-key`           | Sesión + superadmin | Alta/edición/borrado de sistemas y service keys                           |
+| CRUD       | `/api/roles`                                                      | Sesión o JWT + admin de sistema | Roles de los sistemas que administro (superadmin: todos)           |
+| CRUD       | `/api/user-roles`                                                 | Sesión o JWT + admin de sistema | Asignaciones de los sistemas que administro                         |
+| CRUD       | `/api/employees`                                                  | Sesión + permiso `employees:*` | Empleados (consola interna)                                  |
+| GET        | `/api/users/admin/directory`                                      | Sesión o JWT + admin de sistema | Directorio de usuarios (solo lectura, `search`, `userId`)           |
+| GET        | `/api/users/admin/managed`                                        | Sesión o JWT + admin de sistema | Usuarios con rol en mis sistemas, con `editable` (ver §3.1)          |
+| PATCH      | `/api/users/admin/managed/{id}`                                   | Sesión o JWT + admin de sistema | Edita nombre/correo/ficha de un usuario NO compartido (`403 USER_SHARED` si no) |
+| POST       | `/api/users/admin/managed/{id}/change-password`                   | Sesión o JWT + admin de sistema | Fija la contraseña de un usuario NO compartido                       |
+| POST       | `/api/users/admin/managed/{id}/invite`                            | Sesión o JWT + admin de sistema | Reenvía la invitación a un usuario de mi sistema                      |
+| GET/PUT    | `/api/roles/{id}/permissions`                                     | Sesión o JWT + admin de sistema | Ver/reemplazar los permisos de un rol (solo permisos de su sistema; `400 PERMISSION_SYSTEM_MISMATCH` si no) |
+| GET        | `/api/permissions`                                                | Sesión o JWT + admin de sistema | Catálogo de permisos (`?systemId=`), acotado a los sistemas que administro |
+| GET        | `/api/permissions/by-system`                                      | Sesión o JWT + admin de sistema | Catálogo agrupado por sistema, con los roles que llevan cada permiso (ver §7.2) |
+| POST       | `/api/permissions/assign`                                         | Sesión o JWT + admin de sistema | Crea (o reutiliza) un permiso del sistema y lo asigna a un rol de ese sistema |
+| PATCH/DELETE | `/api/permissions/{id}`                                         | Sesión o JWT + admin de sistema | Edita un permiso de su catálogo, o lo borra (y sus asignaciones a roles) |
+| PUT/DELETE | `/api/permissions/{id}/roles/{roleId}`                            | Sesión o JWT + admin de sistema | Asigna/quita un permiso puntual de un rol (mismo sistema)               |
+| DELETE     | `/api/permissions/{id}/systems/{systemId}`                        | Sesión o JWT + admin de sistema | Borra un permiso del catálogo del sistema (y sus asignaciones)         |
 | POST       | `/api/users/admin/{id}/change-password`                           | Sesión + admin   | Fija la contraseña de otro usuario (ver §10.3)                                |
 | POST       | `/api/users/admin/{id}/invite`                                    | Sesión + admin   | Reenvía el enlace para establecer la contraseña                               |
 | POST       | `/api/auth/set-password`                                          | Pública (token)  | Fija la contraseña con el token de un solo uso del correo                     |

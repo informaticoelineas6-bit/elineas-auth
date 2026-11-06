@@ -90,5 +90,8 @@ export function useListControls<TSearch extends ListSearch = ListSearch>(
 		/** Fija/limpia un filtro por columna (pasa `undefined` para limpiarlo). */
 		setFilter: (key: string, value: unknown) =>
 			setParams({ [key]: value, page: 1 }),
+		/** Fija/limpia varios filtros en UNA navegación (evita carreras entre dos `setFilter`). */
+		setFilters: (updates: Record<string, unknown>) =>
+			setParams({ ...updates, page: 1 }),
 	};
 }

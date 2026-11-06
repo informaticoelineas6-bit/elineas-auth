@@ -6,6 +6,7 @@ import {
 import { sessionKeys } from "#/modules/sessions/queries/sessions.ts";
 import {
 	adminChangeUserPasswordFn,
+	changeManagedUserPasswordFn,
 	changeEmailFn,
 	changePasswordFn,
 	getMeFn,
@@ -59,14 +60,23 @@ export function useChangeEmail() {
 // Cambio de contraseña de OTRO usuario (acción de admin). Al revocar sus
 // sesiones cambia el listado de sesiones activas, así que se invalida: si no,
 // la página de sesiones seguiría mostrando las que acaban de cerrarse.
-export function useAdminChangeUserPassword() {
+//
+// `managed`: lo ejecuta un admin de sistema sobre un usuario de su sistema (el
+// IS aplica además la regla de cuenta no compartida), no el superadmin.
+export function useAdminChangeUserPassword({
+	managed = false,
+}: {
+	managed?: boolean;
+} = {}) {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: ({
 			userId,
 			...input
 		}: AdminChangePasswordInput & { userId: string }) =>
-			adminChangeUserPasswordFn({ data: { userId, ...input } }),
+			(managed ? changeManagedUserPasswordFn : adminChangeUserPasswordFn)({
+				data: { userId, ...input },
+			}),
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: sessionKeys.all }),
 	});

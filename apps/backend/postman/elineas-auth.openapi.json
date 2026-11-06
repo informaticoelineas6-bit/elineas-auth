@@ -487,6 +487,205 @@
           "currentPassword"
         ]
       },
+      "ManagedUser": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "employee": {
+            "type": "object",
+            "nullable": true,
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "lastName": {
+                "type": "string"
+              },
+              "ci": {
+                "type": "string",
+                "nullable": true
+              },
+              "phoneNumber": {
+                "type": "string",
+                "nullable": true
+              },
+              "address": {
+                "type": "string",
+                "nullable": true
+              },
+              "active": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "lastName",
+              "ci",
+              "phoneNumber",
+              "address",
+              "active"
+            ]
+          },
+          "roles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "system": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "slug": {
+                      "type": "string"
+                    },
+                    "name": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "slug",
+                    "name"
+                  ]
+                }
+              },
+              "required": [
+                "id",
+                "name",
+                "system"
+              ]
+            }
+          },
+          "editable": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "active",
+          "employee",
+          "roles",
+          "editable"
+        ]
+      },
+      "Pagination": {
+        "type": "object",
+        "properties": {
+          "page": {
+            "type": "integer",
+            "example": 1
+          },
+          "limit": {
+            "type": "integer",
+            "example": 20
+          },
+          "total": {
+            "type": "integer",
+            "example": 57
+          },
+          "totalPages": {
+            "type": "integer",
+            "example": 3
+          }
+        },
+        "required": [
+          "page",
+          "limit",
+          "total",
+          "totalPages"
+        ]
+      },
+      "UpdateManagedUserBody": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "employee": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "example": "Ada"
+              },
+              "lastName": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100,
+                "example": "Lovelace"
+              },
+              "ci": {
+                "type": "string",
+                "pattern": "^\\d{11}$",
+                "example": "01010112345"
+              },
+              "birthday": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "phoneNumber": {
+                "type": "string",
+                "maxLength": 30
+              },
+              "address": {
+                "type": "string",
+                "maxLength": 300
+              },
+              "inDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "outDate": {
+                "type": "string",
+                "nullable": true,
+                "format": "date-time"
+              },
+              "active": {
+                "type": "boolean"
+              }
+            }
+          }
+        }
+      },
       "AdminChangePasswordResponse": {
         "type": "object",
         "properties": {
@@ -537,6 +736,35 @@
         },
         "required": [
           "status"
+        ]
+      },
+      "UserDirectoryEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "employeeName": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "email",
+          "active",
+          "employeeName"
         ]
       },
       "SafeSession": {
@@ -643,33 +871,6 @@
               "system"
             ]
           }
-        ]
-      },
-      "Pagination": {
-        "type": "object",
-        "properties": {
-          "page": {
-            "type": "integer",
-            "example": 1
-          },
-          "limit": {
-            "type": "integer",
-            "example": 20
-          },
-          "total": {
-            "type": "integer",
-            "example": 57
-          },
-          "totalPages": {
-            "type": "integer",
-            "example": 3
-          }
-        },
-        "required": [
-          "page",
-          "limit",
-          "total",
-          "totalPages"
         ]
       },
       "Employee": {
@@ -1475,6 +1676,10 @@
             "type": "string",
             "format": "uuid"
           },
+          "systemId": {
+            "type": "string",
+            "format": "uuid"
+          },
           "resource": {
             "type": "string",
             "example": "employees"
@@ -1494,6 +1699,7 @@
         },
         "required": [
           "id",
+          "systemId",
           "resource",
           "action",
           "description",
@@ -1648,7 +1854,8 @@
         "tags": [
           "Auth"
         ],
-        "summary": "Registrar un nuevo usuario (requiere rol admin)",
+        "summary": "Registrar un nuevo usuario (requiere ser admin de algún sistema)",
+        "description": "Crea la cuenta y envía la invitación para fijar la contraseña. Pueden usarlo el superadmin y los admins de sistema. Enviar `password` solo está permitido al superadmin.",
         "security": [
           {
             "bearerAuth": []
@@ -2315,6 +2522,491 @@
         }
       }
     },
+    "/api/users/admin/managed": {
+      "get": {
+        "operationId": "listManagedUsers",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Usuarios con rol en los sistemas que administro",
+        "description": "Paginado y buscable, filtrable por sistema. Cada usuario trae sus roles dentro de tu alcance y `editable` (false si su cuenta es compartida con otros sistemas: solo se le gestionan los roles de tu sistema).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "systemId",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ManagedUser"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "users",
+                    "pagination"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/admin/managed/{id}": {
+      "patch": {
+        "operationId": "updateManagedUser",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Editar nombre, correo y ficha de empleado de un usuario de mi sistema",
+        "description": "Solo si todos los roles del usuario están en sistemas que administras (403 `USER_SHARED` si no).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateManagedUserBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StatusResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto de unicidad",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/admin/managed/{id}/change-password": {
+      "post": {
+        "operationId": "changeManagedUserPassword",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Fijar la contraseña de un usuario de mi sistema",
+        "description": "Mismas reglas que el cambio del superadmin (confirmas con TU contraseña, se cierran sus sesiones), pero solo si todos los roles del usuario están en sistemas que administras (403 `USER_SHARED` si no).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdminChangePasswordBody"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Contraseña actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminChangePasswordResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto de unicidad",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/admin/managed/{id}/invite": {
+      "post": {
+        "operationId": "resendManagedUserInvite",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Reenviar la invitación a un usuario de mi sistema",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "example": "9f8a2b3c-1d2e-4f5a-8b9c-0d1e2f3a4b5c"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Invitación enviada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InviteResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Función no disponible por configuración del servidor",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/users/admin/directory": {
+      "get": {
+        "operationId": "listUserDirectory",
+        "tags": [
+          "Users"
+        ],
+        "summary": "Directorio de usuarios para asignar roles (solo lectura)",
+        "description": "Lista paginada y buscable de todos los usuarios (id, nombre, correo, estado). Para admins de sistema: les permite elegir a quién asignar un rol de su sistema sin dar acceso al resto de datos del usuario.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "default": 1,
+              "example": 1
+            },
+            "required": false,
+            "name": "page",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "example": 20
+            },
+            "required": false,
+            "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "userId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "maxLength": 100,
+              "example": "ada@"
+            },
+            "required": false,
+            "name": "search",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "users": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/UserDirectoryEntry"
+                      }
+                    },
+                    "pagination": {
+                      "$ref": "#/components/schemas/Pagination"
+                    }
+                  },
+                  "required": [
+                    "users",
+                    "pagination"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Requiere privilegios de administrador",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/users/admin/{id}/change-password": {
       "post": {
         "operationId": "adminChangeUserPassword",
@@ -2755,6 +3447,35 @@
           {
             "schema": {
               "type": "string",
+              "enum": [
+                "user",
+                "device",
+                "system",
+                "ipAddress",
+                "createdAt",
+                "expiresAt",
+                "status"
+              ]
+            },
+            "required": false,
+            "name": "sortBy",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "required": false,
+            "name": "sortDir",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "maxLength": 100,
               "example": "Ada"
             },
@@ -2933,6 +3654,36 @@
             },
             "required": false,
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "email",
+                "ci",
+                "phoneNumber",
+                "inDate",
+                "outDate",
+                "active",
+                "createdAt"
+              ]
+            },
+            "required": false,
+            "name": "sortBy",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "required": false,
+            "name": "sortDir",
             "in": "query"
           },
           {
@@ -3529,6 +4280,75 @@
         }
       }
     },
+    "/api/systems/managed": {
+      "get": {
+        "operationId": "listManagedSystems",
+        "tags": [
+          "Systems"
+        ],
+        "summary": "Sistemas que el usuario autenticado puede administrar",
+        "description": "Superadmin (rol admin en `auth`): todos los sistemas. Admin de un sistema: solo esos. Sin rol admin en ninguno: lista vacía. Acepta sesión o JWT del IS.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Alcance de administración",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "isSuperAdmin": {
+                      "type": "boolean"
+                    },
+                    "systems": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "format": "uuid"
+                          },
+                          "slug": {
+                            "type": "string"
+                          },
+                          "name": {
+                            "type": "string"
+                          }
+                        },
+                        "required": [
+                          "id",
+                          "slug",
+                          "name"
+                        ]
+                      }
+                    }
+                  },
+                  "required": [
+                    "isSuperAdmin",
+                    "systems"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No hay una sesión válida",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/systems": {
       "get": {
         "operationId": "listSystems",
@@ -3563,6 +4383,33 @@
             },
             "required": false,
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "slug",
+                "description",
+                "active",
+                "createdAt"
+              ]
+            },
+            "required": false,
+            "name": "sortBy",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "required": false,
+            "name": "sortDir",
             "in": "query"
           },
           {
@@ -4188,6 +5035,32 @@
             },
             "required": false,
             "name": "limit",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "name",
+                "system",
+                "description",
+                "createdAt"
+              ]
+            },
+            "required": false,
+            "name": "sortBy",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "required": false,
+            "name": "sortDir",
             "in": "query"
           },
           {
@@ -4857,6 +5730,32 @@
           {
             "schema": {
               "type": "string",
+              "enum": [
+                "user",
+                "role",
+                "system",
+                "createdAt"
+              ]
+            },
+            "required": false,
+            "name": "sortBy",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "asc",
+                "desc"
+              ]
+            },
+            "required": false,
+            "name": "sortDir",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
               "format": "uuid"
             },
             "required": false,
@@ -5364,10 +6263,22 @@
         "tags": [
           "Permissions"
         ],
-        "summary": "Listar el catálogo completo de permisos (resource:action)",
+        "summary": "Listar el catálogo de permisos (resource:action), por sistema",
+        "description": "El catálogo es por sistema. Sin `systemId` devuelve el de todos los sistemas del alcance del usuario (el superadmin, todos).",
         "security": [
           {
             "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "required": false,
+            "name": "systemId",
+            "in": "query"
           }
         ],
         "responses": {

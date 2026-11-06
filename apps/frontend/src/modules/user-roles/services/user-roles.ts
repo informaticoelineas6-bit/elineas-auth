@@ -2,6 +2,9 @@ import { buildQuery, isApi } from "#/modules/common/lib/api-client.ts";
 import type { StatusResponse } from "#/modules/common/shared/types.ts";
 import type {
 	CreateUserRoleInput,
+	InviteUserInput,
+	UserDirectoryFilters,
+	UserDirectoryResponse,
 	MyUserRole,
 	MyUserRolesQuery,
 	UserRole,
@@ -39,4 +42,19 @@ export async function listMyRoles(query: MyUserRolesQuery = {}) {
 		`/api/user-roles/me${buildQuery(query)}`,
 	);
 	return roles;
+}
+
+export function listUserDirectory(filters: UserDirectoryFilters) {
+	return isApi.get<UserDirectoryResponse>(
+		`/api/users/admin/directory${buildQuery(filters)}`,
+	);
+}
+
+// Alta por invitación: sin contraseña (el IS envía el enlace para fijarla).
+export async function inviteUser(input: InviteUserInput) {
+	const { user } = await isApi.post<{ user: { id: string; email: string } }>(
+		"/api/auth/sign-up",
+		input,
+	);
+	return user;
 }

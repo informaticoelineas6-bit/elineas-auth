@@ -31,7 +31,7 @@ import {
 } from "@/modules/permissions/lib/import-validate.ts";
 import { useDebouncedValue } from "@/modules/common/lib/use-debounced-value.ts";
 import { SystemPermissionsCard } from "@/modules/permissions/components/system-permissions-card.tsx";
-import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import {
 	permissionsQueries,
 	useAssignPermission,
@@ -41,7 +41,7 @@ import type { SystemPermissions } from "@/modules/permissions/shared/types.ts";
 export const Route = createFileRoute("/_authed/permissions/")({
 	// Admin-only: cancela la navegación (no solo oculta el enlace) para quien
 	// no tenga el rol admin. Mismo criterio que Systems/Roles.
-	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
+	beforeLoad: ({ context }) => requireSystemManagerAccess(context),
 	loader: ({ context: { queryClient } }) =>
 		deferOnClient(queryClient.prefetchQuery(permissionsQueries.bySystem())),
 	component: PermissionsPage,

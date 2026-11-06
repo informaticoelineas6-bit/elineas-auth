@@ -203,9 +203,16 @@ const PERMISSION_CATALOG: Array<{
   },
 ];
 
-await db.insert(permission).values(PERMISSION_CATALOG).onConflictDoNothing();
+// El catálogo base es el del propio IS: pertenece al sistema `auth`.
+await db
+  .insert(permission)
+  .values(PERMISSION_CATALOG.map((p) => ({ ...p, systemId: adminSystem.id })))
+  .onConflictDoNothing();
 
-const permissionRows = await db.select().from(permission);
+const permissionRows = await db
+  .select()
+  .from(permission)
+  .where(eq(permission.systemId, adminSystem.id));
 const permissionId = (resource: string, action: string) =>
   permissionRows.find((p) => p.resource === resource && p.action === action)!
     .id;

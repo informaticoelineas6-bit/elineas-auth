@@ -22,8 +22,15 @@ import type { CatalogPermission } from "@/modules/permissions/shared/types.ts";
 // Permisos del rol: todo el catálogo agrupado por recurso, con un checkbox por
 // permiso. Marcar/desmarcar asigna o quita ese permiso del rol al instante
 // (PUT/DELETE /api/permissions/:id/roles/:roleId); no toca el catálogo.
-export function RolePermissionsCard({ roleId }: { roleId: string }) {
-	const catalog = useQuery(permissionsQueries.catalog());
+export function RolePermissionsCard({
+	roleId,
+	systemId,
+}: {
+	roleId: string;
+	// Sistema del rol: el catálogo es por sistema, solo se ofrecen sus permisos.
+	systemId: string;
+}) {
+	const catalog = useQuery(permissionsQueries.catalog(systemId));
 	const assigned = useQuery(permissionsQueries.byRole(roleId));
 	const assign = useAssignPermissionToRole();
 	const unassign = useUnassignPermissionFromRole();
@@ -70,8 +77,9 @@ export function RolePermissionsCard({ roleId }: { roleId: string }) {
 					{assigned.data
 						? `${assigned.data.length} de ${catalog.data?.length ?? "…"} permisos asignados. `
 						: ""}
-					Los cambios se aplican al marcar o desmarcar. El rol admin del
-					sistema auth siempre pasa como comodín, sin necesitar permisos.
+					Los cambios se aplican al marcar o desmarcar. Solo se ofrecen los
+					permisos de este sistema. El rol admin del sistema siempre pasa como
+					comodín, sin necesitar permisos.
 				</CardDescription>
 			</CardHeader>
 			<CardContent className="space-y-4">

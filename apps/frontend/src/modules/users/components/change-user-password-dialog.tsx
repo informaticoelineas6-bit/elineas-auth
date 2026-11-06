@@ -42,15 +42,18 @@ export function ChangeUserPasswordDialog({
 	onOpenChange,
 	userId,
 	userLabel,
+	managed = false,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
+	/** Admin de sistema sobre un usuario de su sistema (endpoint delegado). */
+	managed?: boolean;
 	/** Usuario cuya contraseña se cambia. */
 	userId: string;
 	/** Nombre o correo, solo para que el diálogo diga a quién afecta. */
 	userLabel: string;
 }) {
-	const changePassword = useAdminChangeUserPassword();
+	const changePassword = useAdminChangeUserPassword({ managed });
 	const [currentError, setCurrentError] = useState<string | undefined>();
 	const rateLimit = useCountdown();
 

@@ -4,14 +4,18 @@ import { fetchAllPages } from "#/modules/common/lib/paginate.ts";
 import { idSchema } from "#/modules/common/lib/validation.ts";
 import {
 	createUserRoleSchema,
+	inviteUserSchema,
 	myUserRolesQuerySchema,
+	userDirectoryFiltersSchema,
 	userRoleFiltersSchema,
 } from "../lib/validation.ts";
 import {
 	createUserRole,
 	deleteUserRole,
 	getUserRole,
+	inviteUser,
 	listMyRoles,
+	listUserDirectory,
 	listUserRoles,
 } from "../services/user-roles.ts";
 
@@ -55,3 +59,13 @@ export const listAllUserRolesFn = createServerFn({ method: "GET" })
 			return { rows: userRoles, totalPages: pagination.totalPages };
 		}),
 	);
+
+export const listUserDirectoryFn = createServerFn({ method: "GET" })
+	.middleware([requireAuthMiddleware])
+	.validator(userDirectoryFiltersSchema)
+	.handler(({ data }) => listUserDirectory(data));
+
+export const inviteUserFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(inviteUserSchema)
+	.handler(({ data }) => inviteUser(data));

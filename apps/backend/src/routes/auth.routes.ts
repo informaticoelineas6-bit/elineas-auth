@@ -1,6 +1,7 @@
 import { OpenAPIHono, createRoute, z } from "@hono/zod-openapi";
 import { requireSession } from "@backend/middleware/session.ts";
-import { requireAdmin } from "@backend/middleware/admin.ts";
+import { requireIdentity } from "@backend/middleware/identity.ts";
+import { requireSystemManager } from "@backend/middleware/system-admin.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import {
   AuthResultSchema,
@@ -39,7 +40,8 @@ import {
   verifyEmailFn,
 } from "@backend/services/auth.service.ts";
 
-// El alta de cuentas NO es autoservicio: solo un admin puede crear usuarios.
+// El alta de cuentas NO es autoservicio: solo un admin (del IS o de algún
+// sistema) puede crear usuarios.
 // El primer admin se siembra con `bun run db:seed` (crea el usuario si no existe
 // y le asigna el rol admin), evitando el problema de arranque.
 const signUpRoute = createRoute({
@@ -47,9 +49,13 @@ const signUpRoute = createRoute({
   path: "/sign-up",
   operationId: "authSignUp",
   tags: ["Auth"],
-  summary: "Registrar un nuevo usuario (requiere rol admin)",
+  summary: "Registrar un nuevo usuario (requiere ser admin de algún sistema)",
+  description:
+    "Crea la cuenta y envía la invitación para fijar la contraseña. Pueden " +
+    "usarlo el superadmin y los admins de sistema. Enviar `password` solo " +
+    "está permitido al superadmin.",
   security: bearerAuthSecurity,
-  middleware: [requireSession, requireAdmin] as const,
+  middleware: [requireIdentity, requireSystemManager] as const,
   request: {
     body: { content: { "application/json": { schema: SignUpBodySchema } } },
   },

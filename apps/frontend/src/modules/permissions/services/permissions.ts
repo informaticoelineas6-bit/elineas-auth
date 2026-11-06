@@ -60,11 +60,12 @@ export function unassignPermissionFromRole(id: string, roleId: string) {
 	return isApi.delete<StatusResponse>(`/api/permissions/${id}/roles/${roleId}`);
 }
 
-// Catálogo plano completo (resource:action), para elegir qué asignar a un rol.
-export async function listPermissions() {
+// Catálogo plano (resource:action) de UN sistema, para elegir qué asignar a un
+// rol: el catálogo es por sistema y un rol solo lleva permisos del suyo.
+export async function listPermissions(query: { systemId?: string } = {}) {
 	const { permissions } = await isApi.get<{
 		permissions: CatalogPermission[];
-	}>("/api/permissions");
+	}>(`/api/permissions${buildQuery(query)}`);
 	return permissions;
 }
 

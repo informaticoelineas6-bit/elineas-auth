@@ -38,6 +38,7 @@ export const Route = createFileRoute("/_authed")({
 			roles: ctx.roles,
 			permissions: ctx.permissions,
 			isAdmin: ctx.isAdmin,
+			managedSystems: ctx.managedSystems,
 		};
 	},
 	pendingMs: 150,
@@ -47,7 +48,8 @@ export const Route = createFileRoute("/_authed")({
 });
 
 function AuthedLayout() {
-	const { session, isAdmin, permissions } = Route.useRouteContext();
+	const { session, isAdmin, permissions, managedSystems } =
+		Route.useRouteContext();
 	// Clave para reiniciar el boundary de sección al navegar (un error de una
 	// sección no debe quedar "pegado" al cambiar de ruta).
 	const pathname = useRouterState({ select: (s) => s.location.pathname });
@@ -58,7 +60,10 @@ function AuthedLayout() {
 	// entra igual: verá solo las secciones habilitadas (ver navigation.ts) y
 	// las que no pueda tocar responden 403, ya manejado por cada página
 	// (ver ForbiddenState).
-	if (!isAdmin && permissions.length === 0) return <ForbiddenScreen />;
+	// Un admin de sistema (managedSystems) también entra: aunque no tenga
+	// permisos en `auth`, gestiona roles/permisos/asignaciones del suyo.
+	if (!isAdmin && permissions.length === 0 && managedSystems.length === 0)
+		return <ForbiddenScreen />;
 
 	return (
 		<div className="relative min-h-screen bg-background text-foreground">
@@ -73,6 +78,7 @@ function AuthedLayout() {
 				session={session}
 				isAdmin={isAdmin}
 				permissions={permissions}
+				managedSystems={managedSystems}
 			/>
 
 			<main className="relative z-10 mx-auto w-full md:max-w-4xl lg:max-w-5xl xl:max-w-6xl px-4 py-8">

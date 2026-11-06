@@ -1,3 +1,4 @@
+import type { ManagedSystem } from "@elineas/auth-contracts";
 import { buildQuery, isApi } from "#/modules/common/lib/api-client.ts";
 import type { StatusResponse } from "#/modules/common/shared/types.ts";
 import type {
@@ -9,6 +10,16 @@ import type {
 	SystemListResponse,
 	UpdateSystemInput,
 } from "../shared/types.ts";
+
+// Sistemas que el usuario autenticado puede administrar (superadmin: todos;
+// admin de sistema: los suyos; resto: ninguno). Ver GET /api/systems/managed.
+export async function listManagedSystems() {
+	const { isSuperAdmin, systems } = await isApi.get<{
+		isSuperAdmin: boolean;
+		systems: ManagedSystem[];
+	}>("/api/systems/managed");
+	return { isSuperAdmin, systems };
+}
 
 export function listSystems(filters: SystemFilters) {
 	return isApi.get<SystemListResponse>(`/api/systems${buildQuery(filters)}`);

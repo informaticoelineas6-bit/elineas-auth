@@ -24,13 +24,13 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
-import { employeesQueries } from "@/modules/employees/queries/employees.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import {
 	toCreateUserRolePayloads,
 	useAssignUserRoleForm,
 } from "../lib/form.ts";
+import { useUserDirectory } from "../lib/use-user-directory.ts";
 import { useCreateUserRole } from "../queries/user-roles.ts";
 
 export type LockedUser = { userId: string; label: string };
@@ -44,12 +44,16 @@ export function AssignRoleDialog({
 	lockedUser,
 	defaultUserId,
 	defaultSystemId,
+	lockedSystemId,
 }: {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	lockedUser?: LockedUser;
 	defaultUserId?: string;
 	defaultSystemId?: string;
+	// Sistema fijado (enlace directo desde un sistema externo): el selector queda
+	// deshabilitado y no se limpia al asignar, para seguir asignando en él.
+	lockedSystemId?: string;
 }) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -68,6 +72,7 @@ export function AssignRoleDialog({
 						lockedUser={lockedUser}
 						defaultUserId={defaultUserId}
 						defaultSystemId={defaultSystemId}
+						lockedSystemId={lockedSystemId}
 						onDone={() => onOpenChange(false)}
 					/>
 				)}
@@ -80,11 +85,13 @@ function AssignRoleForm({
 	lockedUser,
 	defaultUserId,
 	defaultSystemId,
+	lockedSystemId,
 	onDone,
 }: {
 	lockedUser?: LockedUser;
 	defaultUserId?: string;
 	defaultSystemId?: string;
+	lockedSystemId?: string;
 	onDone: () => void;
 }) {
 	const createUserRole = useCreateUserRole();
@@ -92,7 +99,10 @@ function AssignRoleForm({
 	const [conflict, setConflict] = useState<string | undefined>();
 
 	const form = useAssignUserRoleForm(
-		{ userId: lockedUser?.userId ?? defaultUserId, systemId: defaultSystemId },
+		{
+			userId: lockedUser?.userId ?? defaultUserId,
+			systemId: lockedSystemId ?? defaultSystemId,
+		},
 		async (value) => {
 			setConflict(undefined);
 			// Una asignación por rol; se intentan todas y se informa el resultado.
@@ -114,14 +124,16 @@ function AssignRoleForm({
 			}
 
 			if (failed.length === 0) {
-				// La ventana sigue abierta: se limpian sistema y roles (el usuario se
-				// conserva) para poder asignar más.
-				form.setFieldValue("systemId", "");
+				// La ventana sigue abierta: se limpian sistema (salvo si está fijado)
+				// y roles (el usuario se conserva) para poder asignar más.
+				if (!lockedSystemId) {
+					form.setFieldValue("systemId", "");
+					form.setFieldMeta("systemId", (meta) => ({
+						...meta,
+						isTouched: false,
+					}));
+				}
 				form.setFieldValue("roleIds", []);
-				form.setFieldMeta("systemId", (meta) => ({
-					...meta,
-					isTouched: false,
-				}));
 				form.setFieldMeta("roleIds", (meta) => ({ ...meta, isTouched: false }));
 				return;
 			}
@@ -156,25 +168,15 @@ function AssignRoleForm({
 	// poder disparar la query de roles fuera de <form.Field>).
 	const systemId = useStore(form.store, (state) => state.values.systemId);
 
-	// Empleados como fuente de usuarios (única forma de resolver nombre/email; no
-	// hay endpoint admin de usuarios). Solo los que tienen cuenta enlazada.
-	const employeesQuery = useQuery({
-		...employeesQueries.list({ limit: 100 }),
-		enabled: !lockedUser,
-	});
+	// Usuarios del directorio (solo lectura, búsqueda en el servidor): los admins
+	// de sistema no pueden listar empleados, y así tampoco se limita a 100.
+	const directory = useUserDirectory({ ensureId: defaultUserId });
 	const systemsQuery = useQuery(systemsQueries.list({ limit: 100 }));
 	const rolesQuery = useQuery({
 		...rolesQueries.list({ systemId, limit: 100 }),
 		enabled: Boolean(systemId),
 	});
 
-	const userOptions = (employeesQuery.data?.employees ?? [])
-		.filter((employee) => employee.userId && employee.user)
-		.map((employee) => ({
-			value: employee.userId as string,
-			label: `${employee.name} ${employee.lastName}`,
-			description: employee.user?.email,
-		}));
 	const systemOptions = (systemsQuery.data?.systems ?? [])
 		.filter((system) => system.active)
 		.map((system) => ({ value: system.id, label: system.name }));
@@ -213,14 +215,18 @@ function AssignRoleForm({
 									id={field.name}
 									value={field.state.value || undefined}
 									onChange={(value) => field.handleChange(value ?? "")}
-									options={userOptions}
+									options={directory.optionsFor(
+										field.state.value ? [field.state.value] : [],
+									)}
+									onSearchChange={directory.setSearch}
+									loading={directory.isSearching}
 									placeholder={
-										employeesQuery.isPending
+										directory.isPending
 											? "Cargando usuarios…"
 											: "Selecciona un usuario"
 									}
 									searchPlaceholder="Buscar por nombre o email…"
-									emptyText="Sin usuarios con cuenta"
+									emptyText="Sin usuarios"
 									ariaInvalid={isInvalid}
 								/>
 								{isInvalid && <FieldError errors={field.state.meta.errors} />}
@@ -249,6 +255,7 @@ function AssignRoleForm({
 									setConflict(undefined);
 								}}
 								options={systemOptions}
+								disabled={Boolean(lockedSystemId)}
 								placeholder={
 									systemsQuery.isPending
 										? "Cargando sistemas…"

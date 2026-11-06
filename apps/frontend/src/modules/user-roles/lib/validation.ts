@@ -1,4 +1,10 @@
-import { SORT_FIELDS, sortQuery } from "@elineas/auth-contracts";
+import {
+	companyEmail,
+	displayName,
+	SORT_FIELDS,
+	sortQuery,
+	searchTerm,
+} from "@elineas/auth-contracts";
 import { z } from "zod";
 import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 
@@ -13,8 +19,18 @@ export const userRoleFiltersSchema = paginationQuerySchema.extend({
 	// Presentación: tabla paginada o tarjetas agrupadas por sistema / usuario.
 	view: z.enum(["table", "systems", "users"]).optional(),
 	// Transitorio: abre el diálogo "Asignar rol" con `userId` preseleccionado
-	// (p. ej. desde el aviso tras crear un usuario). La página lo consume y lo limpia.
-	assign: z.literal(true).optional(),
+	// (p. ej. desde el aviso tras crear un usuario) o, junto a `systemSlug`, con
+	// ese sistema fijado (enlace directo desde un sistema externo). La página lo
+	// consume y lo limpia. Acepta `true` (navegación interna) y `1`/`"1"` (un
+	// enlace escrito a mano: `?assign=1` llega como número).
+	assign: z
+		.union([z.literal(true), z.literal(1), z.literal("1")])
+		.transform(() => true as const)
+		.optional(),
+	// Transitorio: slug del sistema del enlace directo. La página lo resuelve a
+	// `systemId` (filtro) y lo limpia; un slug desconocido o que el usuario no
+	// administra avisa con un toast.
+	systemSlug: z.string().optional(),
 });
 
 export const createUserRoleSchema = z.object({
@@ -34,4 +50,20 @@ export const assignUserRoleFormSchema = z.object({
 // acotados a un sistema por su slug.
 export const myUserRolesQuerySchema = z.object({
 	systemSlug: z.string().optional(),
+});
+
+// Directorio de usuarios (solo lectura) con búsqueda en el servidor. Lo usan
+// los selectores de usuario: los admins de sistema no pueden listar empleados.
+export const userDirectoryFiltersSchema = z.object({
+	search: searchTerm.optional(),
+	userId: z.string().optional(),
+	page: z.number().int().min(1).optional(),
+	limit: z.number().int().min(1).max(100).optional(),
+});
+
+// Invitar a un usuario nuevo: el IS crea la cuenta y le envía el enlace para
+// fijar su contraseña (quien invita nunca la ve ni la elige).
+export const inviteUserSchema = z.object({
+	name: displayName,
+	email: companyEmail,
 });

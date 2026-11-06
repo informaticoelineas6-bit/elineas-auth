@@ -24,7 +24,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
-import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import { RoleFields } from "@/modules/roles/components/role-fields.tsx";
 import {
 	toCreateRolePayload,
@@ -34,7 +34,7 @@ import { useCreateRole } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 
 export const Route = createFileRoute("/_authed/roles/new")({
-	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
+	beforeLoad: ({ context }) => requireSystemManagerAccess(context),
 	component: NewRolePage,
 });
 

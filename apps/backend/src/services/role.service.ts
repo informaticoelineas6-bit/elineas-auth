@@ -1,4 +1,4 @@
-import { and, count, eq, getTableColumns, ilike, sql } from "drizzle-orm";
+import { and, count, eq, getTableColumns, ilike, inArray, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
 import { role, system } from "@backend/db/business-schema.ts";
@@ -15,12 +15,17 @@ type CreateRoleInput = z.infer<typeof CreateRoleBodySchema>;
 type UpdateRoleInput = z.infer<typeof UpdateRoleBodySchema>;
 
 export async function listRoles(
-  filters: { systemId?: string; search?: string },
+  // `systemIds` acota el listado al alcance del admin delegado (ver
+  // system-admin.service.ts#scopeFilter); `undefined` = sin restricción.
+  filters: { systemId?: string; systemIds?: string[]; search?: string },
   pagination: PaginationInput,
   sort?: SortInput<"name" | "system" | "description" | "createdAt">,
 ) {
   const conditions = [
     filters.systemId ? eq(role.systemId, filters.systemId) : undefined,
+    filters.systemIds
+      ? inArray(role.systemId, filters.systemIds)
+      : undefined,
     filters.search ? ilike(role.name, `%${escapeLike(filters.search)}%`) : undefined,
   ].filter((c): c is NonNullable<typeof c> => c !== undefined);
   const where = conditions.length ? and(...conditions) : undefined;

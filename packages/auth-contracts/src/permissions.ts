@@ -37,3 +37,32 @@ export function hasPermission(
     (p) => p.resource === resource && p.action === action,
   );
 }
+
+// Sistema que el usuario puede administrar (GET /api/systems/managed): el
+// superadmin del IS los ve todos; el admin de un sistema, solo el suyo.
+export type ManagedSystem = {
+  id: string;
+  slug: string;
+  name: string;
+};
+
+type ManageContext = { isAdmin: boolean; managedSystems: ManagedSystem[] };
+
+// ¿Administra al menos un sistema (o es superadmin)? Habilita las secciones de
+// administración delegada: Roles, Permisos y Asignaciones.
+export function canManageAnySystem({
+  isAdmin,
+  managedSystems,
+}: ManageContext): boolean {
+  return isAdmin || managedSystems.length > 0;
+}
+
+// ¿Puede administrar este sistema concreto? El superadmin, cualquiera; el
+// admin de sistema, solo los de `managedSystems`. Mismo criterio que
+// `assertCanManageSystem` del IS (apps/backend/src/services/system-admin.service.ts).
+export function canManageSystem(
+  systemId: string,
+  { isAdmin, managedSystems }: ManageContext,
+): boolean {
+  return isAdmin || managedSystems.some((s) => s.id === systemId);
+}

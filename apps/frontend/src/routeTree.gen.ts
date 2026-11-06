@@ -17,6 +17,7 @@ import { Route as AuthedDashboardRouteImport } from './routes/_authed/dashboard'
 import { Route as AuthedDocsRouteImport } from './routes/_authed/docs'
 import { Route as AuthedProfileRouteImport } from './routes/_authed/profile'
 import { Route as AuthedSessionsRouteImport } from './routes/_authed/sessions'
+import { Route as AuthedSystemUsersRouteImport } from './routes/_authed/system-users'
 import { Route as AuthedUserRolesRouteImport } from './routes/_authed/user-roles'
 import { Route as AuthedEmployeesIndexRouteImport } from './routes/_authed/employees.index'
 import { Route as AuthedEmployeesNewRouteImport } from './routes/_authed/employees.new'
@@ -70,6 +71,11 @@ const AuthedProfileRoute = AuthedProfileRouteImport.update({
 const AuthedSessionsRoute = AuthedSessionsRouteImport.update({
   id: '/sessions',
   path: '/sessions',
+  getParentRoute: () => AuthedRoute,
+} as any)
+const AuthedSystemUsersRoute = AuthedSystemUsersRouteImport.update({
+  id: '/system-users',
+  path: '/system-users',
   getParentRoute: () => AuthedRoute,
 } as any)
 const AuthedUserRolesRoute = AuthedUserRolesRouteImport.update({
@@ -160,6 +166,7 @@ export interface FileRoutesByFullPath {
   '/docs': typeof AuthedDocsRoute
   '/profile': typeof AuthedProfileRoute
   '/sessions': typeof AuthedSessionsRoute
+  '/system-users': typeof AuthedSystemUsersRoute
   '/user-roles': typeof AuthedUserRolesRoute
   '/employees/new': typeof AuthedEmployeesNewRoute
   '/roles/new': typeof AuthedRolesNewRoute
@@ -184,6 +191,7 @@ export interface FileRoutesByTo {
   '/docs': typeof AuthedDocsRoute
   '/profile': typeof AuthedProfileRoute
   '/sessions': typeof AuthedSessionsRoute
+  '/system-users': typeof AuthedSystemUsersRoute
   '/user-roles': typeof AuthedUserRolesRoute
   '/employees/new': typeof AuthedEmployeesNewRoute
   '/roles/new': typeof AuthedRolesNewRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/_authed/docs': typeof AuthedDocsRoute
   '/_authed/profile': typeof AuthedProfileRoute
   '/_authed/sessions': typeof AuthedSessionsRoute
+  '/_authed/system-users': typeof AuthedSystemUsersRoute
   '/_authed/user-roles': typeof AuthedUserRolesRoute
   '/_authed/employees/new': typeof AuthedEmployeesNewRoute
   '/_authed/roles/new': typeof AuthedRolesNewRoute
@@ -236,6 +245,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/profile'
     | '/sessions'
+    | '/system-users'
     | '/user-roles'
     | '/employees/new'
     | '/roles/new'
@@ -260,6 +270,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/profile'
     | '/sessions'
+    | '/system-users'
     | '/user-roles'
     | '/employees/new'
     | '/roles/new'
@@ -285,6 +296,7 @@ export interface FileRouteTypes {
     | '/_authed/docs'
     | '/_authed/profile'
     | '/_authed/sessions'
+    | '/_authed/system-users'
     | '/_authed/user-roles'
     | '/_authed/employees/new'
     | '/_authed/roles/new'
@@ -366,6 +378,13 @@ declare module '@tanstack/react-router' {
       path: '/sessions'
       fullPath: '/sessions'
       preLoaderRoute: typeof AuthedSessionsRouteImport
+      parentRoute: typeof AuthedRoute
+    }
+    '/_authed/system-users': {
+      id: '/_authed/system-users'
+      path: '/system-users'
+      fullPath: '/system-users'
+      preLoaderRoute: typeof AuthedSystemUsersRouteImport
       parentRoute: typeof AuthedRoute
     }
     '/_authed/user-roles': {
@@ -481,6 +500,7 @@ interface AuthedRouteChildren {
   AuthedDocsRoute: typeof AuthedDocsRoute
   AuthedProfileRoute: typeof AuthedProfileRoute
   AuthedSessionsRoute: typeof AuthedSessionsRoute
+  AuthedSystemUsersRoute: typeof AuthedSystemUsersRoute
   AuthedUserRolesRoute: typeof AuthedUserRolesRoute
   AuthedEmployeesNewRoute: typeof AuthedEmployeesNewRoute
   AuthedRolesNewRoute: typeof AuthedRolesNewRoute
@@ -502,6 +522,7 @@ const AuthedRouteChildren: AuthedRouteChildren = {
   AuthedDocsRoute: AuthedDocsRoute,
   AuthedProfileRoute: AuthedProfileRoute,
   AuthedSessionsRoute: AuthedSessionsRoute,
+  AuthedSystemUsersRoute: AuthedSystemUsersRoute,
   AuthedUserRolesRoute: AuthedUserRolesRoute,
   AuthedEmployeesNewRoute: AuthedEmployeesNewRoute,
   AuthedRolesNewRoute: AuthedRolesNewRoute,

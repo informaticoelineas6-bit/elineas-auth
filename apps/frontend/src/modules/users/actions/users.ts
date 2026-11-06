@@ -9,6 +9,7 @@ import {
 } from "../lib/validation.ts";
 import {
 	adminChangeUserPassword,
+	changeManagedUserPassword,
 	changeEmail,
 	changePassword,
 	getMe,
@@ -54,3 +55,11 @@ export const resendUserInviteFn = createServerFn({ method: "POST" })
 	.middleware([requireAuthMiddleware])
 	.validator(z.object({ userId: z.uuid("Identificador de usuario no válido") }))
 	.handler(({ data }) => resendUserInvite(data.userId));
+
+export const changeManagedUserPasswordFn = createServerFn({ method: "POST" })
+	.middleware([requireAuthMiddleware])
+	.validator(adminChangePasswordActionSchema)
+	.handler(({ data }) => {
+		const { userId, ...body } = data;
+		return changeManagedUserPassword(userId, body);
+	});

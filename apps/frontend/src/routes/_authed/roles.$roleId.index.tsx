@@ -13,7 +13,7 @@ import {
 	getErrorMessage,
 	getErrorStatus,
 } from "@/modules/common/lib/errors.ts";
-import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import { permissionsQueries } from "@/modules/permissions/queries/permissions.ts";
 import { RolePermissionsCard } from "@/modules/roles/components/role-permissions-card.tsx";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
@@ -21,13 +21,12 @@ import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 
 export const Route = createFileRoute("/_authed/roles/$roleId/")({
-	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
+	beforeLoad: ({ context }) => requireSystemManagerAccess(context),
 	loader: ({ context: { queryClient }, params }) =>
 		deferOnClient(
 			Promise.all([
 				queryClient.prefetchQuery(rolesQueries.detail(params.roleId)),
 				queryClient.prefetchQuery(permissionsQueries.byRole(params.roleId)),
-				queryClient.prefetchQuery(permissionsQueries.catalog()),
 				queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
 			]),
 		),
@@ -107,7 +106,7 @@ function RoleDetail({ role }: { role: Role }) {
 					</>
 				}
 			/>
-			<RolePermissionsCard roleId={role.id} />
+			<RolePermissionsCard roleId={role.id} systemId={role.systemId} />
 		</>
 	);
 }

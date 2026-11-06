@@ -7,13 +7,17 @@ import {
 	createUserRoleFn,
 	deleteUserRoleFn,
 	getUserRoleFn,
+	inviteUserFn,
 	listAllUserRolesFn,
+	listUserDirectoryFn,
 	listUserRolesFn,
 	myUserRolesFn,
 } from "../actions/user-roles.ts";
 import type {
 	CreateUserRoleInput,
+	InviteUserInput,
 	MyUserRolesQuery,
+	UserDirectoryFilters,
 	UserRoleFilters,
 } from "../shared/types.ts";
 
@@ -28,9 +32,18 @@ export const userRoleKeys = {
 	detail: (id: string) => [...userRoleKeys.details(), id] as const,
 	me: (systemSlug?: string) =>
 		[...userRoleKeys.all, "me", systemSlug ?? null] as const,
+	directories: () => [...userRoleKeys.all, "directory"] as const,
+	directory: (filters: UserDirectoryFilters) =>
+		[...userRoleKeys.directories(), filters] as const,
 };
 
 export const userRolesQueries = {
+	// Directorio de usuarios para los selectores (búsqueda en el servidor).
+	directory: (filters: UserDirectoryFilters = {}) =>
+		queryOptions({
+			queryKey: userRoleKeys.directory(filters),
+			queryFn: () => listUserDirectoryFn({ data: filters }),
+		}),
 	list: (filters: UserRoleFilters = {}) =>
 		queryOptions({
 			queryKey: userRoleKeys.list(filters),
@@ -65,6 +78,9 @@ export function useCreateUserRole() {
 		onSuccess: () => {
 			queryClient.invalidateQueries({ queryKey: userRoleKeys.lists() });
 			queryClient.invalidateQueries({ queryKey: userRoleKeys.me() });
+			// Lista "Usuarios del sistema" (módulo managed-users; clave literal para
+			// no crear un ciclo de imports entre ambos módulos).
+			queryClient.invalidateQueries({ queryKey: ["managed-users"] });
 		},
 	});
 }
@@ -73,8 +89,10 @@ export function useDeleteUserRole() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: (id: string) => deleteUserRoleFn({ data: { id } }),
-		onSuccess: () =>
-			queryClient.invalidateQueries({ queryKey: userRoleKeys.all }),
+		onSuccess: () => {
+			queryClient.invalidateQueries({ queryKey: userRoleKeys.all });
+			queryClient.invalidateQueries({ queryKey: ["managed-users"] });
+		},
 	});
 }
 
@@ -83,5 +101,16 @@ export function useExportUserRoles() {
 	return useMutation({
 		mutationFn: (filters: Omit<UserRoleFilters, "page" | "limit">) =>
 			listAllUserRolesFn({ data: filters }),
+	});
+}
+
+// Invitar a un usuario nuevo desde Asignaciones: refresca el directorio para que
+// aparezca enseguida en los selectores.
+export function useInviteUser() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: (input: InviteUserInput) => inviteUserFn({ data: input }),
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: userRoleKeys.directories() }),
 	});
 }

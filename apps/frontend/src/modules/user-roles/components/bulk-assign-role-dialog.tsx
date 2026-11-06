@@ -21,9 +21,9 @@ import { Input } from "@/modules/common/components/ui/input.tsx";
 import { LoadingSwap } from "@/modules/common/components/ui/loading-swap.tsx";
 import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { getErrorStatus, reportError } from "@/modules/common/lib/errors.ts";
-import { employeesQueries } from "@/modules/employees/queries/employees.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
+import { useUserDirectory } from "../lib/use-user-directory.ts";
 import { useCreateUserRole } from "../queries/user-roles.ts";
 
 // Diálogo "Asignar a varios usuarios": un rol de un sistema → N usuarios.
@@ -56,36 +56,27 @@ function BulkAssignForm({ onDone }: { onDone: () => void }) {
 	const [systemId, setSystemId] = useState("");
 	const [roleId, setRoleId] = useState("");
 	const [userIds, setUserIds] = useState<string[]>([]);
-	const [search, setSearch] = useState("");
 	const [submitting, setSubmitting] = useState(false);
 
-	const employeesQuery = useQuery(employeesQueries.list({ limit: 100 }));
+	// Directorio con búsqueda en el servidor (los admins de sistema no pueden
+	// listar empleados). La búsqueda ya llega filtrada: no se filtra en cliente.
+	const directory = useUserDirectory({ limit: 100 });
+	const { search, setSearch } = directory;
 	const systemsQuery = useQuery(systemsQueries.list({ limit: 100 }));
 	const rolesQuery = useQuery({
 		...rolesQueries.list({ systemId, limit: 100 }),
 		enabled: Boolean(systemId),
 	});
 
-	const users = useMemo(
+	const filteredUsers = useMemo(
 		() =>
-			(employeesQuery.data?.employees ?? [])
-				.filter((employee) => employee.userId && employee.user)
-				.map((employee) => ({
-					id: employee.userId as string,
-					name: `${employee.name} ${employee.lastName}`,
-					email: employee.user?.email ?? "",
-				})),
-		[employeesQuery.data],
+			directory.users.map((user) => ({
+				id: user.id,
+				name: user.employeeName ?? user.name,
+				email: user.email,
+			})),
+		[directory.users],
 	);
-	const filteredUsers = useMemo(() => {
-		const term = search.trim().toLowerCase();
-		if (!term) return users;
-		return users.filter(
-			(user) =>
-				user.name.toLowerCase().includes(term) ||
-				user.email.toLowerCase().includes(term),
-		);
-	}, [users, search]);
 
 	const systemOptions = (systemsQuery.data?.systems ?? [])
 		.filter((system) => system.active)
@@ -137,8 +128,10 @@ function BulkAssignForm({ onDone }: { onDone: () => void }) {
 			}
 			if (already.length > 0) {
 				const names = already.map((f) => {
-					const user = users.find((u) => u.id === f.row);
-					return user ? `${user.name} (${user.email})` : f.row;
+					const user = directory.lookup(f.row);
+					return user
+						? `${user.employeeName ?? user.name} (${user.email})`
+						: f.row;
 				});
 				toast.info(
 					`${already.length} usuario(s) ya tenían el rol y se omitieron`,
@@ -225,7 +218,7 @@ function BulkAssignForm({ onDone }: { onDone: () => void }) {
 					placeholder="Buscar por nombre o email…"
 				/>
 				<div className="max-h-56 space-y-1 overflow-y-auto rounded-md border p-1">
-					{employeesQuery.isPending ? (
+					{directory.isPending ? (
 						<p className="px-2 py-4 text-center text-sm text-muted-foreground">
 							Cargando usuarios…
 						</p>
@@ -273,7 +266,7 @@ function BulkAssignForm({ onDone }: { onDone: () => void }) {
 						</>
 					)}
 				</div>
-				{employeesQuery.isError && (
+				{directory.isError && (
 					<FieldError>No se pudieron cargar los usuarios.</FieldError>
 				)}
 			</Field>

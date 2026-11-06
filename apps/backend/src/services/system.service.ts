@@ -1,4 +1,4 @@
-import { and, count, eq, ilike, or, sql } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
 import { system } from "@backend/db/business-schema.ts";
@@ -15,11 +15,12 @@ type CreateSystemInput = z.infer<typeof CreateSystemBodySchema>;
 type UpdateSystemInput = z.infer<typeof UpdateSystemBodySchema>;
 
 export async function listSystems(
-  filters: { active?: boolean; search?: string },
+  filters: { active?: boolean; search?: string; ids?: string[] },
   pagination: PaginationInput,
   sort?: SortInput<"name" | "slug" | "description" | "active" | "createdAt">,
 ) {
   const conditions = [
+    filters.ids ? inArray(system.id, filters.ids) : undefined,
     filters.active === undefined ? undefined : eq(system.active, filters.active),
     filters.search
       ? (() => {

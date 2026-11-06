@@ -1,5 +1,5 @@
 import { deferOnClient } from "@/modules/common/lib/query.ts";
-import { canAccessResource } from "@elineas/auth-contracts";
+import { canAccessResource, canManageAnySystem } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -45,17 +45,20 @@ export const Route = createFileRoute("/_authed/dashboard")({
 	// delegado (rrhh, ...) sin permiso sobre systems/roles/user-roles, pedirlos
 	// solo generaría 403 de sobra (el IS ya los rechaza, ver requireAdmin en
 	// esos endpoints).
-	loader: ({ context: { queryClient, isAdmin, permissions } }) => {
+	loader: ({
+		context: { queryClient, isAdmin, permissions, managedSystems },
+	}) => {
 		const access = { isAdmin, permissions };
+		const canManage = canManageAnySystem({ isAdmin, managedSystems });
 		return deferOnClient(
 			Promise.all([
 				canAccessResource("employees", access) &&
 					queryClient.prefetchQuery(employeesQueries.list({ limit: 1 })),
 				canAccessResource(undefined, access) &&
 					queryClient.prefetchQuery(systemsQueries.list({ limit: 1 })),
-				canAccessResource(undefined, access) &&
+				canManage &&
 					queryClient.prefetchQuery(rolesQueries.list({ limit: 1 })),
-				canAccessResource(undefined, access) &&
+				canManage &&
 					queryClient.prefetchQuery(userRolesQueries.list({ limit: 1 })),
 			]),
 		);
@@ -64,11 +67,15 @@ export const Route = createFileRoute("/_authed/dashboard")({
 });
 
 function Dashboard() {
-	const { session, isAdmin, permissions } = Route.useRouteContext();
+	const { session, isAdmin, permissions, managedSystems } =
+		Route.useRouteContext();
 	const access: { isAdmin: boolean; permissions: MyPermission[] } = {
 		isAdmin,
 		permissions,
 	};
+	// Roles y asignaciones también los ve quien administra algún sistema (el IS
+	// acota los contadores a sus sistemas).
+	const canManage = canManageAnySystem({ isAdmin, managedSystems });
 
 	// Contadores en vivo a partir del `total` de paginación (limit=1 para no
 	// traer filas). Cada tarjeta gestiona su propia carga/error sin bloquear.
@@ -112,6 +119,7 @@ function Dashboard() {
 			icon: ShieldCheck,
 			query: roles,
 			resource: undefined,
+			delegated: true,
 		},
 		{
 			to: "/user-roles",
@@ -119,8 +127,13 @@ function Dashboard() {
 			icon: UserCog,
 			query: userRoles,
 			resource: undefined,
+			delegated: true,
 		},
-	].filter((stat) => canAccessResource(stat.resource, access));
+	].filter((stat) =>
+		"delegated" in stat && stat.delegated
+			? canManage
+			: canAccessResource(stat.resource, access),
+	);
 
 	// Atajos de creación: el destino habitual tras revisar el Resumen es dar de
 	// alta algo. Separados de "Accesos rápidos" (navegación) porque son
@@ -143,8 +156,13 @@ function Dashboard() {
 			label: "Nuevo rol",
 			icon: ShieldPlus,
 			resource: undefined,
+			delegated: true,
 		},
-	].filter((action) => canAccessResource(action.resource, access));
+	].filter((action) =>
+		"delegated" in action && action.delegated
+			? canManage
+			: canAccessResource(action.resource, access),
+	);
 
 	const quickLinks = [
 		{

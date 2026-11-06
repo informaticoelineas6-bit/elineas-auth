@@ -1,3 +1,4 @@
+import { env } from "@backend/config/env.ts";
 import { auth } from "@backend/lib/auth.ts";
 import { forwardAuthHeaders, handleError, HttpError, issueJwt } from "@backend/lib/http.ts";
 import { generateInitialPassword, sendAccountInvite } from "@backend/lib/invite.ts";
@@ -5,6 +6,11 @@ import {
   bindSessionToSystem,
   resolveActiveSystem,
 } from "@backend/services/session-system.service.ts";
+import {
+  isScopeEmpty,
+  queryManageScope,
+  type ManageScope,
+} from "@backend/services/system-admin.service.ts";
 import { userHasRoleInAnySystem, userHasRoleInSystem } from "@backend/services/user-role.service.ts";
 import type { z } from "@hono/zod-openapi";
 import type {
@@ -31,6 +37,16 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
     // Se usa el body ya validado por Zod (valid("json")), que descarta campos
     // desconocidos y evita reenviar propiedades no previstas a better-auth.
     const { systemSlug, ...credentials } = c.req.valid("json");
+    // Fijar la contraseña de la cuenta nueva equivale a controlarla: solo el
+    // superadmin (igual que createEmployeeWithUser). Un admin de sistema invita.
+    const scope = c.get("manageScope") as ManageScope | undefined;
+    if (credentials.password !== undefined && !scope?.all) {
+      throw new HttpError(
+        403,
+        "Solo un superadmin puede fijar la contraseña; el usuario la establece con la invitación",
+        "FORBIDDEN",
+      );
+    }
     const sys = systemSlug ? await resolveActiveSystem(systemSlug) : null;
     const { response } = await auth.api.signUpEmail({
       // Sin contraseña en la petición: aleatoria e inservible, el dueño fija la
@@ -55,6 +71,16 @@ export const signUpFn = async (c: Context<any, string, SignUpInput>) => {
 // sistema indicado (o en alguno, si no se indicó). Si no lo tiene, se revoca la
 // sesión recién creada y se lanza 403. Lo comparten el login con contraseña y el
 // de Google, para que ambos apliquen exactamente la misma regla.
+// El panel del IS inicia sesión contra el sistema `auth`. Un admin de otro
+// sistema (p. ej. `pos`) no tiene rol ahí, pero debe poder entrar para
+// gestionar el suyo: se le deja pasar si administra algún sistema. La sesión
+// sigue ligada a `auth`; lo que puede hacer lo acota requireSystemManager.
+// Sin sistemas que administrar, sigue recibiendo NO_ROLES_IN_SYSTEM.
+async function isDelegatedAdminOfPanel(userId: string, systemSlug: string) {
+  if (systemSlug !== env.ADMIN_SYSTEM_SLUG) return false;
+  return !isScopeEmpty(await queryManageScope(userId));
+}
+
 export async function assertAccessOrRevoke(params: {
   userId: string;
   sessionToken: string;
@@ -65,7 +91,8 @@ export async function assertAccessOrRevoke(params: {
   const allowed = deactivated
     ? false
     : sys
-      ? await userHasRoleInSystem(userId, sys.id)
+      ? (await userHasRoleInSystem(userId, sys.id)) ||
+        (await isDelegatedAdminOfPanel(userId, sys.slug))
       : await userHasRoleInAnySystem(userId);
   if (allowed) return;
   await auth.api.revokeSession({

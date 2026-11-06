@@ -1,6 +1,7 @@
 import {
   address as Address,
   ci as Ci,
+  companyEmail as CompanyEmail,
   description as Description,
   displayName as DisplayName,
   PAGE_SIZE_DEFAULT,
@@ -134,6 +135,89 @@ export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
 });
 
 // ---------------------------------------------------------------------------
+// Directorio de usuarios (solo lectura) para asignar roles desde la
+// administración delegada: no expone nada más que lo necesario para elegir.
+// ---------------------------------------------------------------------------
+export const UserDirectoryQuerySchema = PaginationQuerySchema.extend({
+  // Resolver un usuario concreto (p. ej. recuperar la etiqueta de uno ya elegido).
+  userId: z
+    .uuid()
+    .optional()
+    .openapi({ param: { name: "userId", in: "query", required: false } }),
+  search: SearchTerm.optional().openapi({
+    param: { name: "search", in: "query", required: false },
+    example: "ada@",
+  }),
+});
+
+export const UserDirectoryEntrySchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    email: z.string(),
+    // false = tiene una ficha de empleado desactivada (no puede iniciar sesión).
+    active: z.boolean(),
+    employeeName: z.string().nullable(),
+  })
+  .openapi("UserDirectoryEntry");
+
+// ---------------------------------------------------------------------------
+// Usuarios de un sistema (administración delegada): quienes tienen al menos un
+// rol en alguno de los sistemas que administra quien consulta.
+// ---------------------------------------------------------------------------
+export const ManagedUserListQuerySchema = PaginationQuerySchema.extend({
+  search: SearchTerm.optional().openapi({
+    param: { name: "search", in: "query", required: false },
+  }),
+  systemId: z
+    .uuid()
+    .optional()
+    .openapi({ param: { name: "systemId", in: "query", required: false } }),
+});
+
+export const ManagedUserSchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    email: z.string(),
+    // false = ficha de empleado desactivada (no puede iniciar sesión).
+    active: z.boolean(),
+    employee: z
+      .object({
+        id: z.uuid(),
+        name: z.string(),
+        lastName: z.string(),
+        ci: z.string().nullable(),
+        phoneNumber: z.string().nullable(),
+        address: z.string().nullable(),
+        active: z.boolean(),
+      })
+      .nullable(),
+    // Solo los roles dentro de los sistemas que administra quien consulta.
+    roles: z.array(
+      z.object({
+        id: z.uuid(),
+        name: z.string(),
+        system: z.object({ id: z.uuid(), slug: z.string(), name: z.string() }),
+      }),
+    ),
+    // true si todos sus roles caen en sistemas administrados por quien consulta:
+    // solo entonces se pueden editar sus datos y contraseña. Con roles en otros
+    // sistemas (o siendo superadmin) la cuenta es compartida y solo se le
+    // gestionan los roles de este sistema.
+    editable: z.boolean(),
+  })
+  .openapi("ManagedUser");
+
+export const UpdateManagedUserBodySchema = z
+  .object({
+    name: DisplayName.optional(),
+    email: CompanyEmail.optional(),
+    employee: UpdateEmployeeBodySchema.omit({ userId: true }).optional(),
+  })
+  .openapi("UpdateManagedUserBody");
+
+// ---------------------------------------------------------------------------
 // System
 // ---------------------------------------------------------------------------
 export const SystemSchema = z
@@ -231,12 +315,21 @@ export const RoleListQuerySchema = PaginationQuerySchema.extend({
 export const PermissionSchema = z
   .object({
     id: z.uuid(),
+    systemId: z.uuid(),
     resource: z.string().openapi({ example: "employees" }),
     action: z.string().openapi({ example: "read" }),
     description: z.string().nullable(),
     createdAt: z.date(),
   })
   .openapi("Permission");
+
+// Filtro opcional del catálogo por sistema (el catálogo es por sistema).
+export const PermissionListQuerySchema = z.object({
+  systemId: z
+    .uuid()
+    .optional()
+    .openapi({ param: { name: "systemId", in: "query" } }),
+});
 
 export const RolePermissionSchema = z
   .object({

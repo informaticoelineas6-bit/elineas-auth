@@ -34,7 +34,7 @@ export type SystemPermissions = {
 export type AssignPermissionInput = z.infer<typeof assignPermissionSchema>;
 export type UpdatePermissionInput = z.infer<typeof updatePermissionSchema>;
 
-// Permiso del catálogo global (GET /api/permissions) y permiso asignado a un
+// Permiso del catálogo de un sistema (GET /api/permissions) y permiso asignado a un
 // rol (GET /api/roles/:id/permissions).
 export type CatalogPermission = {
 	id: string;

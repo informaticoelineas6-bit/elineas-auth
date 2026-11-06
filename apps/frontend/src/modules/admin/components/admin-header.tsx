@@ -1,3 +1,4 @@
+import type { ManagedSystem } from "@elineas/auth-contracts";
 import { Link } from "@tanstack/react-router";
 import { Menu, ShieldCheck } from "lucide-react";
 import type { AuthSession } from "@/modules/auth/shared/types.ts";
@@ -19,13 +20,15 @@ export function AdminHeader({
 	session,
 	isAdmin,
 	permissions,
+	managedSystems,
 }: {
 	session: AuthSession;
 	isAdmin: boolean;
 	permissions: MyPermission[];
+	managedSystems: ManagedSystem[];
 }) {
 	const scrolled = useScrolled();
-	const navItems = visibleNavItems({ isAdmin, permissions });
+	const navItems = visibleNavItems({ isAdmin, permissions, managedSystems });
 
 	return (
 		// El padding del <header> (0 en el top) es lo que separa la barra de los

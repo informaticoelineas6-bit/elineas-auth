@@ -13,17 +13,20 @@ import type {
   UpdatePermissionBodySchema,
 } from "@backend/openapi/business.schemas.ts";
 import type { z } from "@hono/zod-openapi";
-import { and, asc, count, eq, inArray, or } from "drizzle-orm";
+import { and, asc, eq, inArray, or } from "drizzle-orm";
 
 type AssignPermissionInput = z.infer<typeof AssignPermissionBodySchema>;
 type UpdatePermissionInput = z.infer<typeof UpdatePermissionBodySchema>;
 
-// Catálogo completo (no paginado: es una tabla de referencia pequeña y
-// estable, pensada para poblar un selector en el panel de administración).
-export async function listPermissions() {
+// Catálogo (no paginado: es una tabla de referencia pequeña y estable,
+// pensada para poblar un selector en el panel de administración). Con
+// `systemIds` se acota a esos sistemas; sin él, devuelve todos.
+export async function listPermissions(systemIds?: string[]) {
+  if (systemIds && systemIds.length === 0) return [];
   return db
     .select()
     .from(permission)
+    .where(systemIds ? inArray(permission.systemId, systemIds) : undefined)
     .orderBy(asc(permission.resource), asc(permission.action));
 }
 
@@ -33,7 +36,8 @@ export async function listPermissions() {
 // misma idea que `listMyRoles(userId, systemSlug)`, pero resolviendo también
 // el `resource:action` de cada rol.
 //
-// Hay DOS comodines, ambos devuelven el catálogo completo:
+// Hay DOS comodines, ambos devuelven el catálogo de `systemSlug` (el catálogo
+// es por sistema, así que el comodín nunca expone permisos de otros):
 //   - Rol admin en el sistema `auth` (env.ADMIN_SYSTEM_SLUG): superusuario
 //     global del IS, ve/puede todo en cualquier sistema (igual que
 //     requireAdmin).
@@ -71,10 +75,15 @@ export async function listMyPermissions(
       (r.systemSlug === systemSlug || r.systemSlug === env.ADMIN_SYSTEM_SLUG),
   );
   if (isAdmin) {
-    return (await listPermissions()).map(({ resource, action }) => ({
-      resource,
-      action,
-    }));
+    const [target] = await db
+      .select({ id: system.id })
+      .from(system)
+      .where(eq(system.slug, systemSlug))
+      .limit(1);
+    if (!target) return [];
+    return (await listPermissions([target.id])).map(
+      ({ resource, action }) => ({ resource, action }),
+    );
   }
 
   const seen = new Set<string>();
@@ -99,6 +108,31 @@ async function assertRoleExists(roleId: string) {
   if (!row) throw new HttpError(404, "Rol no encontrado", "NOT_FOUND");
 }
 
+// Sistema dueño de un rol (404 si no existe). Lo usan las rutas delegadas para
+// comprobar el alcance ANTES de tocar nada.
+export async function getRoleSystemId(roleId: string) {
+  const [row] = await db
+    .select({ systemId: role.systemId })
+    .from(role)
+    .where(eq(role.id, roleId))
+    .limit(1);
+  if (!row) throw new HttpError(404, "Rol no encontrado", "NOT_FOUND");
+  return row.systemId;
+}
+
+// Sistema dueño de un permiso (404 si no existe).
+export async function getPermissionSystemId(permissionId: string) {
+  return (await getPermission(permissionId)).systemId;
+}
+
+function permissionMismatch() {
+  return new HttpError(
+    400,
+    "El permiso y el rol pertenecen a sistemas distintos",
+    "PERMISSION_SYSTEM_MISMATCH",
+  );
+}
+
 async function getPermission(id: string) {
   const [row] = await db
     .select()
@@ -114,23 +148,32 @@ async function getPermission(id: string) {
 // qué roles concretos de ese sistema quedó cada uno. Incluye todos los
 // sistemas (activos e inactivos) aunque no tengan permisos aún, para poder
 // mostrar la card vacía y crear el primero desde ahí.
-export async function listPermissionsBySystem() {
-  const systems = await db.select().from(system).orderBy(asc(system.name));
+export async function listPermissionsBySystem(systemIds?: string[]) {
+  const systems = await db
+    .select()
+    .from(system)
+    .where(systemIds ? inArray(system.id, systemIds) : undefined)
+    .orderBy(asc(system.name));
+  if (systems.length === 0) return [];
+  const ids = systems.map((s) => s.id);
 
+  // Todos los permisos de esos sistemas (asignados o no) con sus roles, si los
+  // tienen: LEFT JOIN para que un permiso aún sin rol también aparezca.
   const rows = await db
     .select({
-      systemId: role.systemId,
-      roleId: role.id,
-      roleName: role.name,
+      systemId: permission.systemId,
       permissionId: permission.id,
       resource: permission.resource,
       action: permission.action,
       description: permission.description,
       createdAt: permission.createdAt,
+      roleId: role.id,
+      roleName: role.name,
     })
-    .from(role)
-    .innerJoin(rolePermission, eq(rolePermission.roleId, role.id))
-    .innerJoin(permission, eq(permission.id, rolePermission.permissionId));
+    .from(permission)
+    .leftJoin(rolePermission, eq(rolePermission.permissionId, permission.id))
+    .leftJoin(role, eq(role.id, rolePermission.roleId))
+    .where(inArray(permission.systemId, ids));
 
   const bySystem = new Map<
     string,
@@ -138,6 +181,7 @@ export async function listPermissionsBySystem() {
       string,
       {
         id: string;
+        systemId: string;
         resource: string;
         action: string;
         description: string | null;
@@ -156,6 +200,7 @@ export async function listPermissionsBySystem() {
     if (!perm) {
       perm = {
         id: r.permissionId,
+        systemId: r.systemId,
         resource: r.resource,
         action: r.action,
         description: r.description,
@@ -164,7 +209,9 @@ export async function listPermissionsBySystem() {
       };
       perms.set(r.permissionId, perm);
     }
-    perm.roles.set(r.roleId, { id: r.roleId, name: r.roleName });
+    if (r.roleId && r.roleName) {
+      perm.roles.set(r.roleId, { id: r.roleId, name: r.roleName });
+    }
   }
 
   return systems.map((s) => ({
@@ -180,6 +227,7 @@ export async function listPermissionsBySystem() {
 }
 
 async function findOrCreatePermission(input: {
+  systemId: string;
   resource: string;
   action: string;
   description?: string;
@@ -189,6 +237,7 @@ async function findOrCreatePermission(input: {
     .from(permission)
     .where(
       and(
+        eq(permission.systemId, input.systemId),
         eq(permission.resource, input.resource),
         eq(permission.action, input.action),
       ),
@@ -204,8 +253,9 @@ export async function assignPermissionToRole(
   roleId: string,
   permissionId: string,
 ) {
-  await assertRoleExists(roleId);
-  await getPermission(permissionId);
+  const roleSystemId = await getRoleSystemId(roleId);
+  const perm = await getPermission(permissionId);
+  if (perm.systemId !== roleSystemId) throw permissionMismatch();
   await db
     .insert(rolePermission)
     .values({ roleId, permissionId })
@@ -247,6 +297,7 @@ export async function assignPermission(input: AssignPermissionInput) {
   }
 
   const perm = await findOrCreatePermission({
+    systemId: input.systemId,
     resource: input.resource,
     action: input.action,
     description: input.description,
@@ -277,43 +328,23 @@ export async function deletePermission(id: string) {
   if (!row) throw new HttpError(404, "Permiso no encontrado", "NOT_FOUND");
 }
 
-// Desasigna `permissionId` de todos los roles de `systemId` (el "quitar
-// badge" del panel). El permiso sigue siendo un catálogo global: si tras
-// esto ya no queda asignado a ningún rol de ningún sistema, se borra
-// también la fila de `permission` para no dejar entradas huérfanas.
+// Quita el permiso de `systemId` (el "quitar badge" del panel): como el
+// catálogo es por sistema, la fila de `permission` se borra (y con ella sus
+// role_permission, por cascade). Falla si el permiso no es de ese sistema.
 export async function removePermissionFromSystem(
   permissionId: string,
   systemId: string,
 ) {
-  await getPermission(permissionId);
-
-  const systemRoles = await db
-    .select({ id: role.id })
-    .from(role)
-    .where(eq(role.systemId, systemId));
-  const roleIds = systemRoles.map((r) => r.id);
-  if (roleIds.length > 0) {
-    await db
-      .delete(rolePermission)
-      .where(
-        and(
-          eq(rolePermission.permissionId, permissionId),
-          inArray(rolePermission.roleId, roleIds),
-        ),
-      );
+  const perm = await getPermission(permissionId);
+  if (perm.systemId !== systemId) {
+    throw new HttpError(
+      400,
+      "El permiso no pertenece al sistema indicado",
+      "BAD_REQUEST",
+    );
   }
-
-  const [{ total }] = await db
-    .select({ total: count() })
-    .from(rolePermission)
-    .where(eq(rolePermission.permissionId, permissionId));
-
-  let deleted = false;
-  if (total === 0) {
-    await db.delete(permission).where(eq(permission.id, permissionId));
-    deleted = true;
-  }
-  return { deleted };
+  await db.delete(permission).where(eq(permission.id, permissionId));
+  return { deleted: true };
 }
 
 export async function listRolePermissions(roleId: string) {
@@ -340,7 +371,20 @@ export async function setRolePermissions(
   roleId: string,
   permissionIds: string[],
 ) {
-  await assertRoleExists(roleId);
+  const roleSystemId = await getRoleSystemId(roleId);
+
+  if (permissionIds.length > 0) {
+    const found = await db
+      .select({ id: permission.id, systemId: permission.systemId })
+      .from(permission)
+      .where(inArray(permission.id, permissionIds));
+    if (found.length !== new Set(permissionIds).size) {
+      throw new HttpError(404, "Permiso no encontrado", "NOT_FOUND");
+    }
+    if (found.some((p) => p.systemId !== roleSystemId)) {
+      throw permissionMismatch();
+    }
+  }
 
   await db.transaction(async (tx) => {
     await tx.delete(rolePermission).where(eq(rolePermission.roleId, roleId));

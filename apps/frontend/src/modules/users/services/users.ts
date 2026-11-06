@@ -58,3 +58,18 @@ export function adminChangeUserPassword(
 		}),
 	);
 }
+
+// Igual que `adminChangeUserPassword`, pero para un admin DE SISTEMA sobre un
+// usuario de su sistema (el IS exige que todos los roles del usuario estén en
+// sistemas que administra). `currentPassword` sigue siendo el del que actúa.
+export function changeManagedUserPassword(
+	userId: string,
+	input: AdminChangePasswordInput,
+) {
+	return unwrap(
+		usersAdminRpc.managed[":id"]["change-password"].$post({
+			param: { id: userId },
+			json: input,
+		}),
+	);
+}

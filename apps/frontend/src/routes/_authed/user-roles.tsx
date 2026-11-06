@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import {
 	LayoutGrid,
+	Mail,
 	Table2,
 	Trash2,
 	TriangleAlert,
@@ -37,13 +38,15 @@ import {
 import { deferOnClient } from "@/modules/common/lib/query.ts";
 import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
 import { employeesQueries } from "@/modules/employees/queries/employees.ts";
-import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import type { Role } from "@/modules/roles/shared/types.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import type { System } from "@/modules/systems/shared/types.ts";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";
 import { BulkAssignRoleDialog } from "@/modules/user-roles/components/bulk-assign-role-dialog.tsx";
+import { InviteUserDialog } from "@/modules/user-roles/components/invite-user-dialog.tsx";
+import { useUserDirectory } from "@/modules/user-roles/lib/use-user-directory.ts";
 import { UserRolesCards } from "@/modules/user-roles/components/user-roles-cards.tsx";
 import {
 	getUserRoleColumns,
@@ -67,16 +70,19 @@ const ADMIN_ROLE_NAME = "admin";
 
 export const Route = createFileRoute("/_authed/user-roles")({
 	validateSearch: userRoleFiltersSchema,
-	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
+	beforeLoad: ({ context }) => requireSystemManagerAccess(context),
 	// Prefetch del listado + las 3 fuentes (empleados/roles/sistemas) que la
 	// página usa para resolver ids, con las mismas query keys, para calentar
 	// hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,
-	loader: ({ context: { queryClient }, deps }) =>
+	loader: ({ context: { queryClient, isAdmin }, deps }) =>
 		deferOnClient(
 			Promise.all([
 				queryClient.prefetchQuery(userRolesQueries.list(deps)),
-				queryClient.prefetchQuery(employeesQueries.list({ limit: 100 })),
+				// Solo el superadmin puede listar empleados; un admin de sistema
+				// resuelve los nombres con lo que ya trae cada asignación.
+				isAdmin &&
+					queryClient.prefetchQuery(employeesQueries.list({ limit: 100 })),
 				queryClient.prefetchQuery(rolesQueries.list({ limit: 100 })),
 				queryClient.prefetchQuery(systemsQueries.list({ limit: 100 })),
 			]),
@@ -86,14 +92,16 @@ export const Route = createFileRoute("/_authed/user-roles")({
 
 function UserRolesPage() {
 	// Roles del usuario actual en el sistema de la consola (auth): de aquí se
-	// deriva el id del sistema auth para avisar al revocar un admin de esa consola.
-	const { roles: myRoles } = Route.useRouteContext();
+	// deriva el id del sistema auth para avisar al revocar un admin de esa consola
+	// (vacío para un admin de otro sistema, que no tiene rol en `auth`).
+	const { roles: myRoles, isAdmin, managedSystems } = Route.useRouteContext();
 	const authSystemId = myRoles[0]?.system.id;
 
 	const {
-		filters: { assign, ...filters },
+		filters: { assign, systemSlug, ...filters },
 		controls,
 		setFilter,
+		setFilters,
 	} = useListControls<UserRoleFilters>();
 	const view = filters.view ?? "table";
 	const isTable = view === "table";
@@ -117,7 +125,14 @@ function UserRolesPage() {
 	});
 	// Fuentes para resolver ids y alimentar los filtros. Compartidas por query
 	// cache (misma key en toda la app); solo se piden una vez.
-	const employeesQuery = useQuery(employeesQueries.list({ limit: 100 }));
+	// Empleados: solo el superadmin puede listarlos. Aportan el nombre completo
+	// del empleado; sin ellos cada fila usa el usuario que ya trae la asignación.
+	const employeesQuery = useQuery({
+		...employeesQueries.list({ limit: 100 }),
+		enabled: isAdmin,
+	});
+	// Usuarios para el filtro: directorio con búsqueda en el servidor.
+	const directory = useUserDirectory({ ensureId: filters.userId });
 	const rolesQuery = useQuery(rolesQueries.list({ limit: 100 }));
 	const systemsQuery = useQuery(systemsQueries.list({ limit: 100 }));
 	const deleteUserRole = useDeleteUserRole();
@@ -125,13 +140,39 @@ function UserRolesPage() {
 
 	const [assignOpen, setAssignOpen] = useState(false);
 	const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
+	const [inviteOpen, setInviteOpen] = useState(false);
+	// Sistema fijado en el diálogo "Asignar rol" (enlace directo con systemSlug).
+	const [lockedSystemId, setLockedSystemId] = useState<string | undefined>();
 	// `?assign` abre el diálogo con el usuario del filtro preseleccionado y se
 	// limpia de la URL para no reabrirlo al recargar.
 	useEffect(() => {
-		if (!assign) return;
+		if (!assign || systemSlug) return;
 		setAssignOpen(true);
 		setFilter("assign", undefined);
-	}, [assign, setFilter]);
+	}, [assign, systemSlug, setFilter]);
+	// Enlace directo `/user-roles?systemSlug=pos&assign=1`: resuelve el slug entre
+	// los sistemas que el usuario administra, filtra el listado por él y (con
+	// `assign`) abre el diálogo con ese sistema fijado. Todo en UNA navegación que
+	// además limpia los parámetros transitorios. Un slug desconocido o que no
+	// administra avisa y se descarta.
+	useEffect(() => {
+		if (!systemSlug) return;
+		const target = managedSystems.find((system) => system.slug === systemSlug);
+		if (!target) {
+			toast.error(`No administras ningún sistema con el identificador «${systemSlug}».`);
+			setFilters({ systemSlug: undefined, assign: undefined });
+			return;
+		}
+		setFilters({
+			systemId: target.id,
+			systemSlug: undefined,
+			assign: undefined,
+		});
+		if (assign) {
+			setLockedSystemId(target.id);
+			setAssignOpen(true);
+		}
+	}, [systemSlug, assign, managedSystems, setFilters]);
 	const [toRevoke, setToRevoke] = useState<UserRoleDetail | null>(null);
 	const [bulk, setBulk] = useState<{
 		rows: UserRoleDetail[];
@@ -170,13 +211,7 @@ function UserRolesPage() {
 		[systemsQuery.data],
 	);
 
-	const userOptions = (employeesQuery.data?.employees ?? [])
-		.filter((employee) => employee.userId && employee.user)
-		.map((employee) => ({
-			value: employee.userId as string,
-			label: `${employee.name} ${employee.lastName}`,
-			description: employee.user?.email,
-		}));
+	const userOptions = directory.optionsFor(filters.userId ? [filters.userId] : []);
 	const roleOptions = (rolesQuery.data?.roles ?? []).map((role) => {
 		const system = systemsById.get(role.systemId);
 		return {
@@ -186,8 +221,15 @@ function UserRolesPage() {
 		};
 	});
 
-	// ¿La asignación es el rol admin del sistema de la consola? Revocarlo puede
-	// dejar sin acceso a la consola (a uno mismo o a la organización).
+	// ¿La asignación es el rol admin de algún sistema? Revocarlo puede dejar a
+	// alguien (a uno mismo o al sistema) sin quien lo administre. En el sistema de
+	// la consola (auth) el aviso lo distingue porque afecta a toda la consola.
+	function isSystemAdminAssignment(userRole: UserRoleDetail): boolean {
+		const role = rolesById.get(userRole.roleId);
+		const name = role?.name ?? userRole.role?.name;
+		return name?.toLowerCase() === ADMIN_ROLE_NAME;
+	}
+
 	function isAuthAdminAssignment(userRole: UserRoleDetail): boolean {
 		const role = rolesById.get(userRole.roleId);
 		return Boolean(
@@ -273,6 +315,9 @@ function UserRolesPage() {
 		? systemsById.get(revokeRole.systemId)
 		: undefined;
 	const revokeIsAuthAdmin = toRevoke ? isAuthAdminAssignment(toRevoke) : false;
+	const revokeIsSystemAdmin = toRevoke
+		? isSystemAdminAssignment(toRevoke) && !revokeIsAuthAdmin
+		: false;
 
 	const filterControls = (
 		<>
@@ -281,6 +326,8 @@ function UserRolesPage() {
 				value={filters.userId}
 				onChange={(value) => setFilter("userId", value)}
 				options={userOptions}
+				onSearchChange={directory.setSearch}
+				loading={directory.isSearching}
 				placeholder="Usuario"
 				searchPlaceholder="Buscar por nombre o email…"
 				emptyText="Sin usuarios"
@@ -347,6 +394,10 @@ function UserRolesPage() {
 							onExport={handleExport}
 							pending={exportUserRolesQuery.isPending}
 						/>
+						<Button variant="outline" onClick={() => setInviteOpen(true)}>
+							<Mail />
+							Invitar usuario
+						</Button>
 						<Button variant="outline" onClick={() => setBulkAssignOpen(true)}>
 							<UsersRound />
 							Asignar a varios
@@ -422,9 +473,15 @@ function UserRolesPage() {
 
 			<AssignRoleDialog
 				open={assignOpen}
-				onOpenChange={setAssignOpen}
+				onOpenChange={(open) => {
+					setAssignOpen(open);
+					if (!open) setLockedSystemId(undefined);
+				}}
 				defaultUserId={filters.userId}
+				defaultSystemId={filters.systemId}
+				lockedSystemId={lockedSystemId}
 			/>
+			<InviteUserDialog open={inviteOpen} onOpenChange={setInviteOpen} />
 			<BulkAssignRoleDialog
 				open={bulkAssignOpen}
 				onOpenChange={setBulkAssignOpen}
@@ -448,6 +505,19 @@ function UserRolesPage() {
 										La selección incluye roles <strong>admin</strong> de esta
 										consola. Si te los quitas a ti mismo, o dejas la consola sin
 										administradores, nadie podrá volver a gestionarla.
+									</span>
+								</span>
+							)}
+							{bulk.rows.some(
+								(row) =>
+									isSystemAdminAssignment(row) && !isAuthAdminAssignment(row),
+							) && (
+								<span className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+									<TriangleAlert className="mt-0.5 size-4 shrink-0" />
+									<span>
+										La selección incluye roles <strong>admin</strong> de otros
+										sistemas. No se puede quitar el último administrador de un
+										sistema.
 									</span>
 								</span>
 							)}
@@ -481,6 +551,17 @@ function UserRolesPage() {
 										Es un rol <strong>admin</strong> de esta consola. Si te lo
 										quitas a ti mismo, o dejas la consola sin administradores,
 										nadie podrá volver a gestionarla.
+									</span>
+								</span>
+							)}
+							{revokeIsSystemAdmin && (
+								<span className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-700 dark:text-amber-400">
+									<TriangleAlert className="mt-0.5 size-4 shrink-0" />
+									<span>
+										Es un rol <strong>admin</strong> del sistema
+										{revokeSystem ? ` «${revokeSystem.name}»` : ""}. Quien lo
+										pierda dejará de poder administrarlo. No se puede quitar el
+										último administrador de un sistema.
 									</span>
 								</span>
 							)}

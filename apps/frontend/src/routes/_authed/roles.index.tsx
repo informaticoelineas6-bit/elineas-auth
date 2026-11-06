@@ -23,7 +23,7 @@ import {
 	reportError,
 } from "@/modules/common/lib/errors.ts";
 import type { ExportFormat } from "@/modules/common/lib/tabular.ts";
-import { requireResourceAccess } from "@/modules/permissions/lib/guard.ts";
+import { requireSystemManagerAccess } from "@/modules/permissions/lib/guard.ts";
 import {
 	permissionsQueries,
 	useAssignPermission,
@@ -48,7 +48,7 @@ import type { System } from "@/modules/systems/shared/types.ts";
 
 export const Route = createFileRoute("/_authed/roles/")({
 	validateSearch: roleFiltersSchema,
-	beforeLoad: ({ context }) => requireResourceAccess(undefined, context),
+	beforeLoad: ({ context }) => requireSystemManagerAccess(context),
 	// Prefetch del listado + catálogo de sistemas (misma query key que el
 	// componente) para calentar hover/SSR y evitar el waterfall montaje→fetch.
 	loaderDeps: ({ search }) => search,

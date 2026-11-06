@@ -1,5 +1,8 @@
 import { account, session, user } from "@backend/db/auth-schema.ts";
+import { employee } from "@backend/db/business-schema.ts";
 import { db } from "@backend/db/index.ts";
+import { escapeLike } from "@backend/lib/search.ts";
+import { toOffset, type PaginationInput } from "@backend/lib/pagination.ts";
 import { auth } from "@backend/lib/auth.ts";
 import {
   forwardAuthHeaders,
@@ -13,7 +16,7 @@ import type {
 } from "@backend/openapi/schemas.ts";
 import type { z } from "@hono/zod-openapi";
 import { hashPassword, verifyPassword } from "better-auth/crypto";
-import { and, eq } from "drizzle-orm";
+import { and, asc, count, eq, ilike, or, sql } from "drizzle-orm";
 import { Context } from "hono";
 
 // Verifica que `password` coincida con la contraseña actual del usuario. Lee el
@@ -208,4 +211,55 @@ export async function resendUserInvite(userId: string): Promise<void> {
       "SERVICE_UNAVAILABLE",
     );
   }
+}
+
+// Directorio de solo lectura de TODOS los usuarios de la organización, para que
+// un admin de sistema elija a quién asignar un rol (no puede ver ni editar nada
+// más del usuario). Búsqueda parcial por nombre, correo o nombre del empleado.
+export async function listUserDirectory(
+  filters: { search?: string; userId?: string },
+  pagination: PaginationInput,
+) {
+  const term = filters.search ? `%${escapeLike(filters.search)}%` : undefined;
+  const where = and(
+    filters.userId ? eq(user.id, filters.userId) : undefined,
+    term
+      ? or(
+          ilike(user.name, term),
+          ilike(user.email, term),
+          ilike(employee.name, term),
+          ilike(employee.lastName, term),
+        )
+      : undefined,
+  );
+
+  const [rows, [{ total }]] = await Promise.all([
+    db
+      .select({
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        employeeActive: employee.active,
+        employeeName: sql<string | null>`nullif(trim(concat(${employee.name}, ' ', ${employee.lastName})), '')`,
+      })
+      .from(user)
+      .leftJoin(employee, eq(employee.userId, user.id))
+      .where(where)
+      .orderBy(asc(sql`lower(${user.name})`), asc(user.id))
+      .limit(pagination.limit)
+      .offset(toOffset(pagination)),
+    db
+      .select({ total: count() })
+      .from(user)
+      .leftJoin(employee, eq(employee.userId, user.id))
+      .where(where),
+  ]);
+
+  return {
+    rows: rows.map(({ employeeActive, ...r }) => ({
+      ...r,
+      active: employeeActive ?? true,
+    })),
+    total,
+  };
 }

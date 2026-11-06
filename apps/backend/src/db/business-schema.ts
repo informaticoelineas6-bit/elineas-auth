@@ -116,23 +116,28 @@ export const userRole = pgTable(
   ],
 );
 
-// Catálogo global de permisos: cada fila es una capacidad puntual sobre un
-// recurso de la API de este IS ("employees", "sessions", ...), expresada
-// como acción concreta ("read"/"write"/"delete"). No pertenece a ningún
-// `system`: es el mismo catálogo para toda la organización, y son los roles
-// (que sí pertenecen a un sistema) los que deciden, vía `role_permission`,
-// qué permisos llevan.
+// Catálogo de permisos POR SISTEMA: cada fila es una capacidad puntual sobre
+// un recurso ("employees", "orders", ...), expresada como acción concreta
+// ("read"/"write"/"delete"), y pertenece a un `system`. Así el admin de un
+// sistema gestiona su propio catálogo sin afectar a los demás. Los roles (que
+// también pertenecen a un sistema) deciden, vía `role_permission`, qué
+// permisos llevan; un rol solo puede llevar permisos de su propio sistema.
 export const permission = pgTable(
   "permission",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    systemId: uuid("system_id")
+      .notNull()
+      .references(() => system.id, { onDelete: "cascade" }),
     resource: text("resource").notNull(),
     action: text("action").notNull(),
     description: text("description"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [
-    uniqueIndex("permission_resource_action_uidx").on(
+    index("permission_systemId_idx").on(table.systemId),
+    uniqueIndex("permission_systemId_resource_action_uidx").on(
+      table.systemId,
       table.resource,
       table.action,
     ),
