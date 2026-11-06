@@ -1,4 +1,4 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
+import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
@@ -15,6 +15,7 @@ import {
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { EmployeeFields } from "@/modules/employees/components/employee-fields.tsx";
 import {
 	employeeToFormValues,
@@ -98,6 +99,11 @@ function EditEmployeePage() {
 function EditEmployeeForm({ employee }: { employee: Employee }) {
 	const navigate = useNavigate();
 	const updateEmployee = useUpdateEmployee();
+	const { isAdmin, permissions } = Route.useRouteContext();
+	const canAssignDepartments = hasPermission("departments", "write", {
+		isAdmin,
+		permissions,
+	});
 	// 409 del IS al cambiar el CI a uno ya existente: se muestra sobre el campo.
 	const [ciError, setCiError] = useState<string | undefined>();
 
@@ -108,7 +114,7 @@ function EditEmployeeForm({ employee }: { employee: Employee }) {
 			try {
 				await updateEmployee.mutateAsync({
 					id: employee.id,
-					input: toUpdateEmployeePayload(value),
+					input: toUpdateEmployeePayload(value, canAssignDepartments),
 				});
 				toast.success("Cambios guardados");
 				navigate({
@@ -154,7 +160,14 @@ function EditEmployeeForm({ employee }: { employee: Employee }) {
 				}}
 				className="w-full"
 			>
-				<EmployeeFields form={form} ciError={ciError} />
+				<EmployeeFields
+					form={form}
+					ciError={ciError}
+					canAssignDepartments={canAssignDepartments}
+					departmentNames={Object.fromEntries(
+						(employee.departments ?? []).map((d) => [d.id, d.name]),
+					)}
+				/>
 
 				<div className="mt-8 flex justify-end gap-2">
 					<Button type="button" variant="outline" onClick={goBackToDetail}>

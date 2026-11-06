@@ -1,3 +1,4 @@
+import { hasPermission } from "@elineas/auth-contracts";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -33,7 +34,11 @@ export const Route = createFileRoute("/_authed/employees/new")({
 
 function NewEmployeePage() {
 	const navigate = useNavigate();
-	const { isAdmin } = Route.useRouteContext();
+	const { isAdmin, permissions } = Route.useRouteContext();
+	const canAssignDepartments = hasPermission("departments", "write", {
+		isAdmin,
+		permissions,
+	});
 	const createEmployee = useCreateEmployeeWithUser();
 	// Errores del IS mapeados al campo correspondiente (409 email/CI duplicado).
 	const [fieldErrors, setFieldErrors] = useState<{
@@ -45,7 +50,7 @@ function NewEmployeePage() {
 		setFieldErrors({});
 		try {
 			const { user, employee } = await createEmployee.mutateAsync(
-				toCreateEmployeeWithUserPayload(value),
+				toCreateEmployeeWithUserPayload(value, canAssignDepartments),
 			);
 			toast.success(`Usuario "${employee.name} ${employee.lastName}" creado`, {
 				description:
@@ -53,7 +58,10 @@ function NewEmployeePage() {
 				action: {
 					label: "Asignar rol",
 					onClick: () =>
-						navigate({ to: "/user-roles", search: { userId: user.id, assign: true } }),
+						navigate({
+							to: "/user-roles",
+							search: { userId: user.id, assign: true },
+						}),
 				},
 			});
 			navigate({ to: "/employees" });
@@ -107,7 +115,11 @@ function NewEmployeePage() {
 						/>
 					</TabsContent>
 					<TabsContent value="employee">
-						<EmployeeFields form={form} ciError={fieldErrors.ci} />
+						<EmployeeFields
+							form={form}
+							ciError={fieldErrors.ci}
+							canAssignDepartments={canAssignDepartments}
+						/>
 					</TabsContent>
 				</Tabs>
 

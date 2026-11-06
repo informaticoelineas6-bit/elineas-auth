@@ -1,7 +1,7 @@
 import { AlertTriangle, CheckCircle2, Upload, XCircle } from "lucide-react";
 import { useState } from "react";
-import { Checkbox } from "@/modules/common/components/ui/checkbox.tsx";
 import { Button } from "@/modules/common/components/ui/button.tsx";
+import { Checkbox } from "@/modules/common/components/ui/checkbox.tsx";
 import {
 	Dialog,
 	DialogContent,
@@ -16,6 +16,7 @@ import {
 	getErrorMessage,
 	getErrorStatus,
 } from "@/modules/common/lib/errors.ts";
+import { useExportDepartments } from "@/modules/departments/queries/departments.ts";
 import { parseEmployeeFile } from "@/modules/employees/lib/import-export.ts";
 import type { ImportRowResult } from "@/modules/employees/lib/import-validate.ts";
 import {
@@ -49,6 +50,7 @@ export function ImportDialog({
 	const updateEmployee = useUpdateEmployee();
 	const loadExisting = useExportEmployees();
 	const loadRoles = useExportRoles();
+	const loadDepartments = useExportDepartments();
 	const loadSystems = useExportSystems();
 	const createUserRole = useCreateUserRole();
 
@@ -85,7 +87,14 @@ export function ImportDialog({
 			// (CI, correo, ids inexistentes) ANTES de enviar nada.
 			const [
 				raw,
-				{ mapImportRow, flagImportDuplicates, importHasRoles, resolveImportRoles },
+				{
+					mapImportRow,
+					flagImportDuplicates,
+					importHasRoles,
+					importHasDepartments,
+					resolveImportDepartments,
+					resolveImportRoles,
+				},
 				existing,
 			] = await Promise.all([
 				parseEmployeeFile(file),
@@ -110,6 +119,11 @@ export function ImportDialog({
 					systems,
 					existing,
 				);
+			}
+			// Idem para los departamentos: solo se piden si el archivo los trae.
+			if (importHasDepartments(raw)) {
+				const departments = await loadDepartments.mutateAsync({});
+				validated = resolveImportDepartments(validated, raw, departments);
 			}
 			setRows(validated);
 		} catch (error) {
@@ -275,6 +289,9 @@ export function ImportDialog({
 						columna <code>role</code> (uno o varios nombres separados por «;»)
 						y, si el nombre se repite en varios sistemas, <code>system</code>{" "}
 						(slug); el usuario necesita cuenta (columna <code>email</code>).
+						Para asignar departamentos añade la columna <code>departments</code>{" "}
+						(nombres separados por «;», con «*» al final para marcar al jefe, p.
+						ej. <code>Almacén*;Ventas</code>); reemplaza los actuales.
 					</DialogDescription>
 				</DialogHeader>
 

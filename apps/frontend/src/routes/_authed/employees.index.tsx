@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
@@ -14,13 +13,15 @@ import { ConfirmDialog } from "@/modules/common/components/partials/confirm-dial
 import { ForbiddenState } from "@/modules/common/components/partials/forbidden-state.tsx";
 import { PageBreadcrumb } from "@/modules/common/components/partials/page-breadcrumb.tsx";
 import { PageHeader } from "@/modules/common/components/partials/page-header.tsx";
-import { runBulk } from "@/modules/common/lib/bulk.ts";
 import { Button } from "@/modules/common/components/ui/button.tsx";
+import { runBulk } from "@/modules/common/lib/bulk.ts";
 import {
 	getErrorMessage,
 	getErrorStatus,
 	reportError,
 } from "@/modules/common/lib/errors.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
+import { departmentsQueries } from "@/modules/departments/queries/departments.ts";
 import { ExportMenu } from "@/modules/employees/components/export-menu.tsx";
 import { ImportDialog } from "@/modules/employees/components/import-dialog.tsx";
 import { getEmployeeColumns } from "@/modules/employees/lib/columns.tsx";
@@ -34,8 +35,8 @@ import type {
 	Employee,
 	EmployeeFilters,
 } from "@/modules/employees/shared/types.ts";
-import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 import { resendUserInviteFn } from "@/modules/users/actions/users.ts";
+import { ChangeUserPasswordDialog } from "@/modules/users/components/change-user-password-dialog.tsx";
 
 export const Route = createFileRoute("/_authed/employees/")({
 	// Búsqueda/filtro/página viajan en la URL con el mismo schema que el server fn.
@@ -53,12 +54,17 @@ function EmployeesPage() {
 	const navigate = useNavigate();
 	const { isAdmin, permissions } = Route.useRouteContext();
 	const access = { isAdmin, permissions };
+	const canFilterDepartments = hasPermission("departments", "read", access);
 	const canWrite = hasPermission("employees", "write", access);
 	const canDelete = hasPermission("employees", "delete", access);
 	// El endpoint exige rol admin (no `users:write`), ver users.routes.ts.
 	const canChangePassword = isAdmin;
 	const { filters, controls, setFilter } = useListControls<EmployeeFilters>();
 	const query = useQuery(employeesQueries.list(filters));
+	const departmentsQuery = useQuery({
+		...departmentsQueries.list({ limit: 100 }),
+		enabled: canFilterDepartments,
+	});
 	const updateEmployee = useUpdateEmployee();
 	const deleteEmployee = useDeleteEmployee();
 
@@ -237,15 +243,27 @@ function EmployeesPage() {
 					emptyTitle="Sin usuarios"
 					emptyDescription="Aún no hay usuarios registrados."
 					filters={
-						<DataTableFilterSelect
-							value={filters.active}
-							onChange={(value) => setFilter("active", value)}
-							placeholder="Estado"
-							options={[
-								{ label: "Activo", value: true },
-								{ label: "Inactivo", value: false },
-							]}
-						/>
+						<>
+							{canFilterDepartments && (
+								<DataTableFilterSelect
+									value={filters.departmentId}
+									onChange={(value) => setFilter("departmentId", value)}
+									placeholder="Departamento"
+									options={(departmentsQuery.data?.departments ?? []).map(
+										(d) => ({ label: d.name, value: d.id }),
+									)}
+								/>
+							)}
+							<DataTableFilterSelect
+								value={filters.active}
+								onChange={(value) => setFilter("active", value)}
+								placeholder="Estado"
+								options={[
+									{ label: "Activo", value: true },
+									{ label: "Inactivo", value: false },
+								]}
+							/>
+						</>
 					}
 					enableRowSelection
 					renderSelectionActions={(rows, clear) => (

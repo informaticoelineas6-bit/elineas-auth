@@ -13,7 +13,10 @@ import {
 	CardTitle,
 } from "@/modules/common/components/ui/card.tsx";
 import { Skeleton } from "@/modules/common/components/ui/skeleton.tsx";
-import { getErrorMessage, getErrorStatus } from "@/modules/common/lib/errors.ts";
+import {
+	getErrorMessage,
+	getErrorStatus,
+} from "@/modules/common/lib/errors.ts";
 import { rolesQueries } from "@/modules/roles/queries/roles.ts";
 import { systemsQueries } from "@/modules/systems/queries/systems.ts";
 import { AssignRoleDialog } from "@/modules/user-roles/components/assign-role-dialog.tsx";

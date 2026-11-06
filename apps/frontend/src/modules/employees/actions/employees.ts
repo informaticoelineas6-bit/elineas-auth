@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
-import { requireAuthMiddleware } from "#/modules/auth/middlewares/auth.ts";
 import { z } from "zod";
+import { requireAuthMiddleware } from "#/modules/auth/middlewares/auth.ts";
 import {
 	companyEmailSchema,
 	idSchema,

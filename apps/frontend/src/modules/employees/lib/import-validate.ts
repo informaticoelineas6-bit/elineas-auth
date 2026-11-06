@@ -1,10 +1,10 @@
 import type { ZodError } from "zod";
+import { companyEmailSchema } from "#/modules/common/lib/validation.ts";
 import type {
 	CreateEmployeeInput,
 	UpdateEmployeeInput,
 } from "../shared/types.ts";
 import type { RawImportRow } from "./import-export.ts";
-import { companyEmailSchema } from "#/modules/common/lib/validation.ts";
 import { createEmployeeSchema, updateEmployeeSchema } from "./validation.ts";
 
 // Validación/normalización de filas importadas, EN SU PROPIO módulo a propósito:
@@ -242,7 +242,9 @@ export function flagImportDuplicates(
 
 		if (selfId) {
 			if (!byId.has(selfId)) {
-				return fail("No existe un empleado con ese id (quita el id para crearlo)");
+				return fail(
+					"No existe un empleado con ese id (quita el id para crearlo)",
+				);
 			}
 			if (seenIds.has(selfId)) return fail("id repetido en el archivo");
 			seenIds.add(selfId);
@@ -261,7 +263,9 @@ export function flagImportDuplicates(
 		if (result.kind === "create") {
 			const key = fullName(result.input.name, result.input.lastName);
 			if (seenNames.has(key)) {
-				return fail(`"${result.input.name} ${result.input.lastName}" repetido en el archivo`);
+				return fail(
+					`"${result.input.name} ${result.input.lastName}" repetido en el archivo`,
+				);
 			}
 			seenNames.add(key);
 		}
@@ -369,5 +373,73 @@ export function resolveImportRoles(
 			);
 		}
 		return { ...result, roleIds, ...(userId ? { userId } : {}) };
+	});
+}
+
+// ---------------------------------------------------------------------------
+// Departamentos en la importación
+// ---------------------------------------------------------------------------
+
+// Columna `departments`: nombres separados por ";" y "*" final para marcar al
+// jefe ("Almacén*;Ventas"). Vacía = no tocar los departamentos de la persona.
+function rawDepartmentItems(
+	row: RawImportRow | undefined,
+): { name: string; isHead: boolean }[] {
+	const cell = cleanString(row?.departments ?? row?.departamentos);
+	if (!cell) return [];
+	return cell
+		.split(";")
+		.map((item) => item.trim())
+		.filter(Boolean)
+		.map((item) => {
+			const isHead = item.endsWith("*");
+			return { name: (isHead ? item.slice(0, -1) : item).trim(), isHead };
+		})
+		.filter((item) => item.name.length > 0);
+}
+
+// ¿Alguna fila trae departamentos? Sirve para cargar el catálogo solo si hace falta.
+export function importHasDepartments(raw: RawImportRow[]): boolean {
+	return raw.some((row) => rawDepartmentItems(row).length > 0);
+}
+
+export type ImportDepartment = { id: string; name: string };
+
+// Traduce los nombres de departamento de cada fila a ids y los deja en
+// `input.departments` (el servidor reemplaza el conjunto de la persona). Una
+// fila con un departamento inexistente se marca como error y no se importa.
+// El "*" marca jefe explícito; sin "*" se omite `isHead` y decide el servidor
+// (jefe solo si la persona es admin).
+export function resolveImportDepartments(
+	results: ImportRowResult[],
+	raw: RawImportRow[],
+	departments: ImportDepartment[],
+): ImportRowResult[] {
+	const byName = new Map(departments.map((d) => [d.name.toLowerCase(), d]));
+
+	return results.map((result, i) => {
+		if (result.kind === "error") return result;
+		const items = rawDepartmentItems(raw[i]);
+		if (items.length === 0) return result;
+
+		const resolved: { departmentId: string; isHead?: boolean }[] = [];
+		for (const item of items) {
+			const found = byName.get(item.name.toLowerCase());
+			if (!found) {
+				return {
+					kind: "error",
+					row: result.row,
+					message: `Departamento "${item.name}" no existe`,
+				} satisfies ImportRowResult;
+			}
+			if (resolved.some((r) => r.departmentId === found.id)) continue;
+			resolved.push({
+				departmentId: found.id,
+				...(item.isHead ? { isHead: true } : {}),
+			});
+		}
+		return result.kind === "create"
+			? { ...result, input: { ...result.input, departments: resolved } }
+			: { ...result, input: { ...result.input, departments: resolved } };
 	});
 }

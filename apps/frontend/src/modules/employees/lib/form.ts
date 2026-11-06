@@ -25,6 +25,7 @@ export const employeeWithUserFormDefaults: CreateEmployeeWithUserFormInput = {
 		inDate: "",
 		outDate: "",
 		active: true,
+		departments: [],
 	},
 };
 
@@ -71,6 +72,11 @@ export function employeeToFormValues(
 			inDate: toDateInputValue(employee.inDate),
 			outDate: toDateInputValue(employee.outDate),
 			active: employee.active,
+			// Se envían explícitos para conservar quién es jefe al guardar.
+			departments: (employee.departments ?? []).map((d) => ({
+				departmentId: d.id,
+				isHead: d.isHead,
+			})),
 		},
 	};
 }
@@ -98,8 +104,11 @@ export type EditEmployeeFormApi = ReturnType<typeof useEditEmployeeForm>;
 // y un "" sería inválido); por tanto, vaciar un campo opcional que ya tenía
 // valor no lo borra en el IS — limitación de UpdateEmployeeBody, que no acepta
 // null explícito.
+// `includeDepartments` solo si el formulario permitía editarlos: si no, se
+// omiten para no reemplazar (borrar) los departamentos actuales.
 export function toUpdateEmployeePayload(
 	value: EditEmployeeFormInput,
+	includeDepartments = false,
 ): UpdateEmployeeInput {
 	const {
 		name,
@@ -111,12 +120,14 @@ export function toUpdateEmployeePayload(
 		inDate,
 		outDate,
 		active,
+		departments,
 	} = value.employee;
 
 	return {
 		name,
 		lastName,
 		active,
+		...(includeDepartments && departments ? { departments } : {}),
 		...(ci ? { ci } : {}),
 		...(birthday ? { birthday } : {}),
 		...(phoneNumber ? { phoneNumber } : {}),
@@ -131,6 +142,7 @@ export function toUpdateEmployeePayload(
 // enviar cadenas vacías al IS (que coacciona fechas con z.coerce.date()).
 export function toCreateEmployeeWithUserPayload(
 	value: CreateEmployeeWithUserFormInput,
+	includeDepartments = false,
 ): CreateEmployeeWithUserInput {
 	const {
 		name,
@@ -142,6 +154,7 @@ export function toCreateEmployeeWithUserPayload(
 		inDate,
 		outDate,
 		active,
+		departments,
 	} = value.employee;
 
 	return {
@@ -154,6 +167,7 @@ export function toCreateEmployeeWithUserPayload(
 			name,
 			lastName,
 			active,
+			...(includeDepartments && departments?.length ? { departments } : {}),
 			...(ci ? { ci } : {}),
 			...(birthday ? { birthday } : {}),
 			...(phoneNumber ? { phoneNumber } : {}),

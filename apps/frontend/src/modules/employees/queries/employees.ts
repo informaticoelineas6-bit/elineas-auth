@@ -69,11 +69,7 @@ export function useCreateEmployeeWithUser() {
 export function useCreateEmployeeAccount() {
 	const queryClient = useQueryClient();
 	return useMutation({
-		mutationFn: (input: {
-			id: string;
-			email: string;
-			sendInvite?: boolean;
-		}) =>
+		mutationFn: (input: { id: string; email: string; sendInvite?: boolean }) =>
 			createEmployeeAccountFn({
 				data: {
 					id: input.id,

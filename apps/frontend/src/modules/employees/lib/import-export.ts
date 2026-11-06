@@ -24,6 +24,7 @@ export const EMPLOYEE_EXPORT_COLUMNS = [
 	"outDate",
 	"active",
 	"email",
+	"departments",
 ] as const;
 
 type EmployeeExportRow = Record<
@@ -52,6 +53,10 @@ function employeeToRow(employee: Employee): EmployeeExportRow {
 		outDate: toDateCell(employee.outDate),
 		active: String(employee.active),
 		email: employee.user?.email ?? "",
+		// "Almacén*;Ventas": nombres separados por ";" y "*" marca al jefe.
+		departments: (employee.departments ?? [])
+			.map((d) => (d.isHead ? `${d.name}*` : d.name))
+			.join(";"),
 	};
 }
 

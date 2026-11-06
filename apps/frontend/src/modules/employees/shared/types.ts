@@ -1,5 +1,6 @@
 import type { z } from "zod";
 import type { Pagination } from "#/modules/common/shared/types.ts";
+import type { EmployeeDepartment } from "#/modules/departments/shared/types.ts";
 import type { User } from "#/modules/users/shared/types.ts";
 import type {
 	createEmployeeSchema,
@@ -34,6 +35,8 @@ export type Employee = {
 	// importados de otro sistema). En esas filas `id` es el id del USUARIO y
 	// no existe /employees/{id}: solo valen las acciones sobre la cuenta.
 	hasProfile?: boolean;
+	// Departamentos de la persona (listado y detalle).
+	departments?: EmployeeDepartment[];
 };
 
 export type EmployeeUser = {

@@ -13,6 +13,7 @@ import { PhoneInput } from "@/modules/common/components/ui/phone-input.tsx";
 import { Switch } from "@/modules/common/components/ui/switch.tsx";
 import { Textarea } from "@/modules/common/components/ui/textarea.tsx";
 import { todayIsoDate } from "@/modules/common/lib/validation.ts";
+import { EmployeeDepartmentsPicker } from "@/modules/departments/components/employee-departments-picker.tsx";
 import type {
 	EditEmployeeFormApi,
 	EmployeeWithUserFormApi,
@@ -26,9 +27,14 @@ import type {
 export function EmployeeFields({
 	form: incomingForm,
 	ciError,
+	canAssignDepartments = false,
+	departmentNames,
 }: {
 	form: EmployeeWithUserFormApi | EditEmployeeFormApi;
 	ciError?: string;
+	// Muestra el selector de departamentos (requiere departments:write).
+	canAssignDepartments?: boolean;
+	departmentNames?: Record<string, string>;
 }) {
 	// TS no permite renderizar <form.Field> sobre una unión de form APIs
 	// (TS2604: los genéricos de cada form producen componentes incompatibles).
@@ -233,6 +239,25 @@ export function EmployeeFields({
 						</Field>
 					)}
 				</form.Field>
+
+				{canAssignDepartments && (
+					<form.Field name="employee.departments">
+						{(field) => (
+							<Field className="md:col-span-2">
+								<FieldLabel>Departamentos</FieldLabel>
+								<FieldDescription>
+									Puede pertenecer a varios. Los administradores son jefes por
+									defecto; cámbialo en «Automático».
+								</FieldDescription>
+								<EmployeeDepartmentsPicker
+									value={field.state.value ?? []}
+									onChange={(next) => field.handleChange(next)}
+									knownNames={departmentNames}
+								/>
+							</Field>
+						)}
+					</form.Field>
+				)}
 
 				<form.Field name="employee.active">
 					{(field) => (

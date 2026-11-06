@@ -12,5 +12,6 @@ import { paginationQuerySchema } from "#/modules/common/lib/validation.ts";
 export const employeeFiltersSchema = paginationQuerySchema.extend({
 	search: z.string().max(100).optional(),
 	active: z.boolean().optional(),
+	departmentId: z.string().max(100).optional(),
 	...sortQuery(SORT_FIELDS.employees),
 });

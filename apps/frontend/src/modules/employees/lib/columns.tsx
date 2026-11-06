@@ -70,6 +70,30 @@ export function getEmployeeColumns({
 			),
 		},
 		{
+			id: "departments",
+			header: "Departamentos",
+			cell: ({ row }) => {
+				const departments = row.original.departments ?? [];
+				if (departments.length === 0) {
+					return <span className="text-muted-foreground">—</span>;
+				}
+				return (
+					<div className="flex flex-wrap gap-1">
+						{departments.map((d) => (
+							<Badge
+								key={d.id}
+								variant={d.isHead ? "default" : "secondary"}
+								className="font-normal"
+							>
+								{d.name}
+								{d.isHead && " · Jefe"}
+							</Badge>
+						))}
+					</div>
+				);
+			},
+		},
+		{
 			id: "email",
 			header: "Email",
 			meta: { sortKey: "email" },

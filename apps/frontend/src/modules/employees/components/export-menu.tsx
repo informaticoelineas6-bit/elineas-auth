@@ -15,7 +15,11 @@ import {
 import { useExportEmployees } from "@/modules/employees/queries/employees.ts";
 import type { EmployeeFilters } from "@/modules/employees/shared/types.ts";
 
-const FORMATS: { format: ExportFormat; label: string; icon: typeof FileText }[] = [
+const FORMATS: {
+	format: ExportFormat;
+	label: string;
+	icon: typeof FileText;
+}[] = [
 	{ format: "csv", label: "Exportar CSV", icon: FileText },
 	{ format: "json", label: "Exportar JSON", icon: FileJson },
 	{ format: "xlsx", label: "Exportar Excel", icon: FileSpreadsheet },

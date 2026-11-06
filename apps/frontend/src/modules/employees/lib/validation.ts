@@ -38,6 +38,17 @@ const employeeBaseSchema = z.object({
 	inDate: z.string().optional(),
 	outDate: z.string().optional(),
 	active: z.boolean().optional(),
+	// Conjunto completo de departamentos (reemplaza al actual). `isHead` omitido:
+	// jefe por defecto solo si la persona es admin.
+	departments: z
+		.array(
+			z.object({
+				departmentId: z.string().min(1),
+				isHead: z.boolean().optional(),
+			}),
+		)
+		.max(50)
+		.optional(),
 });
 
 // Genérica sobre `T` (no solo su Output) para no perder el tipo de entrada del

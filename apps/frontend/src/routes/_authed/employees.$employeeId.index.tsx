@@ -1,4 +1,3 @@
-import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { hasPermission } from "@elineas/auth-contracts";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
@@ -25,6 +24,7 @@ import {
 	reportError,
 } from "@/modules/common/lib/errors.ts";
 import { formatDate } from "@/modules/common/lib/format.ts";
+import { deferOnClient } from "@/modules/common/lib/query.ts";
 import { EmployeeRolesCard } from "@/modules/employees/components/employee-roles-card.tsx";
 import {
 	employeesQueries,
@@ -153,24 +153,27 @@ function EmployeeDetail({
 	}
 
 	function confirmDelete() {
-		deleteEmployee.mutate({ id: employee.id }, {
-			onSuccess: () => {
-				toast.success(`Usuario "${employee.name}" eliminado`);
-				navigate({ to: "/employees" });
+		deleteEmployee.mutate(
+			{ id: employee.id },
+			{
+				onSuccess: () => {
+					toast.success(`Usuario "${employee.name}" eliminado`);
+					navigate({ to: "/employees" });
+				},
+				onError: (error) => {
+					// Un 409 significa que el IS rechazó la eliminación (p. ej.
+					// intentar borrar tu propia cuenta): se explica con su mensaje.
+					if (getErrorStatus(error) === 409) {
+						toast.error("No se pudo eliminar el usuario", {
+							description: getErrorMessage(error),
+						});
+						setConfirming(null);
+					} else {
+						reportError(error);
+					}
+				},
 			},
-			onError: (error) => {
-				// Un 409 significa que el IS rechazó la eliminación (p. ej.
-				// intentar borrar tu propia cuenta): se explica con su mensaje.
-				if (getErrorStatus(error) === 409) {
-					toast.error("No se pudo eliminar el usuario", {
-						description: getErrorMessage(error),
-					});
-					setConfirming(null);
-				} else {
-					reportError(error);
-				}
-			},
-		});
+		);
 	}
 
 	return (
@@ -264,6 +267,25 @@ function EmployeeDetail({
 							<DetailItem
 								label="Fecha de baja"
 								value={formatDate(employee.outDate)}
+							/>
+							<DetailItem
+								label="Departamentos"
+								value={
+									employee.departments?.length ? (
+										<span className="flex flex-wrap gap-1">
+											{employee.departments.map((d) => (
+												<Badge
+													key={d.id}
+													variant={d.isHead ? "default" : "secondary"}
+													className="font-normal"
+												>
+													{d.name}
+													{d.isHead && " · Jefe"}
+												</Badge>
+											))}
+										</span>
+									) : null
+								}
 							/>
 							<DetailItem
 								label="Creado"
