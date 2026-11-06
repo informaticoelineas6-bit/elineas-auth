@@ -8,6 +8,7 @@ import {
 } from "@backend/db/business-schema.ts";
 import { db } from "@backend/db/index.ts";
 import { redis, redisCommand } from "@backend/lib/redis.ts";
+import { HttpError } from "@backend/lib/http.ts";
 import type { AppEnv } from "@backend/types/hono-env.ts";
 import { and, eq, or } from "drizzle-orm";
 import type { Context, Next } from "hono";
@@ -61,7 +62,7 @@ async function queryHasPermission(
   return Boolean(row);
 }
 
-async function hasPermission(
+export async function hasPermission(
   userId: string,
   systemSlug: string,
   resource: string,
@@ -133,4 +134,21 @@ export function requirePermission(
     }
     await next();
   };
+}
+
+// Asignar departamentos al crear/editar un empleado exige `departments:write`
+// además de `employees:write`: sin esto, quien solo edita empleados podría
+// reasignar departamentos y jefaturas llamando a la API directamente.
+export async function assertCanAssignDepartments(
+  userId: string,
+  departments: unknown,
+) {
+  if (departments === undefined) return;
+  if (!(await hasPermission(userId, env.ADMIN_SYSTEM_SLUG, "departments", "write"))) {
+    throw new HttpError(
+      403,
+      'Requiere el permiso "departments:write" para asignar departamentos',
+      "FORBIDDEN",
+    );
+  }
 }

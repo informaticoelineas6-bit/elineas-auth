@@ -1,5 +1,5 @@
 import { paginationMeta } from "@backend/lib/pagination.ts";
-import { requirePermission } from "@backend/middleware/permission.ts";
+import { assertCanAssignDepartments, requirePermission } from "@backend/middleware/permission.ts";
 import { requireSession } from "@backend/middleware/session.ts";
 import {
   CreateEmployeeBodySchema,
@@ -28,7 +28,7 @@ import {
   createEmployeeWithUser,
   deleteEmployee,
   deleteUserAccount,
-  getEmployee,
+  getEmployeeWithDepartments,
   listEmployees,
   updateEmployee,
 } from "@backend/services/employee.service.ts";
@@ -280,9 +280,14 @@ const employeesRoutesBase = new OpenAPIHono<AppEnv>();
 
 export const employeesRoutes = employeesRoutesBase
   .openapi(listRoute, async (c) => {
-    const { active, search, page, limit, sortBy, sortDir } = c.req.valid("query");
+    const { active, search, departmentId, page, limit, sortBy, sortDir } =
+      c.req.valid("query");
     const { rows, total } = await listEmployees(
-      { active: active === undefined ? undefined : active === "true", search },
+      {
+        active: active === undefined ? undefined : active === "true",
+        search,
+        departmentId,
+      },
       { page, limit },
       { sortBy, sortDir },
     );
@@ -293,16 +298,18 @@ export const employeesRoutes = employeesRoutesBase
   })
   .openapi(getRoute, async (c) => {
     const { id } = c.req.valid("param");
-    const employee = await getEmployee(id);
+    const employee = await getEmployeeWithDepartments(id);
     return c.json({ employee }, 200);
   })
   .openapi(createRouteDef, async (c) => {
     const body = c.req.valid("json");
+    await assertCanAssignDepartments(c.get("user").id, body.departments);
     const employee = await createEmployee(body);
     return c.json({ employee }, 201);
   })
   .openapi(createWithUserRoute, async (c) => {
     const body = c.req.valid("json");
+    await assertCanAssignDepartments(c.get("user").id, body.employee.departments);
     const result = await createEmployeeWithUser(body, c.req.raw.headers, c.get("user").id);
     return c.json(result, 201);
   })
@@ -315,6 +322,7 @@ export const employeesRoutes = employeesRoutesBase
   .openapi(updateRoute, async (c) => {
     const { id } = c.req.valid("param");
     const body = c.req.valid("json");
+    await assertCanAssignDepartments(c.get("user").id, body.departments);
     const employee = await updateEmployee(id, body);
     return c.json({ employee }, 200);
   })

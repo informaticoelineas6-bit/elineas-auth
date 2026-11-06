@@ -28,6 +28,7 @@ import {
   invalidateManageScope,
   scopeFilter,
 } from "@backend/services/system-admin.service.ts";
+import { promoteToHeadEverywhere } from "@backend/services/department.service.ts";
 import {
   createUserRole,
   deleteUserRole,
@@ -202,6 +203,8 @@ export const userRolesRoutes = userRolesRoutesBase
     const userRole = await createUserRole(body);
     if (targetRole.name === env.ADMIN_ROLE_NAME) {
       await invalidateManageScope(body.userId);
+      // Admin ⇒ jefe por defecto en los departamentos donde ya está.
+      await promoteToHeadEverywhere(body.userId);
     }
     return c.json({ userRole }, 201);
   })

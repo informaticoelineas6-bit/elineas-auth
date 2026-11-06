@@ -14,6 +14,20 @@ import {
 // diferencia importa: `$defaultFn` solo se aplica cuando el INSERT pasa por
 // drizzle, así que un INSERT manual o desde otra herramienta se quedaría sin id.
 
+// Departamento de la organización. Una persona puede pertenecer a varios
+// (tabla puente `employee_department`) y ser jefe de cada uno por separado.
+export const department = pgTable("department", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at")
+    .defaultNow()
+    .$onUpdate(() => /* @__PURE__ */ new Date())
+    .notNull(),
+});
+
 // Datos personales del empleado. Un empleado puede existir sin usuario
 // (aún no se le ha creado cuenta) y un usuario puede no estar ligado a
 // ningún empleado (cuentas de servicio/externas).
@@ -40,6 +54,31 @@ export const employee = pgTable(
       .notNull(),
   },
   (table) => [index("employee_userId_idx").on(table.userId)],
+);
+
+// Pertenencia empleado ↔ departamento (N:M). `isHead` marca al jefe de ESE
+// departamento; por defecto lo son los admin (se decide en el servicio).
+export const employeeDepartment = pgTable(
+  "employee_department",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    employeeId: uuid("employee_id")
+      .notNull()
+      .references(() => employee.id, { onDelete: "cascade" }),
+    departmentId: uuid("department_id")
+      .notNull()
+      .references(() => department.id, { onDelete: "cascade" }),
+    isHead: boolean("is_head").default(false).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("employeeDepartment_employeeId_idx").on(table.employeeId),
+    index("employeeDepartment_departmentId_idx").on(table.departmentId),
+    uniqueIndex("employeeDepartment_employeeId_departmentId_uidx").on(
+      table.employeeId,
+      table.departmentId,
+    ),
+  ],
 );
 
 // Un sistema es una aplicación/servicio de la organización sobre el cual

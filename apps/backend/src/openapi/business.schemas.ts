@@ -82,6 +82,10 @@ export const EmployeeSchema = z
     active: z.boolean(),
     createdAt: z.date(),
     updatedAt: z.date(),
+    // Departamentos: el listado y el detalle los incluyen; crear/actualizar no.
+    departments: z
+      .array(z.object({ id: z.uuid(), name: z.string(), isHead: z.boolean() }))
+      .optional(),
     // Cuenta de usuario enlazada. Solo la embebe el listado (para mostrar/buscar
     // por email en una sola vista); las respuestas de un empleado individual la
     // omiten, por eso es opcional. `null` cuando el empleado no tiene usuario.
@@ -101,6 +105,9 @@ export const EmployeeSchema = z
 // de fila) y no existe /employees/{id}.
 export const EmployeeListItemSchema = EmployeeSchema.extend({
   hasProfile: z.boolean(),
+  departments: z.array(
+    z.object({ id: z.uuid(), name: z.string(), isHead: z.boolean() }),
+  ),
 }).openapi("EmployeeListItem");
 
 export const CreateEmployeeBodySchema = z
@@ -119,6 +126,12 @@ export const CreateEmployeeBodySchema = z
     inDate: z.coerce.date().optional(),
     outDate: z.coerce.date().optional(),
     active: z.boolean().optional(),
+    // Reemplaza el conjunto de departamentos de la persona. `isHead` omitido:
+    // jefe por defecto solo si es admin.
+    departments: z
+      .array(z.object({ departmentId: z.uuid(), isHead: z.boolean().optional() }))
+      .max(50)
+      .optional(),
   })
   .openapi("CreateEmployeeBody");
 
@@ -127,6 +140,11 @@ export const UpdateEmployeeBodySchema =
 
 export const EmployeeListQuerySchema = PaginationQuerySchema.extend({
   ...sortQuery(SORT_FIELDS.employees),
+  // Solo personas que pertenecen a este departamento.
+  departmentId: z
+    .uuid()
+    .optional()
+    .openapi({ param: { name: "departmentId", in: "query", required: false } }),
   active: z
     .enum(["true", "false"])
     .optional()
@@ -220,7 +238,8 @@ export const UpdateManagedUserBodySchema = z
   .object({
     name: DisplayName.optional(),
     email: CompanyEmail.optional(),
-    employee: UpdateEmployeeBodySchema.omit({ userId: true }).optional(),
+    // Los departamentos no se delegan: solo con `departments:write`.
+    employee: UpdateEmployeeBodySchema.omit({ userId: true, departments: true }).optional(),
   })
   .openapi("UpdateManagedUserBody");
 
@@ -525,3 +544,95 @@ export const MyUserRolesQuerySchema = z.object({
       param: { name: "systemSlug", in: "query" },
     }),
 });
+
+// ---------------------------------------------------------------------------
+// Department
+// ---------------------------------------------------------------------------
+export const DepartmentSchema = z
+  .object({
+    id: z.uuid(),
+    name: z.string(),
+    description: z.string().nullable(),
+    active: z.boolean(),
+    createdAt: z.date(),
+    updatedAt: z.date(),
+  })
+  .openapi("Department");
+
+export const DepartmentListItemSchema = DepartmentSchema.extend({
+  memberCount: z.number().int(),
+}).openapi("DepartmentListItem");
+
+export const CreateDepartmentBodySchema = z
+  .object({
+    name: DisplayName.openapi({ example: "Almacén central" }),
+    description: Description.optional(),
+    active: z.boolean().optional(),
+  })
+  .openapi("CreateDepartmentBody");
+
+export const UpdateDepartmentBodySchema =
+  CreateDepartmentBodySchema.partial().openapi("UpdateDepartmentBody");
+
+// Alta múltiple: hasta 100 departamentos por petición.
+export const BulkCreateDepartmentsBodySchema = z
+  .object({
+    departments: z.array(CreateDepartmentBodySchema).min(1).max(100),
+  })
+  .openapi("BulkCreateDepartmentsBody");
+
+// Asignación múltiple de usuarios a un departamento.
+export const AddDepartmentMembersBodySchema = z
+  .object({
+    userIds: z.array(z.uuid()).min(1).max(200),
+    // Omitido: jefe solo quienes sean admin.
+    isDepartmentHead: z.boolean().optional(),
+  })
+  .openapi("AddDepartmentMembersBody");
+
+export const DepartmentListQuerySchema = PaginationQuerySchema.extend({
+  ...sortQuery(SORT_FIELDS.departments),
+  active: z
+    .enum(["true", "false"])
+    .optional()
+    .openapi({ param: { name: "active", in: "query", required: false } }),
+  search: SearchTerm.optional().openapi({
+    param: { name: "search", in: "query", required: false },
+  }),
+});
+
+export const BulkCreateDepartmentsResultSchema = z
+  .object({
+    created: z.array(DepartmentSchema),
+    skipped: z.array(z.string()).openapi({
+      description: "Nombres omitidos por estar repetidos o ya existir",
+    }),
+  })
+  .openapi("BulkCreateDepartmentsResult");
+
+export const DepartmentMemberSchema = z
+  .object({
+    employeeId: z.uuid(),
+    userId: z.uuid().nullable(),
+    name: z.string(),
+    lastName: z.string(),
+    email: z.string().nullable(),
+    isHead: z.boolean(),
+  })
+  .openapi("DepartmentMember");
+
+export const AddDepartmentMembersResultSchema = z
+  .object({
+    added: z.array(z.uuid()),
+    skipped: z.array(z.uuid()).openapi({ description: "Ya eran miembros" }),
+  })
+  .openapi("AddDepartmentMembersResult");
+
+export const DepartmentMemberParamSchema = z.object({
+  id: z.uuid().openapi({ param: { name: "id", in: "path" } }),
+  employeeId: z.uuid().openapi({ param: { name: "employeeId", in: "path" } }),
+});
+
+export const SetDepartmentMemberHeadBodySchema = z
+  .object({ isHead: z.boolean() })
+  .openapi("SetDepartmentMemberHeadBody");

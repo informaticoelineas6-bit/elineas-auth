@@ -18,6 +18,7 @@ export const SORT_FIELDS = {
     "active",
     "createdAt",
   ],
+  departments: ["name", "description", "active", "members", "createdAt"],
   roles: ["name", "system", "description", "createdAt"],
   systems: ["name", "slug", "description", "active", "createdAt"],
   sessions: [

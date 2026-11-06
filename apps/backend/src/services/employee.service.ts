@@ -1,13 +1,17 @@
-import { and, count, eq, ilike, isNull, ne, or, sql } from "drizzle-orm";
+import { and, count, eq, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
 import { z } from "@hono/zod-openapi";
 import { db } from "@backend/db/index.ts";
-import { employee } from "@backend/db/business-schema.ts";
+import { department, employee, employeeDepartment } from "@backend/db/business-schema.ts";
 import { user } from "@backend/db/auth-schema.ts";
 import { auth } from "@backend/lib/auth.ts";
 import {
   invalidateUserActiveCache,
   revokeAllUserSessions,
 } from "@backend/lib/user-active.ts";
+import {
+  getEmployeeDepartments,
+  setEmployeeDepartments,
+} from "@backend/services/department.service.ts";
 import { HttpError } from "@backend/lib/http.ts";
 import { enqueueAccountInvite, generateInitialPassword } from "@backend/lib/invite.ts";
 import { queryIsAdmin } from "@backend/middleware/admin.ts";
@@ -30,7 +34,7 @@ type CreateEmployeeWithUserInput = z.infer<typeof CreateEmployeeWithUserBodySche
 // como clave de fila; no existe /employees/{id}) y nombre/estado salen de la
 // cuenta. Las fichas sin cuenta siguen apareciendo (FULL JOIN).
 export async function listEmployees(
-  filters: { active?: boolean; search?: string },
+  filters: { active?: boolean; search?: string; departmentId?: string },
   pagination: PaginationInput,
   sort?: SortInput<
     "name" | "email" | "ci" | "phoneNumber" | "inDate" | "outDate" | "active" | "createdAt"
@@ -42,6 +46,15 @@ export async function listEmployees(
 
   const conditions = [
     filters.active === undefined ? undefined : sql`${active} = ${filters.active}`,
+    filters.departmentId
+      ? inArray(
+          employee.id,
+          db
+            .select({ id: employeeDepartment.employeeId })
+            .from(employeeDepartment)
+            .where(eq(employeeDepartment.departmentId, filters.departmentId)),
+        )
+      : undefined,
     filters.search
       ? (() => {
           const term = `%${escapeLike(filters.search)}%`;
@@ -103,15 +116,42 @@ export async function listEmployees(
       .where(where),
   ]);
 
+  // Departamentos de las fichas de esta página (una sola consulta extra).
+  const employeeIds = rows.flatMap((r) => (r.employeeId ? [r.employeeId] : []));
+  const memberships = employeeIds.length
+    ? await db
+        .select({
+          employeeId: employeeDepartment.employeeId,
+          id: department.id,
+          name: department.name,
+          isHead: employeeDepartment.isHead,
+        })
+        .from(employeeDepartment)
+        .innerJoin(department, eq(employeeDepartment.departmentId, department.id))
+        .where(inArray(employeeDepartment.employeeId, employeeIds))
+        .orderBy(department.name)
+    : [];
+  const byEmployee = new Map<string, { id: string; name: string; isHead: boolean }[]>();
+  for (const { employeeId, ...m } of memberships) {
+    byEmployee.set(employeeId, [...(byEmployee.get(employeeId) ?? []), m]);
+  }
+
   // FULL JOIN: `user` llega con campos null cuando la ficha no tiene cuenta.
   const normalized = rows.map(({ employeeId, ...row }) => ({
     ...row,
+    departments: (employeeId && byEmployee.get(employeeId)) || [],
     id: employeeId ?? row.user?.id ?? "",
     hasProfile: employeeId !== null,
     user: row.user?.id ? row.user : null,
   }));
 
   return { rows: normalized, total };
+}
+
+// Ficha + sus departamentos (para el detalle/edición).
+export async function getEmployeeWithDepartments(id: string) {
+  const row = await getEmployee(id);
+  return { ...row, departments: await getEmployeeDepartments(id) };
 }
 
 export async function getEmployee(id: string) {
@@ -137,7 +177,9 @@ export async function createEmployee(input: CreateEmployeeInput) {
     }
   }
 
-  const [row] = await db.insert(employee).values(input).returning();
+  const { departments, ...data } = input;
+  const [row] = await db.insert(employee).values(data).returning();
+  if (departments) await setEmployeeDepartments(row.id, row.userId, departments);
   return row;
 }
 
@@ -193,10 +235,12 @@ export async function createEmployeeWithUser(
   });
 
   try {
+    const { departments, ...employeeData } = input.employee;
     const [row] = await db
       .insert(employee)
-      .values({ ...input.employee, userId: response.user.id })
+      .values({ ...employeeData, userId: response.user.id })
       .returning();
+    if (departments) await setEmployeeDepartments(row.id, row.userId, departments);
     // La invitación se envía solo cuando el alta completa (usuario + empleado)
     // tuvo éxito: si el insert falla, el usuario se compensa/borra y no debe
     // recibir aviso. Va a una cola serializada (sin await): un fallo del correo
@@ -269,8 +313,13 @@ export async function createAccountForEmployee(
   }
 }
 
-export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
-  if (Object.keys(input).length === 0) return getEmployee(id);
+export async function updateEmployee(id: string, fullInput: UpdateEmployeeInput) {
+  const { departments, ...input } = fullInput;
+  if (Object.keys(input).length === 0) {
+    const current = await getEmployee(id);
+    if (departments) await setEmployeeDepartments(id, current.userId, departments);
+    return current;
+  }
 
   // Mismo pre-chequeo que en el alta, excluyendo el propio registro (si no,
   // guardar sin cambiar el CI chocaría contra sí mismo).
@@ -291,6 +340,7 @@ export async function updateEmployee(id: string, input: UpdateEmployeeInput) {
     .where(eq(employee.id, id))
     .returning();
   if (!row) throw new HttpError(404, "Empleado no encontrado", "NOT_FOUND");
+  if (departments) await setEmployeeDepartments(id, row.userId, departments);
   await invalidateUserActiveCache(row.userId);
   // Desactivar corta el acceso ya: se cierran sus sesiones abiertas.
   if (input.active === false && row.userId) {

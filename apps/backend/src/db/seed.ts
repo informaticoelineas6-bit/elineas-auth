@@ -181,6 +181,17 @@ const PERMISSION_CATALOG: Array<{
     action: "delete",
     description: "Eliminar empleados",
   },
+  { resource: "departments", action: "read", description: "Ver departamentos" },
+  {
+    resource: "departments",
+    action: "write",
+    description: "Crear/editar departamentos y sus miembros",
+  },
+  {
+    resource: "departments",
+    action: "delete",
+    description: "Eliminar departamentos",
+  },
   {
     resource: "sessions",
     action: "read",
@@ -234,6 +245,9 @@ const EXAMPLE_ROLES: Array<{
       ["employees", "read"],
       ["employees", "write"],
       ["employees", "delete"],
+      ["departments", "read"],
+      ["departments", "write"],
+      ["departments", "delete"],
     ],
   },
   {

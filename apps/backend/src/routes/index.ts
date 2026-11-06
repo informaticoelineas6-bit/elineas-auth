@@ -1,5 +1,6 @@
 import { authRoutes } from "@backend/routes/auth.routes.ts";
 import { databaseRoutes } from "@backend/routes/database.routes.ts";
+import { departmentsRoutes } from "@backend/routes/departments.routes.ts";
 import { employeesRoutes } from "@backend/routes/employees.routes.ts";
 import { permissionsRoutes } from "@backend/routes/permissions.routes.ts";
 import { requestLogsRoutes } from "@backend/routes/request-logs.routes.ts";
@@ -30,6 +31,7 @@ export function registerRoutes(app: OpenAPIHono<AppEnv>) {
     .route("/api/sessions", sessionsRoutes)
     .route("/api/sessions/admin", sessionsAdminRoutes)
     .route("/api/employees", employeesRoutes)
+    .route("/api/departments", departmentsRoutes)
     .route("/api/systems", systemsRoutes)
     .route("/api/roles", rolesRoutes)
     .route("/api/user-roles", userRolesRoutes)
